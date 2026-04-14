@@ -1,0 +1,377 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Development|x64">
+      <Configuration>Development</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{5ce65bc6-8ad5-472c-a6e3-be7d4fd16f93}</ProjectGuid>
+    <RootNamespace>CG2</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(SolutionDir)..\generated\obj\$(ProjectName)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\generated\outputs\$(Configuration)\</OutDir>
+    <IncludePath>$(SolutionDir)\externals\DirectXTex;$(SolutionDir)\externals\imgui;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
+    <IntDir>$(SolutionDir)..\generated\obj\$(ProjectName)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\generated\outputs\$(Configuration)\</OutDir>
+    <IncludePath>$(SolutionDir)\externals\DirectXTex;$(SolutionDir)\externals\imgui;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(SolutionDir)..\generated\obj\$(ProjectName)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)..\generated\outputs\$(Configuration)\</OutDir>
+    <IncludePath>$(SolutionDir)\externals\DirectXTex;$(SolutionDir)\externals\imgui;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;USE_IMGUI;DRAW_LINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 /D _AMD64_ %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>$(ProjectDir)externals\assimp\include;$(ProjectDir)engine\Include\Asset;$(ProjectDir)engine\Include\Component;$(ProjectDir)engine\Include\Core;$(ProjectDir)game\Include\System;$(ProjectDir)engine\Include\MapChip;$(ProjectDir)engine\Include\Math;$(ProjectDir)engine\Include\Math\Matrix;$(ProjectDir)engine\Include\Math\Vector;$(ProjectDir)engine\Include\Rendering;$(ProjectDir)engine\Include\Rendering\Buffer;$(ProjectDir)engine\Include\Scene;$(ProjectDir)engine\Include\System;$(ProjectDir)engine\Include\Utilities;$(ProjectDir)game\Include\Scene;%(AdditionalIncludeDirectories);$(ProjectDir)game\Include\Object;$(ProjectDir)engine\Include\Physics;$(ProjectDir)game\Include\UI;$(ProjectDir)engine\Include\Rendering\DebugRenderer;$(ProjectDir)game\Include\Scene\Phase;$(ProjectDir)game\Include\Object\Player\Behavior;$(ProjectDir)game\Include\Object\Player;$(ProjectDir)game\Include\Object\Player\Behavior\AttackBehavior;$(ProjectDir)game\Include\Scene\GameScene;$(ProjectDir)game\Include\Scene\GameScene\Phase;$(ProjectDir)game\Include\Scene\TitleScene;$(ProjectDir)game\Include\Scene\TitleScene\Phase</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\generated\outputs\$(Configuration)\;$(ProjectDir)externals\assimp\lib\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp-vc143-mtd.lib;%(AdditionalDependencies);imgui.lib</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
+copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 /D _AMD64_ %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir)externals\assimp\include;$(ProjectDir)engine\Include\Asset;$(ProjectDir)engine\Include\Component;$(ProjectDir)engine\Include\Core;$(ProjectDir)game\Include\System;$(ProjectDir)engine\Include\Culling;$(ProjectDir)engine\Include\MapChip;$(ProjectDir)engine\Include\Math;$(ProjectDir)engine\Include\Math\Matrix;$(ProjectDir)engine\Include\Math\Vector;$(ProjectDir)engine\Include\Rendering;$(ProjectDir)engine\Include\Rendering\Buffer;$(ProjectDir)engine\Include\Rendering\Drawer;$(ProjectDir)engine\Include\Scene;$(ProjectDir)engine\Include\System;$(ProjectDir)engine\Include\Utilities;%(AdditionalIncludeDirectories);$(ProjectDir)game\Include\Scene;$(ProjectDir)game\Include\Object;$(ProjectDir)engine\Include\Physics;$(ProjectDir)game\Include\UI;$(ProjectDir)engine\Include\Rendering\DebugRenderer;$(ProjectDir)game\Include\Scene\Phase;$(ProjectDir)game\Include\Object\Player\Behavior;$(ProjectDir)game\Include\Object\Player;$(ProjectDir)game\Include\Object\Player\Behavior\AttackBehavior;$(ProjectDir)game\Include\Scene\GameScene;$(ProjectDir)game\Include\Scene\GameScene\Phase;$(ProjectDir)game\Include\Scene\TitleScene;$(ProjectDir)game\Include\Scene\TitleScene\Phase</AdditionalIncludeDirectories>
+      <Optimization>MinSpace</Optimization>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\generated\outputs\$(Configuration)\;$(ProjectDir)externals\assimp\lib\Release</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
+copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_WINDOWS;USE_IMGUI;DRAW_LINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 /D _AMD64_ %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(ProjectDir)externals\assimp\include;$(ProjectDir)engine\Include\Asset;$(ProjectDir)engine\Include\Component;$(ProjectDir)engine\Include\Core;$(ProjectDir)game\Include\System;$(ProjectDir)engine\Include\Culling;$(ProjectDir)engine\Include\MapChip;$(ProjectDir)engine\Include\Math;$(ProjectDir)engine\Include\Math\Matrix;$(ProjectDir)engine\Include\Math\Vector;$(ProjectDir)engine\Include\Rendering;$(ProjectDir)engine\Include\Rendering\Buffer;$(ProjectDir)engine\Include\Rendering\Drawer;$(ProjectDir)engine\Include\Scene;$(ProjectDir)engine\Include\System;$(ProjectDir)engine\Include\Utilities;%(AdditionalIncludeDirectories);$(ProjectDir)game\Include\Scene;$(ProjectDir)game\Include\Object;$(ProjectDir)engine\Include\Physics;$(ProjectDir)game\Include\UI;$(ProjectDir)engine\Include\Rendering\DebugRenderer;$(ProjectDir)game\Include\Scene\Phase;$(ProjectDir)game\Include\Object\Player\Behavior;$(ProjectDir)game\Include\Object\Player;$(ProjectDir)game\Include\Object\Player\Behavior\AttackBehavior;$(ProjectDir)game\Include\Scene\GameScene;$(ProjectDir)game\Include\Scene\GameScene\Phase;$(ProjectDir)game\Include\Scene\TitleScene;$(ProjectDir)game\Include\Scene\TitleScene\Phase</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\generated\outputs\$(Configuration)\;$(ProjectDir)externals\assimp\lib\Release</AdditionalLibraryDirectories>
+      <AdditionalDependencies>assimp-vc143-mt.lib;%(AdditionalDependencies);imgui.lib</AdditionalDependencies>
+      <LinkTimeCodeGeneration />
+    </Link>
+    <PostBuildEvent>
+      <Command>copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"
+copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="engine\Source\Component\BlendMode.cpp" />
+    <ClCompile Include="game\Source\Object\Button.cpp" />
+    <ClCompile Include="game\Source\Object\AngelStatue.cpp" />
+    <ClCompile Include="game\Source\Object\Building.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer.cpp" />
+    <ClCompile Include="engine\Source\Component\Animation.cpp" />
+    <ClCompile Include="engine\Source\Component\Object.cpp" />
+    <ClCompile Include="engine\Source\Component\UVTransform.cpp" />
+    <ClCompile Include="engine\Source\Scene\BitmapFont.cpp" />
+    <ClCompile Include="engine\Source\Component\Footprint.cpp" />
+    <ClCompile Include="engine\Source\Component\SpotLight.cpp" />
+    <ClCompile Include="engine\Source\Scene\Text.cpp" />
+    <ClCompile Include="game\Source\Object\Player\Behavior\AttackBehavior\PlayerAttackBehaviorEnd.cpp" />
+    <ClCompile Include="game\Source\Object\Player\Behavior\AttackBehavior\PlayerAttackBehaviorStart.cpp" />
+    <ClCompile Include="game\Source\Object\Player\Behavior\AttackBehavior\PlayerAttackBehaviorSwing.cpp" />
+    <ClCompile Include="game\Source\Object\Player\Behavior\PlayerBehaviorJump.cpp" />
+    <ClCompile Include="game\Source\Object\Player\Behavior\PlayerBehaviorRoot.cpp" />
+    <ClCompile Include="game\Source\Object\Player\Behavior\PlayerBehaviorDash.cpp" />
+    <ClCompile Include="game\Source\Object\Player\Behavior\PlayerBehaviorAttack.cpp" />
+    <ClCompile Include="game\Source\Object\ArmParticle.cpp" />
+    <ClCompile Include="game\Source\Object\DeathParticle.cpp" />
+    <ClCompile Include="game\Source\Object\Enemy.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\Capsule.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\OBB.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\Plane.cpp" />
+    <ClCompile Include="engine\Source\Component\Particle.cpp" />
+    <ClCompile Include="engine\Source\Math\MathUtility.cpp" />
+    <ClCompile Include="engine\Source\Rendering\Buffer\World.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\AABB.cpp" />
+    <ClCompile Include="engine\Source\Component\Transform.cpp" />
+    <ClCompile Include="engine\Source\Component\DirectionalLight.cpp" />
+    <ClCompile Include="engine\Source\Component\Material.cpp" />
+    <ClCompile Include="engine\Source\Core\Application.cpp" />
+    <ClCompile Include="engine\Source\Core\Audio.cpp" />
+    <ClCompile Include="engine\Source\Core\Device.cpp" />
+    <ClCompile Include="engine\Source\Core\Input.cpp" />
+    <ClCompile Include="engine\Source\Core\Window.cpp" />
+    <ClCompile Include="engine\Source\Math\Collision.cpp" />
+    <ClCompile Include="engine\Source\Math\Matrix\Matrix3x3.cpp" />
+    <ClCompile Include="engine\Source\Math\Matrix\Matrix4x4.cpp" />
+    <ClCompile Include="engine\Source\Math\PerlinNoise.cpp" />
+    <ClCompile Include="engine\Source\Math\Vector\Vector2.cpp" />
+    <ClCompile Include="engine\Source\Math\Vector\Vector3.cpp" />
+    <ClCompile Include="engine\Source\Math\Vector\Vector4.cpp" />
+    <ClCompile Include="engine\Source\Rendering\Buffer\ConstantBuffer.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DescriptorHeap.cpp" />
+    <ClCompile Include="engine\Source\Rendering\Buffer\IndexBuffer.cpp" />
+    <ClCompile Include="engine\Source\Component\Model.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PipelineState.cpp" />
+    <ClCompile Include="engine\Source\Rendering\Renderer.cpp" />
+    <ClCompile Include="engine\Source\Rendering\Buffer\Resource.cpp" />
+    <ClCompile Include="engine\Source\Rendering\RootSignature.cpp" />
+    <ClCompile Include="engine\Source\Component\Sprite.cpp" />
+    <ClCompile Include="engine\Source\Asset\Texture.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Development|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="engine\Source\Rendering\Buffer\VertexBuffer.cpp" />
+    <ClCompile Include="engine\Source\Scene\BaseScene.cpp" />
+    <ClCompile Include="engine\Source\Component\Camera.cpp" />
+    <ClCompile Include="engine\Source\Scene\DebugCamera.cpp" />
+    <ClCompile Include="engine\Source\Scene\Fade.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\Grid.cpp" />
+    <ClCompile Include="engine\Source\MapChip\MapChipCollisionManager.cpp" />
+    <ClCompile Include="engine\Source\MapChip\MapChipField.cpp" />
+    <ClCompile Include="engine\Source\Scene\SceneManager.cpp" />
+    <ClCompile Include="engine\Source\Utilities\D3DResourceLeakChecker.cpp" />
+    <ClCompile Include="engine\Source\Utilities\ImGuiManager.cpp" />
+    <ClCompile Include="engine\Source\Utilities\Logger.cpp" />
+    <ClCompile Include="engine\Source\Utilities\StringConverter.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\Frustum.cpp" />
+    <ClCompile Include="game\Source\Scene\GameScene\GameScene.cpp" />
+    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhaseClear.cpp" />
+    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhaseClearFadeIn.cpp" />
+    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhaseClearFadeOut.cpp" />
+    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhaseDeath.cpp" />
+    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhasePlay.cpp" />
+    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhasePlayFadeIn.cpp" />
+    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhasePlayFadeOut.cpp" />
+    <ClCompile Include="game\Source\Scene\SampleScene.cpp" />
+    <ClCompile Include="game\Source\Object\Ground.cpp" />
+    <ClCompile Include="game\Source\System\CameraController.cpp" />
+    <ClCompile Include="engine\Source\Component\IndirectCommand.cpp" />
+    <ClCompile Include="main.cpp">
+      <Optimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">MaxSpeed</Optimization>
+      <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">true</WholeProgramOptimization>
+    </ClCompile>
+    <ClCompile Include="engine\Source\Asset\Mesh.cpp" />
+    <ClCompile Include="game\Source\Object\Player\Player.cpp" />
+    <ClCompile Include="engine\Source\Physics\RigidBody.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\Sphere.cpp" />
+    <ClCompile Include="game\Source\Object\Skydome.cpp" />
+    <ClCompile Include="game\Source\Object\AttackParticle.cpp" />
+    <ClCompile Include="engine\Source\Component\PointLight.cpp" />
+    <ClCompile Include="engine\Source\Math\Quaternion.cpp" />
+    <ClCompile Include="game\Source\Object\Wall.cpp" />
+    <ClCompile Include="game\Source\Scene\TitleScene\TitleScene.cpp" />
+    <ClCompile Include="game\Source\Scene\TitleScene\Phase\TitleScenePhaseFadeIn.cpp" />
+    <ClCompile Include="game\Source\Scene\TitleScene\Phase\TitleScenePhaseFadeOut.cpp" />
+    <ClCompile Include="game\Source\Scene\TitleScene\Phase\TitleScenePhaseMain.cpp" />
+    <ClCompile Include="game\Source\Object\Title.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
+    <ClInclude Include="game\Include\Object\Button.h" />
+    <ClInclude Include="game\Include\Object\AngelStatue.h" />
+    <ClInclude Include="game\Include\Object\Building.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer.h" />
+    <ClInclude Include="engine\Include\Component\Animation.h" />
+    <ClInclude Include="engine\Include\Component\Object.h" />
+    <ClInclude Include="engine\Include\Component\UVTransform.h" />
+    <ClInclude Include="engine\Include\Scene\BitmapFont.h" />
+    <ClInclude Include="engine\Include\Component\Footprint.h" />
+    <ClInclude Include="engine\Include\Component\FootprintMap.h" />
+    <ClInclude Include="engine\Include\Component\SpotLight.h" />
+    <ClInclude Include="engine\Include\Component\BlendMode.h" />
+    <ClInclude Include="engine\Include\Scene\Text.h" />
+    <ClInclude Include="game\Include\Object\ArmParticle.h" />
+    <ClInclude Include="game\Include\Object\DeathParticle.h" />
+    <ClInclude Include="game\Include\Object\Enemy.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\Capsule.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\OBB.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\Plane.h" />
+    <ClInclude Include="game\Include\Object\Player\Behavior\AttackBehavior\BasePlayerAttackBehavior.h" />
+    <ClInclude Include="game\Include\Object\Player\Behavior\AttackBehavior\PlayerAttackBehaviorEnd.h" />
+    <ClInclude Include="game\Include\Object\Player\Behavior\AttackBehavior\PlayerAttackBehaviorStart.h" />
+    <ClInclude Include="game\Include\Object\Player\Behavior\AttackBehavior\PlayerAttackBehaviorSwing.h" />
+    <ClInclude Include="game\Include\Object\Player\Behavior\BasePlayerBehavior.h" />
+    <ClInclude Include="game\Include\Object\Player\Behavior\PlayerBehaviorAttack.h" />
+    <ClInclude Include="game\Include\Object\Player\Behavior\PlayerBehaviorDash.h" />
+    <ClInclude Include="game\Include\Object\Player\Behavior\PlayerBehaviorJump.h" />
+    <ClInclude Include="game\Include\Object\Player\Behavior\PlayerBehaviorRoot.h" />
+    <ClInclude Include="game\Include\Scene\GameScene\Phase\BaseGameScenePhase.h" />
+    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhaseClear.h" />
+    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhaseClearFadeIn.h" />
+    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhaseClearFadeOut.h" />
+    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhaseDeath.h" />
+    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhasePlay.h" />
+    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhasePlayFadeIn.h" />
+    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhasePlayFadeOut.h" />
+    <ClInclude Include="game\Include\Scene\TitleScene\Phase\BaseTitleScenePhase.h" />
+    <ClInclude Include="game\Include\System\CameraController.h" />
+    <ClInclude Include="engine\Include\Component\Particle.h" />
+    <ClInclude Include="engine\Include\Math\MathUtility.h" />
+    <ClInclude Include="engine\Include\Rendering\Buffer\World.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\AABB.h" />
+    <ClInclude Include="engine\Include\Asset\VertexData.h" />
+    <ClInclude Include="engine\Include\Component\DirectionalLight.h" />
+    <ClInclude Include="engine\Include\Component\Material.h" />
+    <ClInclude Include="engine\Include\Component\Transform.h" />
+    <ClInclude Include="engine\Include\Core\Application.h" />
+    <ClInclude Include="engine\Include\Core\Audio.h" />
+    <ClInclude Include="engine\Include\Core\Device.h" />
+    <ClInclude Include="engine\Include\Core\Input.h" />
+    <ClInclude Include="engine\Include\Core\Window.h" />
+    <ClInclude Include="engine\Include\Math\Collision.h" />
+    <ClInclude Include="engine\Include\Math\Easing.h" />
+    <ClInclude Include="engine\Include\Math\Matrix\Matrix3x3.h" />
+    <ClInclude Include="engine\Include\Math\Matrix\Matrix4x4.h" />
+    <ClInclude Include="engine\Include\Math\PerlinNoise.h" />
+    <ClInclude Include="engine\Include\Math\Random.h" />
+    <ClInclude Include="engine\Include\Math\Vector\Vector2.h" />
+    <ClInclude Include="engine\Include\Math\Vector\Vector3.h" />
+    <ClInclude Include="engine\Include\Math\Vector\Vector4.h" />
+    <ClInclude Include="engine\Include\Rendering\Buffer\ConstantBuffer.h" />
+    <ClInclude Include="engine\Include\Rendering\DescriptorHeap.h" />
+    <ClInclude Include="engine\Include\Rendering\Buffer\IndexBuffer.h" />
+    <ClInclude Include="engine\Include\Component\Model.h" />
+    <ClInclude Include="engine\Include\Rendering\PipelineState.h" />
+    <ClInclude Include="engine\Include\Rendering\Renderer.h" />
+    <ClInclude Include="engine\Include\Rendering\Buffer\Resource.h" />
+    <ClInclude Include="engine\Include\Rendering\RootSignature.h" />
+    <ClInclude Include="engine\Include\Component\Sprite.h" />
+    <ClInclude Include="engine\Include\Asset\Texture.h" />
+    <ClInclude Include="engine\Include\Rendering\Buffer\VertexBuffer.h" />
+    <ClInclude Include="engine\Include\Scene\BaseScene.h" />
+    <ClInclude Include="engine\Include\Component\Camera.h" />
+    <ClInclude Include="engine\Include\Scene\DebugCamera.h" />
+    <ClInclude Include="engine\Include\Scene\Fade.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\Grid.h" />
+    <ClInclude Include="engine\Include\MapChip\MapChipCollider.h" />
+    <ClInclude Include="engine\Include\MapChip\MapChipCollisionManager.h" />
+    <ClInclude Include="engine\Include\MapChip\MapChipField.h" />
+    <ClInclude Include="engine\Include\Scene\SceneManager.h" />
+    <ClInclude Include="engine\Include\System\EntityComponentSystem.h" />
+    <ClInclude Include="engine\Include\Utilities\D3DResourceLeakChecker.h" />
+    <ClInclude Include="engine\Include\Utilities\ImGuiManager.h" />
+    <ClInclude Include="engine\Include\Utilities\Logger.h" />
+    <ClInclude Include="engine\Include\Utilities\StringConverter.h" />
+    <ClInclude Include="engine\Include\Asset\Mesh.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\Frustum.h" />
+    <ClInclude Include="game\Include\Scene\GameScene\GameScene.h" />
+    <ClInclude Include="game\Include\Scene\SampleScene.h" />
+    <ClInclude Include="game\Include\Object\Player\Player.h" />
+    <ClInclude Include="engine\Include\Physics\RigidBody.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\Sphere.h" />
+    <ClInclude Include="game\Include\Object\Ground.h" />
+    <ClInclude Include="game\Include\Object\Skydome.h" />
+    <ClInclude Include="game\Include\Object\AttackParticle.h" />
+    <ClInclude Include="engine\Include\Component\PointLight.h" />
+    <ClInclude Include="engine\Include\Math\Quaternion.h" />
+    <ClInclude Include="engine\Include\Component\IndirectCommand.h" />
+    <ClInclude Include="game\Include\Object\Wall.h" />
+    <ClInclude Include="game\Include\Scene\TitleScene\TitleScene.h" />
+    <ClInclude Include="game\Include\Scene\TitleScene\Phase\TitleScenePhaseFadeIn.h" />
+    <ClInclude Include="game\Include\Scene\TitleScene\Phase\TitleScenePhaseFadeOut.h" />
+    <ClInclude Include="game\Include\Scene\TitleScene\Phase\TitleScenePhaseMain.h" />
+    <ClInclude Include="game\Include\Object\Title.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">
+      <Project>{371b9fa9-4c90-4ac6-a123-aced756d6c77}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

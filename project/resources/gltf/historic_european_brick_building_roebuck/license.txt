@@ -1,0 +1,8 @@
+Model Information:
+* title:	Historic European Brick Building, Roebuck
+* source:	https://sketchfab.com/3d-models/historic-european-brick-building-roebuck-327d2c1c03254832979cd5a99e9f1dc3
+* author:	abhayexe (https://sketchfab.com/abhayexe)
+
+Model License:
+* license type:	SKETCHFAB Standard (https://sketchfab.com/licenses)
+* requirements:	Under basic restrictions, use worldwide, on all types of media, commercially or not, and in all types of derivative works

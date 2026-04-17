@@ -5,18 +5,18 @@ on:
       - master
 env:
   # リポジトリのルートディレクトリを基点としたソリューションファイルのパス
-  SOLUTION_FILE_PATH: project/CG2.sln
+  SOLUTION_FILE_PATH: project/WonderEngine.slnx
   # Visual Studio の構成(Debug / Release)
   CONFIGURATION: Debug
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-2025-vs2026
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
         with:
           msbuild-architecture: x64
       - name: Build

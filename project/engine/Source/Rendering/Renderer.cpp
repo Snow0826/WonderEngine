@@ -23,8 +23,8 @@
 
 Renderer::Renderer(Device *device)
 	: device_(device)
-	, gpuCbvSrvUavDescriptorHeap_(device->GetGpuCbvSrvUavDescriptorHeap_())
-	, cpuCbvSrvUavDescriptorHeap_(device->GetCpuCbvSrvUavDescriptorHeap_())
+	, gpuCbvSrvUavDescriptorHeap_(device->GetGpuCbvSrvUavDescriptorHeap())
+	, cpuCbvSrvUavDescriptorHeap_(device->GetCpuCbvSrvUavDescriptorHeap())
 	, commandList_(device->GetCommandList())
 	, object3dRootSignature_(device->GetObject3dRootSignature())
 	, instance3dRootSignature_(device->GetInstance3dRootSignature())

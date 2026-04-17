@@ -46,8 +46,8 @@ uint32_t TextureManager::LoadTexture(const std::string &fileName) {
 	srvDesc.Texture2D.PlaneSlice = 0;											// プレーンスライス
 
 	// SRVの作成
-	texture->readHandle = device_->GetGpuCbvSrvUavDescriptorHeap_()->AllocateDescriptor();
-	device_->GetGpuCbvSrvUavDescriptorHeap_()->CreateShaderResourceView(texture->resource->GetResource(), srvDesc, texture->readHandle);
+	texture->readHandle = device_->GetGpuCbvSrvUavDescriptorHeap()->AllocateDescriptor();
+	device_->GetGpuCbvSrvUavDescriptorHeap()->CreateShaderResourceView(texture->resource->GetResource(), srvDesc, texture->readHandle);
 	Logger::Log(*logStream_, "Created SRV for texture: " + std::to_string(texture->readHandle) + "\n");
 
 	if (metadata.format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB ||
@@ -64,9 +64,9 @@ uint32_t TextureManager::LoadTexture(const std::string &fileName) {
 		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;	// テクスチャ2D
 
 		// UAVの作成
-		texture->writeHandle = device_->GetGpuCbvSrvUavDescriptorHeap_()->AllocateDescriptor();
-		device_->GetGpuCbvSrvUavDescriptorHeap_()->CreateUnorderedAccessView(texture->resource->GetResource(), uavDesc, texture->writeHandle);
-		device_->GetCpuCbvSrvUavDescriptorHeap_()->CreateUnorderedAccessView(texture->resource->GetResource(), uavDesc, texture->writeHandle);
+		texture->writeHandle = device_->GetGpuCbvSrvUavDescriptorHeap()->AllocateDescriptor();
+		device_->GetGpuCbvSrvUavDescriptorHeap()->CreateUnorderedAccessView(texture->resource->GetResource(), uavDesc, texture->writeHandle);
+		device_->GetCpuCbvSrvUavDescriptorHeap()->CreateUnorderedAccessView(texture->resource->GetResource(), uavDesc, texture->writeHandle);
 		Logger::Log(*logStream_, "Created UAV for texture: " + std::to_string(texture->writeHandle) + "\n");
 	}
 

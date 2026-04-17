@@ -41,11 +41,11 @@ public:
 
 	/// @brief GPU用のCBV,SRV,UAVのディスクリプタヒープを取得
 	/// @return GPU用のCBV,SRV,UAVのディスクリプタヒープ
-	DescriptorHeap *GetGpuCbvSrvUavDescriptorHeap_() { return &gpuCbvSrvUavDescriptorHeap_; }
+	DescriptorHeap *GetGpuCbvSrvUavDescriptorHeap() { return &gpuCbvSrvUavDescriptorHeap_; }
 
 	/// @brief CPU用のCBV,SRV,UAVのディスクリプタヒープを取得
 	/// @return CPU用のCBV,SRV,UAVのディスクリプタヒープ
-	DescriptorHeap *GetCpuCbvSrvUavDescriptorHeap_() { return &cpuCbvSrvUavDescriptorHeap_; }
+	DescriptorHeap *GetCpuCbvSrvUavDescriptorHeap() { return &cpuCbvSrvUavDescriptorHeap_; }
 
 	/// @brief ビューポートを取得
 	/// @return ビューポート

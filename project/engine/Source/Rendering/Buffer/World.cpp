@@ -27,7 +27,7 @@ const UINT World::kCommandSizePerFrame = World::kMaxAABB * sizeof(IndirectComman
 const UINT World::kCommandBufferCounterOffset = AlignForUavCounter(World::kCommandSizePerFrame);
 
 World::World(Device *device, std::ofstream &logStream) {
-	DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device->GetGpuCbvSrvUavDescriptorHeap_();
+	DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device->GetGpuCbvSrvUavDescriptorHeap();
 
 	// 定数バッファの初期化
 	for (auto &constantBuffer : constantBuffers_) {

@@ -31,7 +31,7 @@ void Window::Initialize() {
 	// ウィンドウの作成
 	hwnd_ = CreateWindow(
 		wndclass_.lpszClassName,		// ウィンドウクラス名
-		L"LE2A_05_クラタ_ユウキ_染め戦",	// タイトルバーの文字列
+		L"LE3A_05_クラタ_ユウキ_染め戦",	// タイトルバーの文字列
 		WS_OVERLAPPEDWINDOW,			// ウィンドウスタイル
 		CW_USEDEFAULT,					// ウィンドウのX座標
 		CW_USEDEFAULT,					// ウィンドウのY座標

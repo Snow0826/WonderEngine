@@ -158,6 +158,24 @@ Vector3 ClosestPoint(const Collision::Sphere &sphere1, const Collision::Sphere &
 /// @return 衝突面法線
 Vector3 Normal(const Vector3 &point, const Collision::AABB &aabb);
 
+/// @brief 点とOBBの衝突面法線を求める
+/// @param point 点
+/// @param obb OBB
+/// @return 衝突面法線
+Vector3 Normal(const Vector3 &point, const Collision::OBB &obb);
+
+/// @brief 線分とAABBの衝突面法線を求める関数
+/// @param segment 線分
+/// @param aabb AABB
+/// @return 衝突面法線
+Vector3 Normal(const Collision::Segment &segment, const Collision::AABB &aabb);
+
+/// @brief 線分とOBBの衝突面法線を求める関数
+/// @param segment 線分
+/// @param obb OBB
+/// @return 衝突面法線
+Vector3 Normal(const Collision::Segment &segment, const Collision::OBB &obb);
+
 /// @brief 点と平面の距離を求める
 /// @param point 点
 /// @param plane 平面
@@ -211,6 +229,30 @@ float PenetrationDepth(const Collision::Sphere &sphere, const Collision::Plane &
 /// @param aabb AABB
 /// @return 貫入量
 float PenetrationDepth(const Collision::Sphere &sphere, const Collision::AABB &aabb);
+
+/// @brief 球とOBBの貫入量を求める関数
+/// @param sphere 球
+/// @param obb OBB
+/// @return 貫入量
+float PenetrationDepth(const Collision::Sphere &sphere, const Collision::OBB &obb);
+
+/// @brief カプセルと平面の貫入量を求める関数
+/// @param capsule カプセル
+/// @param plane 平面
+/// @return 貫入量
+float PenetrationDepth(const Collision::Capsule &capsule, const Collision::Plane &plane);
+
+/// @brief カプセルとAABBの貫入量を求める関数
+/// @param capsule カプセル
+/// @param aabb AABB
+/// @return 貫入量
+float PenetrationDepth(const Collision::Capsule &capsule, const Collision::AABB &aabb);
+
+/// @brief カプセルとOBBの貫入量を求める関数
+/// @param capsule カプセル
+/// @param obb OBB
+/// @return 貫入量
+float PenetrationDepth(const Collision::Capsule &capsule, const Collision::OBB &obb);
 
 /// @brief 直線と平面の衝突判定
 /// @param line 直線

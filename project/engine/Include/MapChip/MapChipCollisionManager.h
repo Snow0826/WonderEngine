@@ -24,7 +24,7 @@ public:
 		kRightTopBack,		// 右上後
 		kLeftBottomBack,	// 左下後
 		kRightBottomBack,	// 右下後
-		kNumCorner		// 角の数
+		kNumCorner			// 角の数
 	};
 
 	/// @brief マップチップとの当たり判定

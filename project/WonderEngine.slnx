@@ -1,0 +1,18 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Development" />
+    <BuildType Name="Release" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/externals/">
+    <Project Path="externals/DirectXTex/DirectXTex_Desktop_2022_Win10.vcxproj" Id="371b9fa9-4c90-4ac6-a123-aced756d6c77" />
+    <Project Path="externals/imgui/imgui.vcxproj" Id="d20690d4-be08-41d8-b250-92b3a1ef88ea" />
+  </Folder>
+  <Folder Name="/ソリューション項目/">
+    <File Path=".editorconfig" />
+  </Folder>
+  <Project Path="WonderEngine.vcxproj" Id="5ce65bc6-8ad5-472c-a6e3-be7d4fd16f93">
+    <BuildDependency Project="externals/imgui/imgui.vcxproj" />
+  </Project>
+</Solution>

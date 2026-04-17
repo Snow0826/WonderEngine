@@ -49,8 +49,8 @@ void ParticleManager::CreateParticleGroup(const std::string &name, const std::st
 	srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;							// 特になし
 
 	// パーティクル用SRVの作成
-	particleGroup.instanceHandle = device_->GetGpuCbvSrvUavDescriptorHeap_()->AllocateDescriptor();
-	device_->GetGpuCbvSrvUavDescriptorHeap_()->CreateShaderResourceView(resource->GetResource(), srvDesc, particleGroup.instanceHandle);
+	particleGroup.instanceHandle = device_->GetGpuCbvSrvUavDescriptorHeap()->AllocateDescriptor();
+	device_->GetGpuCbvSrvUavDescriptorHeap()->CreateShaderResourceView(resource->GetResource(), srvDesc, particleGroup.instanceHandle);
 	particleResources_.insert(std::make_pair(particleGroup.particleDataName, std::move(resource)));
 
 	// パーティクルグループの登録

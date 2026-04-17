@@ -61,7 +61,6 @@ struct Quaternion final {
 	/// @return 回転クォータニオン
 	static Quaternion DirectionToDirection(const Vector3 &from, const Vector3 &to);
 
-
 	/// @brief 指定した前方ベクトルと上方向ベクトルからクォータニオンを作成
 	/// @param forward 前方ベクトル
 	/// @param up 上方向ベクトル

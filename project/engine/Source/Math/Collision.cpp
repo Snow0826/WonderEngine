@@ -74,7 +74,7 @@ Vector3 ClosestPoint(const Vector3 &point, const Collision::OBB &obb) {
 
 Vector3 ClosestPoint(const Collision::Segment &segment, const Collision::Plane &plane) {
 	float dot = plane.normal.dot(segment.diff);
-	if (dot == 0.0f) {
+	if (std::abs(dot) < std::numeric_limits<float>::epsilon()) {
 		return segment.origin; // 平行
 	}
 	float t = (plane.distance - plane.normal.dot(segment.origin)) / dot;
@@ -116,6 +116,7 @@ Vector3 ClosestPoint(const Collision::Segment &segment, const Collision::OBB &ob
 }
 
 Vector3 ClosestPoint(const Collision::Segment &segment1, const Collision::Segment &segment2) {
+	constexpr float epsilon = std::numeric_limits<float>::epsilon();
 	Vector3 d1 = segment1.diff;
 	Vector3 d2 = segment2.diff;
 	Vector3 r = segment1.origin - segment2.origin;
@@ -123,16 +124,16 @@ Vector3 ClosestPoint(const Collision::Segment &segment1, const Collision::Segmen
 	float e = d2.dot(d2);
 	float f = d2.dot(r);
 	float s, t;
-	if (a <= 1e-6f && e <= 1e-6f) {
+	if (a <= epsilon && e <= epsilon) {
 		s = t = 0.0f;
-		return segment1.origin;
+		return segment1.origin;	// 平行
 	}
-	if (a <= 1e-6f) {
+	if (a <= epsilon) {
 		s = 0.0f;
 		t = std::clamp(f / e, 0.0f, 1.0f);
 	} else {
 		float c = d1.dot(r);
-		if (e <= 1e-6f) {
+		if (e <= epsilon) {
 			t = 0.0f;
 			s = std::clamp(-c / a, 0.0f, 1.0f);
 		} else {
@@ -186,6 +187,26 @@ Vector3 Normal(const Vector3 &point, const Collision::AABB &aabb) {
 	return normal;
 }
 
+Vector3 Normal(const Vector3 &point, const Collision::OBB &obb) {
+	Matrix4x4 obbWorldMatrix = MakeOBBMatrix(obb);
+	Matrix4x4 inverseOBBWorldMatrix = obbWorldMatrix.inverse();
+	Vector3 pointInOBBLocalSpace = point * inverseOBBWorldMatrix;
+	AABB aabbInOBBLocalSpace{ .min = -obb.size, .max = obb.size };
+	Vector3 normalLocal = Normal(pointInOBBLocalSpace, aabbInOBBLocalSpace);
+	Vector3 normalWorld = obb.orientations[0] * normalLocal.x + obb.orientations[1] * normalLocal.y + obb.orientations[2] * normalLocal.z;
+	return normalWorld.normalized();
+}
+
+Vector3 Normal(const Collision::Segment &segment, const Collision::AABB &aabb) {
+	Vector3 closestPoint = ClosestPoint(segment, aabb);
+	return Normal(closestPoint, aabb);
+}
+
+Vector3 Normal(const Collision::Segment &segment, const Collision::OBB &obb) {
+	Vector3 closestPoint = ClosestPoint(segment, obb);
+	return Normal(closestPoint, obb);
+}
+
 float Distance(const Vector3 &point, const Collision::Plane &plane) {
 	return std::abs(plane.normal.dot(point) - plane.distance);
 }
@@ -228,8 +249,23 @@ float PenetrationDepth(const Collision::Sphere &sphere, const Collision::Plane &
 }
 
 float PenetrationDepth(const Collision::Sphere &sphere, const Collision::AABB &aabb) {
-	Vector3 closestPoint = ClosestPoint(sphere.center, aabb);
-	return sphere.radius - closestPoint.distanceFrom(sphere.center);
+	return sphere.radius - Distance(sphere.center, aabb);
+}
+
+float PenetrationDepth(const Collision::Sphere &sphere, const Collision::OBB &obb) {
+	return sphere.radius - Distance(sphere.center, obb);
+}
+
+float PenetrationDepth(const Collision::Capsule &capsule, const Collision::Plane &plane) {
+	return capsule.radius - Distance(capsule.segment, plane);
+}
+
+float PenetrationDepth(const Collision::Capsule &capsule, const Collision::AABB &aabb) {
+	return capsule.radius - Distance(capsule.segment, aabb);
+}
+
+float PenetrationDepth(const Collision::Capsule &capsule, const Collision::OBB &obb) {
+	return capsule.radius - Distance(capsule.segment, obb);
 }
 
 bool IsCollision(const Line &line, const Plane &plane) {

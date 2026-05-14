@@ -630,7 +630,10 @@ void Renderer::PreDrawModel() {
 	// Object3dの共通のSRVを設定
 	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetPointLightHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetSpotLightHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, 0);
+	registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, skybox->textureHandle);
+		}, exclude<Disabled>());
+	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, 0);
 }
 
 void Renderer::DrawModel() {
@@ -691,7 +694,10 @@ void Renderer::PreDrawSprite() {
 	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(1, 0);
 
 	// Object3dのテクスチャのSRVを設定
-	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, 0);
+	registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, skybox->textureHandle);
+		}, exclude<Disabled>());
+	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, 0);
 }
 
 void Renderer::DrawSprite() {

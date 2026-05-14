@@ -89,7 +89,10 @@ void Application::Run() {
 		renderer_->Render();	// 描画処理
 
 		cpuTimer.End();	// CPUタイマーの終了
+
+#ifdef USE_IMGUI
 		ImGui::Text("CPU Time: %.2f ms", cpuTimer.GetMs());	// CPUタイマーの結果をImGuiに表示
+#endif // USE_IMGUI
 
 		ImGuiManager::Render(device_->GetCommandList());	// ImGuiの描画
 

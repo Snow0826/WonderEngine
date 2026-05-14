@@ -14,6 +14,7 @@ struct Material final {
 	Matrix4x4 uvTransformMatrix = MakeIdentity4x4();	// UV変換行列
 	float shininess = 32.0f;							// 光沢度
 	Vector3 specular = { 1.0f, 1.0f, 1.0f };			// スペキュラカラー
+	float environmentCoefficient = 1.0f;				// 環境光の影響度
 };
 
 class Registry;

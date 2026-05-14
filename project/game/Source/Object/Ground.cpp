@@ -33,7 +33,7 @@ void Ground::Create(Registry *registry, IndirectCommandManager *indirectCommandM
 	uint32_t entity = registry->GenerateEntity();
 	registry->AddComponent(entity, BlendMode::kBlendModeNormal);
 	registry->AddComponent(entity, Transform{});
-	registry->AddComponent(entity, Material{});
+	registry->AddComponent(entity, Material{ .environmentCoefficient = 0.0f });
 	registry->AddComponent(entity, DirtyTransform{});
 	registry->AddComponent(entity, DirtyMaterial{});
 	registry->AddComponent(entity, objectManager->CreateObject(entity));

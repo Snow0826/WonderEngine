@@ -32,6 +32,10 @@ void MaterialInspector::Draw([[maybe_unused]] uint32_t entity) {
 				registry_->AddComponent<DirtyMaterial>(entity, DirtyMaterial{});
 			}
 
+			if (ImGui::DragFloat("environmentCoefficient", &material->environmentCoefficient, 0.1f, 0.0f, std::numeric_limits<float>::max())) {
+				registry_->AddComponent<DirtyMaterial>(entity, DirtyMaterial{});
+			}
+
 			if (ImGui::Button("Reset")) {
 				*material = Material{};
 				registry_->AddComponent<DirtyMaterial>(entity, DirtyMaterial{});

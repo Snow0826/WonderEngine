@@ -76,6 +76,7 @@ private:
 	ID3D12RootSignature *object3dRootSignature_ = nullptr;									// Object3d用ルートシグネチャ
 	ID3D12RootSignature *instance3dRootSignature_ = nullptr;								// Instance3d用ルートシグネチャ
 	ID3D12RootSignature *lineRootSignature_ = nullptr;										// Line用ルートシグネチャ
+	ID3D12RootSignature *skyboxRootSignature_ = nullptr;									// Skybox用ルートシグネチャ
 	ID3D12RootSignature *depthStencilCopyRootSignature_ = nullptr;							// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *generateHiZMipMapRootSignature_ = nullptr;							// HiZミップマップ生成用ルートシグネチャ
 	ID3D12RootSignature *occlusionCullingRootSignature_ = nullptr;							// オクルージョンカリング用ルートシグネチャ
@@ -85,6 +86,7 @@ private:
 	BlendPipelineState spritePipelineState_;												// Sprite用パイプラインステート
 	BlendPipelineState particlePipelineState_;												// Particle用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> linePipelineState_ = nullptr;				// Line用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> skyboxPipelineState_ = nullptr;				// Skybox用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthStencilCopyPipelineState_ = nullptr;	// 深度ステンシルテクスチャコピー用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> generateHiZMipMapPipelineState_ = nullptr;	// HiZミップマップ生成用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> occlusionCullingPipelineState_ = nullptr;	// オクルージョンカリング用パイプラインステート
@@ -135,4 +137,10 @@ private:
 
 	/// @brief ラインの描画
 	void DrawLine();
+
+	/// @brief スカイボックスの描画前処理
+	void PreDrawSkybox();
+
+	/// @brief スカイボックスの描画
+	void DrawSkybox();
 };

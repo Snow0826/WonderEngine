@@ -55,14 +55,14 @@ void ArmParticle::Update() {
 			// エミッターの位置を更新
 			Emitter *emitter = registry_->GetComponent<Emitter>(particleEntity_);
 			if (emitter) {
-				emitter->transform.translate = armMesh.worldCollisionData.sphere.center;
+				emitter->transform.translate = armMesh.sphere.center;
 			}
 
 			// フィールドの方向を更新
 			Field *field = registry_->GetComponent<Field>(particleEntity_);
 			if (field) {
 				field->acceleration = transformSystem.GetUp(armEntity_) * 10.0f;
-				field->area = armMesh.worldCollisionData.aabb;
+				field->area = armMesh.aabb;
 			}
 		}
 

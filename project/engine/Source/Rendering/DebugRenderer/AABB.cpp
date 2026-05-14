@@ -13,7 +13,7 @@ void AABBRenderSystem::Update() {
 
 	registry_->ForEach<Model, AABBRenderer>([&](uint32_t entity, Model *model, AABBRenderer *aabbRenderer) {
 		for (const MeshData &meshData : model->modelData.meshes) {
-			debugRenderer_->AddAABB(meshData.worldCollisionData.aabb);
+			debugRenderer_->AddAABB(meshData.aabb);
 		}
 		}, exclude<Disabled>());
 #endif // DRAW_LINE

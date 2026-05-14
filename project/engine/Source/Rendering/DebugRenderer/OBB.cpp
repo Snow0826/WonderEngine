@@ -27,7 +27,7 @@ void OBBRenderSystem::Update() {
 	
 	registry_->ForEach<Model, OBBRenderer>([&](uint32_t entity, Model *model, OBBRenderer *obbRenderer) {
 		for (const MeshData &meshData : model->modelData.meshes) {
-			debugRenderer_->AddOBB(meshData.worldCollisionData.obb);
+			debugRenderer_->AddOBB(meshData.obb);
 		}
 		}, exclude<Disabled>());
 #endif // DRAW_LINE

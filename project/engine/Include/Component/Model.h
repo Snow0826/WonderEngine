@@ -31,7 +31,6 @@ struct ModelData final {
 /// @brief モデル
 struct Model final {
 	ModelData modelData;					// モデルデータ
-	std::vector<uint32_t> meshHandle;		// メッシュハンドル
 	std::vector<uint32_t> textureHandle;	// テクスチャハンドル
 	std::vector<bool> enableMipMaps;		// ミップマップ有効フラグ
 	std::string name;						// モデル名
@@ -54,7 +53,8 @@ public:
 	ModelManager(TextureManager *textureManager, MeshManager *meshManager, std::ofstream *logStream)
 		: textureManager_(textureManager)
 		, meshManager_(meshManager)
-		, logStream_(logStream) {}
+		, logStream_(logStream) {
+	}
 
 	/// @brief モデルの読み込み
 	/// @param fileName モデル名
@@ -90,7 +90,7 @@ private:
 	/// @brief ノードの読み込み
 	/// @param node Assimpのノード
 	/// @return ノード
-	Node ReadNode(const aiNode *node);
+	static Node ReadNode(const aiNode *node);
 };
 
 class Registry;
@@ -106,8 +106,9 @@ public:
 	ModelInspector(Registry *registry, ModelManager *modelManager, IndirectCommandManager *indirectCommandManager)
 		: registry_(registry)
 		, modelManager_(modelManager)
-		, indirectCommandManager_(indirectCommandManager) {}
-	
+		, indirectCommandManager_(indirectCommandManager) {
+	}
+
 	/// @brief モデルインスペクターの描画
 	/// @param entity エンティティ
 	void Draw(uint32_t entity);

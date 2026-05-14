@@ -136,7 +136,7 @@ void Player::AfterTransform() {
 	if (!model) {
 		return;
 	}
-	Collision::Sphere bodySphere = model->modelData.meshes.back().worldCollisionData.sphere;
+	Collision::Sphere bodySphere = model->modelData.meshes.back().sphere;
 	bodySphere.center.y -= kBodyAmplitude * 2.0f;
 	registry_->AddComponent(footprintEntity_, bodySphere);
 }
@@ -149,7 +149,7 @@ void Player::OnCollision(const Collision::Plane &plane) {
 	}
 
 	// 貫入量を計算
-	float penetration = PenetrationDepth(model->modelData.meshes.back().worldCollisionData.sphere, plane);
+	float penetration = PenetrationDepth(model->modelData.meshes.back().sphere, plane);
 
 	// 貫入量が0以下なら衝突していないので処理を抜ける
 	if (penetration <= 0.0f) {
@@ -195,7 +195,7 @@ void Player::OnCollision(const Collision::AABB &aabb) {
 	}
 
 	// 貫入量を計算
-	float penetration = PenetrationDepth(model->modelData.meshes.back().worldCollisionData.sphere, aabb);
+	float penetration = PenetrationDepth(model->modelData.meshes.back().sphere, aabb);
 
 	// 貫入量が0以下なら衝突していないので処理を抜ける
 	if (penetration <= 0.0f) {
@@ -215,7 +215,7 @@ void Player::OnCollision(const Collision::AABB &aabb) {
 	}
 
 	// 法線ベクトルの計算
-	Vector3 normal = Normal(model->modelData.meshes.back().worldCollisionData.sphere.center, aabb);
+	Vector3 normal = Normal(model->modelData.meshes.back().sphere.center, aabb);
 
 	// 貫入量分だけ位置を修正
 	transform->translate += normal * penetration;

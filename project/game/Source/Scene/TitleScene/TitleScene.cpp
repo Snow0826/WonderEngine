@@ -5,7 +5,8 @@
 #include "Audio.h"
 #include "Model.h"
 #include "Texture.h"
-#include "Skydome.h"
+#include "Skybox.h"
+#include "SkyboxEntity.h"
 #include "Ground.h"
 #include "Wall.h"
 #include "Building.h"
@@ -34,8 +35,11 @@ void TitleScene::OnInitialize() {
 	// モデルマネージャーの取得
 	ModelManager *modelManager = sceneManager_->GetModelManager();
 
-	// 天球の作成
-	Skydome::Create(registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get());
+	// スカイボックスジェネレーターの初期化
+	SkyboxGenerator skyboxGenerator{ sceneManager_->GetMeshManager(), sceneManager_->GetTextureManager() };
+
+	// スカイボックスエンティティの作成
+	SkyboxEntity::Create(registry_.get(), &skyboxGenerator, objectManager_.get());
 
 	// 地面の作成
 	Ground::Create(registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get(), footprintManager_.get());

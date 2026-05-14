@@ -46,9 +46,9 @@ enum class StructuredBufferType {
 	kLine,							// ライン
 	kPointLight,					// 点光源
 	kSpotLight,						// スポットライト
-	kCulling,						// カリングデータ
-	kIndirectCommand,				// 間接コマンド
-	kBlendMode,						// ブレンドモード
+	kObject,						// オブジェクト
+	kMesh,							// メッシュ
+	kMeshLOD,						// メッシュLOD
 	kFootprint,						// フットプリント
 	kCountOfStructuredBufferType	// 構造化バッファの種類の数
 };
@@ -193,17 +193,17 @@ public:
 	/// @return スポットライトハンドル
 	uint32_t GetSpotLightHandle() const { return spotLightHandle_; }
 
-	/// @brief AABBハンドルを取得
-	/// @return AABBハンドル
-	uint32_t GetAABBHandle() const { return cullingHandle_; }
+	/// @brief カリングオブジェクトハンドルを取得
+	/// @return カリングオブジェクトハンドル
+	uint32_t GetCullingObjectHandle() const { return cullingObjectHandle_; }
 
-	/// @brief 間接コマンドハンドルを取得
-	/// @return 間接コマンドハンドル
-	uint32_t GetIndirectCommandHandle() const { return indirectCommandHandle_; }
+	/// @brief カリングメッシュハンドルを取得
+	/// @return カリングメッシュハンドル
+	uint32_t GetCullingMeshHandle() const { return cullingMeshHandle_; }
 
-	/// @brief ブレンドモードハンドルを取得
-	/// @return ブレンドモードハンドル
-	uint32_t GetBlendModeHandle() const { return blendModeHandle_; }
+	/// @brief メッシュLODハンドルを取得
+	/// @return メッシュLODハンドル
+	uint32_t GetMeshLODHandle() const { return meshLODHandle_; }
 
 	/// @brief ブレンド別処理済み間接コマンドハンドルを取得
 	/// @param blendMode ブレンドモード
@@ -256,9 +256,9 @@ private:
 	uint32_t lineHandle_ = 0;													// ラインハンドル
 	uint32_t pointLightHandle_ = 0;												// 点光源ハンドル
 	uint32_t spotLightHandle_ = 0;												// スポットライトハンドル
-	uint32_t cullingHandle_ = 0;												// カリングハンドル
-	uint32_t indirectCommandHandle_ = 0;										// 間接コマンドハンドル
-	uint32_t blendModeHandle_ = 0;												// ブレンドモードハンドル
+	uint32_t cullingObjectHandle_ = 0;											// カリングオブジェクトハンドル
+	uint32_t cullingMeshHandle_ = 0;											// カリングメッシュハンドル
+	uint32_t meshLODHandle_ = 0;												// メッシュLODハンドル
 	BlendHandle blendProcessedIndirectCommandHandle_;							// ブレンド別処理済み間接コマンドハンドル
 	bool isCulling_ = false;													// カリング有効フラグ
 	bool isResult_ = false;														// 結果表示フラグ

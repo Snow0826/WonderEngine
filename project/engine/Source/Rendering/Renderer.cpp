@@ -10,6 +10,7 @@
 #include "Particle.h"
 #include "Camera.h"
 #include "DirectionalLight.h"
+#include "Skybox.h"
 #include "FootprintMap.h"
 #include "EntityComponentSystem.h"
 #include "Device.h"
@@ -29,6 +30,7 @@ Renderer::Renderer(Device *device)
 	, object3dRootSignature_(device->GetObject3dRootSignature())
 	, instance3dRootSignature_(device->GetInstance3dRootSignature())
 	, lineRootSignature_(device->GetLineRootSignature())
+	, skyboxRootSignature_(device->GetSkyboxRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
@@ -149,6 +151,12 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	assert(lineVSBlob);
 	Microsoft::WRL::ComPtr<IDxcBlob> linePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Line.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(linePSBlob);
+	
+	// Skyboxのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> skyboxVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Skybox.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(skyboxVSBlob);
+	Microsoft::WRL::ComPtr<IDxcBlob> skyboxPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Skybox.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(skyboxPSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -250,6 +258,20 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create LinePipelineState\n");
 	linePipelineState_->SetName(L"LinePipelineState");
 
+	// Skybox用パイプラインステートの生成
+	skyboxPipelineState_ = PipelineState()
+		.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)									// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])			// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)													// RasterizerState
+		.SetDepthState(noWriteLessEqualDepthStencilDesc)										// DepthStencilState
+		.SetVertexShader(skyboxVSBlob->GetBufferPointer(), skyboxVSBlob->GetBufferSize())		// 頂点シェーダー
+		.SetPixelShader(skyboxPSBlob->GetBufferPointer(), skyboxPSBlob->GetBufferSize())		// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)						// プリミティブトポロジー
+		.Create(device_->GetDevice(), skyboxRootSignature_);
+	Logger::Log(logStream, "Create SkyboxPipelineState\n");
+	skyboxPipelineState_->SetName(L"SkyboxPipelineState");
+
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
 		.SetComputeShader(depthStencilCopyCSBlob->GetBufferPointer(), depthStencilCopyCSBlob->GetBufferSize())	// コンピュートシェーダー
@@ -338,9 +360,8 @@ void Renderer::Render() {
 	DrawSprite();
 	PreDrawLine();
 	DrawLine();
-
-	// ImGuiの描画
-	ImGuiManager::Render(commandList_);
+	PreDrawSkybox();
+	DrawSkybox();
 }
 
 void Renderer::SetRegistry(Registry *registry) {
@@ -465,23 +486,30 @@ void Renderer::OcclusionCulling() {
 		viewProjCB->BindToCompute(1, 1);
 	}
 
-	// 間接コマンドカウンターの設定
-	uint32_t indirectCommandCount = indirectCommandManager_->GetIndirectCommandCounter();
-	commandList_->SetComputeRoot32BitConstant(2, indirectCommandCount, 0);
+	ConstantBuffer *cameraCB = world_->GetConstantBuffer(ConstantBufferType::kCamera);
+	if (IsDebugCamera()) {
+		cameraCB->BindToCompute(2, 1);
+	} else {
+		cameraCB->BindToCompute(2, 0);
+	}
+
+	// メッシュ数の設定
+	uint32_t meshCount = indirectCommandManager_->GetMeshCounter();
+	commandList_->SetComputeRoot32BitConstant(3, meshCount, 0);
 
 	// 各種バッファのSRV/UAVを設定
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetAABBHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetIndirectCommandHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetBlendModeHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetHiZTextureHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetCullingObjectHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetCullingMeshHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetMeshLODHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetHiZTextureHandle());
 	for (uint32_t i = 0; i < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); i++) {
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(7 + i, world_->GetBlendProcessedIndirectCommandHandle(static_cast<BlendMode>(i)));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(8 + i, world_->GetBlendProcessedIndirectCommandHandle(static_cast<BlendMode>(i)));
 	}
 
 	// コマンドバッファの転送
-	Resource *indirectCommandStructuredBuffer = world_->GetStructuredBuffer(StructuredBufferType::kIndirectCommand);
+	Resource *indirectCommandStructuredBuffer = world_->GetStructuredBuffer(StructuredBufferType::kMeshLOD);
 	indirectCommandStructuredBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_COPY_DEST);
-	indirectCommandStructuredBuffer->CopyFrom(world_->GetCommandBufferUpload()->GetResource(), 0, 0, World::kCommandSizePerFrame);
+	indirectCommandStructuredBuffer->CopyFrom(world_->GetCommandBufferUpload()->GetResource(), 0, 0, sizeof(MeshLOD) * world_->GetMaxAABB());
 	indirectCommandStructuredBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
 	// 処理済みコマンドバッファカウンターのリセット
@@ -493,7 +521,7 @@ void Renderer::OcclusionCulling() {
 	}
 
 	// オクルージョンカリングの実行
-	uint32_t dispatchCount = (indirectCommandCount + 63) / 64;
+	uint32_t dispatchCount = (meshCount + 63) / 64;
 	if (dispatchCount > 0) {
 		commandList_->Dispatch(dispatchCount, 1, 1);
 		world_->GetHiZTexture()->UAVBarrier();
@@ -682,7 +710,7 @@ void Renderer::DrawSprite() {
 					.enableMipMaps = sprite->enableMipMaps
 				};
 				commandList_->SetGraphicsRoot32BitConstants(5, 2, &textureData, 0);
-				meshManager_->Draw(sprite->meshHandle, 1);
+				meshManager_->Draw(sprite->meshHandle);
 			}
 			}, exclude<Disabled>());
 	}
@@ -719,4 +747,32 @@ void Renderer::DrawLine() {
 		commandList_->DrawInstanced(2, instanceCount, 0, 0);
 	}
 #endif // DRAW_LINE
+}
+
+void Renderer::PreDrawSkybox() {
+	// Skybox用ルートシグネチャの設定
+	commandList_->SetGraphicsRootSignature(skyboxRootSignature_);
+
+	// 三角形のトポロジの設定
+	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// Skybox用パイプラインステートの設定
+	commandList_->SetPipelineState(skyboxPipelineState_.Get());
+
+	// スカイボックスのCBVを設定
+	ConstantBuffer *viewProjCB = world_->GetConstantBuffer(ConstantBufferType::kViewProjection);
+	if (IsDebugCamera()) {
+		viewProjCB->BindToGraphics(1, 2);
+	} else {
+		viewProjCB->BindToGraphics(1, 1);
+	}
+}
+
+void Renderer::DrawSkybox() {
+	registry_->ForEach<Skybox, Object>([&](uint32_t entity, Skybox *skybox, Object *object) {
+		world_->GetConstantBuffer(ConstantBufferType::kTransform)->BindToGraphics(0, object->handle);
+		world_->GetConstantBuffer(ConstantBufferType::kMaterial)->BindToGraphics(2, object->handle);
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, skybox->textureHandle);
+		meshManager_->Draw(skybox->meshHandle);
+		}, exclude<Disabled>());
 }

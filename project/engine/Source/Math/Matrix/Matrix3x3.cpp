@@ -138,75 +138,69 @@ Matrix3x3 Matrix3x3::transpose() const {
 	return result;
 }
 
-Matrix3x3 Matrix3x3::inverse() const {
+bool Matrix3x3::inverse(Matrix3x3 &result) const {
+	float A[3][6] = {};
+	constexpr float kMax_err = 1.0e-10f;
 
-	Matrix3x3 result;
-	float A[3][6] = { 0 };
-	size_t n = 3;
-	float a;
-	constexpr float kMax_err = 1.0E-10f;
-
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = 0; j < n; j++) {
+	// 拡大行列作成
+	for (size_t i = 0; i < 3; i++) {
+		for (size_t j = 0; j < 3; j++) {
 			A[i][j] = m[i][j];
-			A[i][j + n] = (i == j) ? 1.0f : 0.0f;
+			A[i][j + 3] = (i == j) ? 1.0f : 0.0f;
 		}
 	}
 
-	for (size_t i = 0; i < n; i++) {
+	// ガウス・ジョルダン
+	for (size_t i = 0; i < 3; i++) {
 
+		// ピボット選択
 		float max = fabsf(A[i][i]);
 		size_t max_i = i;
 
-		for (size_t j = i + 1; j < n; j++) {
-			if (fabsf(A[i][i]) > max) {
-				max = fabsf(A[i][i]);
-				max_i = i;
+		for (size_t j = i + 1; j < 3; j++) {
+			if (fabsf(A[j][i]) > max) {
+				max = fabsf(A[j][i]);
+				max_i = j;
 			}
 		}
 
-		if (fabsf(A[i][i]) <= kMax_err) {
-			break;
+		// 解けない
+		if (max < kMax_err) {
+			return false;
 		}
 
+		// 行交換
 		if (i != max_i) {
-			for (size_t j = 0; j < n * 2; j++) {
-				float tmp = A[max_i][j];
-				A[max_i][j] = A[i][j];
-				A[i][j] = tmp;
+			for (size_t j = 0; j < 6; j++) {
+				std::swap(A[i][j], A[max_i][j]);
 			}
 		}
 
-		a = 1.0f / A[i][i];
-
-		for (size_t j = 0; j < n * 2; j++) {
-			A[i][j] *= a;
+		// 正規化
+		float invPivot = 1.0f / A[i][i];
+		for (size_t j = 0; j < 6; j++) {
+			A[i][j] *= invPivot;
 		}
 
-		for (size_t j = 0; j < n; j++) {
+		// 消去
+		for (size_t j = 0; j < 3; j++) {
+			if (i == j) continue;
 
-			if (i == j) {
-				continue;
+			float factor = A[j][i];
+			for (size_t k = 0; k < 6; k++) {
+				A[j][k] -= factor * A[i][k];
 			}
-
-			a = -A[j][i];
-
-			for (size_t k = 0; k < n * 2; k++) {
-				A[j][k] += A[i][k] * a;
-			}
-
-		}
-
-	}
-
-	for (size_t i = 0; i < n; i++) {
-		for (size_t j = 0; j < n; j++) {
-			result.m[i][j] = A[i][j + n];
 		}
 	}
 
-	return result;
+	// 結果取り出し
+	for (size_t i = 0; i < 3; i++) {
+		for (size_t j = 0; j < 3; j++) {
+			result.m[i][j] = A[i][j + 3];
+		}
+	}
 
+	return true;
 }
 
 Vector2 operator*(const Vector2 &vector, const Matrix3x3 &matrix) {

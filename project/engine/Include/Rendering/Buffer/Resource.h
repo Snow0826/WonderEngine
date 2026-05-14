@@ -66,6 +66,12 @@ public:
 	/// @return 読み書き可能バッファ
 	static std::unique_ptr<Resource> CreateRWBuffer(Device *device, size_t size);
 
+	/// @brief UAVに対応しているか
+	/// @param device デバイス
+	/// @param format フォーマット
+	/// @return UAVに対応しているか
+	static bool IsUAVCompatible(ID3D12Device *device, DXGI_FORMAT format);
+
 	/// @brief リソースの名前を設定する
 	/// @param name 名前
 	void SetName(const std::string &name);

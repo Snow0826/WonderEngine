@@ -9,36 +9,38 @@
 #include "Transform.h"
 
 IndirectCommandManager::IndirectCommandManager(Registry *registry, World *world, MeshManager *meshManager) : registry_(registry), world_(world), meshManager_(meshManager) {
-	world_->GetStructuredBuffer(StructuredBufferType::kCulling)->Map(reinterpret_cast<void **>(&cullingData_));
-	world_->GetStructuredBuffer(StructuredBufferType::kBlendMode)->Map(reinterpret_cast<void **>(&blendModeData_));
-	world_->GetCommandBufferUpload()->Map(reinterpret_cast<void **>(&indirectCommandData_));
+	world_->GetStructuredBuffer(StructuredBufferType::kObject)->Map(reinterpret_cast<void **>(&cullingObjectData_));
+	world_->GetStructuredBuffer(StructuredBufferType::kMesh)->Map(reinterpret_cast<void **>(&cullingMeshData_));
+	world_->GetCommandBufferUpload()->Map(reinterpret_cast<void **>(&meshLODData_));
 }
 
 IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity) {
 	IndirectCommandHandle indirectCommandHandle;
-	BlendMode *blendMode = registry_->GetComponent<BlendMode>(entity);
 	Model *model = registry_->GetComponent<Model>(entity);
 	Object *object = registry_->GetComponent<Object>(entity);
-	if (!blendMode || !model || !object) {
+	if (!model || !object) {
 		return indirectCommandHandle;
 	}
 
-	for (size_t i = 0; i < model->modelData.meshes.size(); i++) {
-		uint32_t handle = static_cast<uint32_t>(entities_.size());
-		entities_.emplace_back(entity);
-		blendModeData_[handle].blendMode = *blendMode;
-		indirectCommandData_[handle].cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
-		indirectCommandData_[handle].cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
-		indirectCommandData_[handle].textureData.textureHandle = model->textureHandle[model->modelData.meshes[i].materialIndex];
-		indirectCommandData_[handle].textureData.enableMipMaps = model->enableMipMaps[model->modelData.meshes[i].materialIndex];
-		indirectCommandData_[handle].vertexBufferView = meshManager_->GetVertexBufferView(model->meshHandle[i]);
-		indirectCommandData_[handle].indexBufferView = meshManager_->GetIndexBufferView(model->meshHandle[i]);
-		indirectCommandData_[handle].drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(model->meshHandle[i]);
-		indirectCommandData_[handle].drawIndexedArguments.InstanceCount = 1;
-		indirectCommandData_[handle].drawIndexedArguments.StartIndexLocation = 0;
-		indirectCommandData_[handle].drawIndexedArguments.BaseVertexLocation = 0;
-		indirectCommandData_[handle].drawIndexedArguments.StartInstanceLocation = 0;
-		indirectCommandHandle.handles.emplace_back(handle);
+	for (const MeshData &mesh : model->modelData.meshes) {
+		meshCounter_++;
+		for (const MeshLODData &meshLODData : mesh.lods) {
+			uint32_t handle = static_cast<uint32_t>(entities_.size());
+			entities_.emplace_back(entity);
+			meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
+			meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
+			meshLODData_[handle].indirectCommand.textureData.textureHandle = model->textureHandle[mesh.materialIndex];
+			meshLODData_[handle].indirectCommand.textureData.enableMipMaps = model->enableMipMaps[mesh.materialIndex];
+			meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(meshLODData.handle);
+			meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(meshLODData.handle);
+			meshLODData_[handle].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(meshLODData.handle);
+			meshLODData_[handle].indirectCommand.drawIndexedArguments.InstanceCount = 1;
+			meshLODData_[handle].indirectCommand.drawIndexedArguments.StartIndexLocation = 0;
+			meshLODData_[handle].indirectCommand.drawIndexedArguments.BaseVertexLocation = 0;
+			meshLODData_[handle].indirectCommand.drawIndexedArguments.StartInstanceLocation = 0;
+			meshLODData_[handle].error = meshLODData.error;
+			indirectCommandHandle.handles.emplace_back(handle);
+		}
 	}
 	return indirectCommandHandle;
 }
@@ -53,9 +55,9 @@ void IndirectCommandManager::RemoveIndirectCommand(uint32_t entity) {
 	for (uint32_t removeIndex : indirectCommandHandle->handles) {
 		if (removeIndex != lastIndex) {
 			// 最後尾のコマンドと入れ替える
-			cullingData_[removeIndex] = cullingData_[lastIndex];
-			blendModeData_[removeIndex] = blendModeData_[lastIndex];
-			indirectCommandData_[removeIndex] = indirectCommandData_[lastIndex];
+			cullingObjectData_[removeIndex] = cullingObjectData_[lastIndex];
+			cullingMeshData_[removeIndex] = cullingMeshData_[lastIndex];
+			meshLODData_[removeIndex] = meshLODData_[lastIndex];
 			entities_[removeIndex] = entities_.back();
 
 			// 入れ替えた間接コマンドのハンドルを更新する
@@ -78,30 +80,29 @@ void IndirectCommandManager::SetBlendModeData(uint32_t entity) {
 		return;
 	}
 	for (uint32_t handle : indirectCommandHandle->handles) {
-		blendModeData_[handle].blendMode = *blendMode;
+		cullingObjectData_[handle].blendMode = *blendMode;
 	}
 }
 
 void IndirectCommandManager::UpdateCullingData() {
-	registry_->ForEach<Model, IndirectCommandHandle, DirtyTransform>([this](uint32_t entity, Model *model, IndirectCommandHandle *indirectCommandHandle, DirtyTransform *dirtyTransform) {
-		for (size_t i = 0; i < model->modelData.meshes.size(); i++) {
-			cullingData_[indirectCommandHandle->handles[i]] = {
+	uint32_t cullingMeshDataOffset = 0;
+	uint32_t meshLODDataOffset = 0;
+	registry_->ForEach<Model, Transform, BlendMode, Object, DirtyTransform>([&](uint32_t entity, Model *model, Transform *transform, BlendMode *blendMode, Object *object, DirtyTransform *dirtyTransform) {
+		cullingObjectData_[object->handle].worldMatrix = transform->worldMatrix;
+		cullingObjectData_[object->handle].blendMode = *blendMode;
+		for (const MeshData &mesh : model->modelData.meshes) {
+			cullingMeshData_[cullingMeshDataOffset] = {
 				.aabb = {
-					.min = {
-						model->modelData.meshes[i].worldCollisionData.aabb.min.x,
-						model->modelData.meshes[i].worldCollisionData.aabb.min.y,
-						model->modelData.meshes[i].worldCollisionData.aabb.min.z,
-						1.0f
-					},
-					.max = {
-						model->modelData.meshes[i].worldCollisionData.aabb.max.x,
-						model->modelData.meshes[i].worldCollisionData.aabb.max.y,
-						model->modelData.meshes[i].worldCollisionData.aabb.max.z,
-						1.0f
-					}
+					.min = { mesh.aabb.min.x, mesh.aabb.min.y, mesh.aabb.min.z, 1.0f },
+					.max = { mesh.aabb.max.x, mesh.aabb.max.y, mesh.aabb.max.z, 1.0f }
 				},
+				.objectHandle = object->handle,
+				.lodOffset = meshLODDataOffset,
+				.lodCount = static_cast<uint32_t>(mesh.lods.size()),
 				.useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0
 			};
+			meshLODDataOffset += static_cast<uint32_t>(mesh.lods.size());
+			cullingMeshDataOffset++;
 		}
 		});
 }

@@ -19,7 +19,7 @@ struct Matrix3x3 final {
 	Vector3 operator*(const Vector3 &other) const;
 	Matrix3x3 operator-() const;
 	Matrix3x3 transpose() const;
-	Matrix3x3 inverse() const;
+	bool inverse(Matrix3x3 &result) const;
 
 	float m[3][3] = { 0.0f };
 };

@@ -47,7 +47,9 @@ std::unique_ptr<Resource> Resource::CreateTexture(Device *device, const DirectX:
 	resourceDesc.Format = metadata.format;
 	resourceDesc.SampleDesc.Count = 1;
 	resourceDesc.Dimension = static_cast<D3D12_RESOURCE_DIMENSION>(metadata.dimension);
-	resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	if (IsUAVCompatible(device->GetDevice(), metadata.format)) {
+		resourceDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	}
 
 	std::unique_ptr<Resource> resource = std::make_unique<Resource>(device, D3D12_HEAP_TYPE_DEFAULT, resourceDesc, D3D12_RESOURCE_STATE_COPY_DEST);
 	return std::move(resource);
@@ -79,6 +81,14 @@ std::unique_ptr<Resource> Resource::CreateReadbackBuffer(Device *device, size_t 
 
 std::unique_ptr<Resource> Resource::CreateRWBuffer(Device *device, size_t size) {
 	return CreateBuffer(device, D3D12_HEAP_TYPE_DEFAULT, size, D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+}
+
+bool Resource::IsUAVCompatible(ID3D12Device *device, DXGI_FORMAT format) {
+	D3D12_FEATURE_DATA_FORMAT_SUPPORT support = {};
+	support.Format = format;
+	HRESULT hr = device->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &support, sizeof(support));
+	assert(SUCCEEDED(hr));
+	return (support.Support2 & D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE) != 0;
 }
 
 void Resource::SetName(const std::string &name) {

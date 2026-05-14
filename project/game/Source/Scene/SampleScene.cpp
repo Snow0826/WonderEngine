@@ -1,6 +1,7 @@
 #include "SampleScene.h"
 #include "SceneManager.h"
-#include "Skydome.h"
+#include "Skybox.h"
+#include "SkyboxEntity.h"
 #include "Ground.h"
 #include "Wall.h"
 #include "Building.h"
@@ -15,8 +16,11 @@ void SampleScene::OnInitialize() {
 	// モデルマネージャーの取得
 	ModelManager *modelManager = sceneManager_->GetModelManager();
 
-	// 天球の作成
-	Skydome::Create(registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get());
+	// スカイボックスジェネレーターの初期化
+	SkyboxGenerator skyboxGenerator{ sceneManager_->GetMeshManager(), sceneManager_->GetTextureManager() };
+
+	// スカイボックスエンティティの作成
+	SkyboxEntity::Create(registry_.get(), &skyboxGenerator, objectManager_.get());
 
 	// 地面の作成
 	Ground::Create(registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get(), footprintManager_.get());
@@ -62,12 +66,12 @@ void SampleScene::OnInitialize() {
 		building.Create({ .y = std::numbers::pi_v<float> *1.5f }, { .x = -53.0f + static_cast<float>(i) * 68.0f, .z = 64.0f });
 	}
 
-	// 天使像の作成
-	AngelStatue angelStatue{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
-	angelStatue.Create({}, { .y = 8.0f, .z = -250.0f });
-	angelStatue.Create({ .y = std::numbers::pi_v<float> / 2.0f }, { .x = -250.0f, .y = 8.0f });
-	angelStatue.Create({ .y = std::numbers::pi_v<float> }, { .y = 8.0f, .z = 250.0f });
-	angelStatue.Create({ .y = std::numbers::pi_v<float> *1.5f }, { .x = 250.0f, .y = 8.0f });
+	//// 天使像の作成
+	//AngelStatue angelStatue{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
+	//angelStatue.Create({}, { .y = 8.0f, .z = -250.0f });
+	//angelStatue.Create({ .y = std::numbers::pi_v<float> / 2.0f }, { .x = -250.0f, .y = 8.0f });
+	//angelStatue.Create({ .y = std::numbers::pi_v<float> }, { .y = 8.0f, .z = 250.0f });
+	//angelStatue.Create({ .y = std::numbers::pi_v<float> *1.5f }, { .x = 250.0f, .y = 8.0f });
 }
 
 void SampleScene::OnUpdate() {}

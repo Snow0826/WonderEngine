@@ -1,12 +1,21 @@
+struct Object
+{
+    float4x4 world; // World matrix for the object
+    uint blendMode; // Blend mode for the object (0: None, 1: Normal, 2: Additive, 3: Subtractive, 4: Multiplicative, 5: Screen)
+};
+
 struct AABB
 {
     float4 min; // Minimum corner of the bounding box
     float4 max; // Maximum corner of the bounding box
 };
 
-struct CullingData
+struct Mesh
 {
     AABB box;
+    uint objectHandle;
+    uint lodOffset;
+    uint lodCount;
     uint useCulling;
 };
 
@@ -55,31 +64,37 @@ struct IndirectCommand
     DrawIndexedArguments drawIndexedArguments;
 };
 
-struct BlendMode
+struct MeshLOD
 {
-    uint mode;
+    IndirectCommand command;
+    float error;
 };
 
-cbuffer cbuff0 : register(b0)
+cbuffer Frustum : register(b0)
 {
     float4 frustumPlanes[6]; // 6 planes for frustum culling
     float4 frustumCorners[8]; // 8 corners of the frustum
 };
 
-cbuffer cbuff1 : register(b1)
+cbuffer ViewProjection : register(b1)
 {
     float4x4 view; // View matrix
     float4x4 projection; // Projection matrix
 };
 
-cbuffer cbuff2 : register(b2)
+cbuffer Camera : register(b2)
 {
-    uint indirectCommandCount; // Number of indirect commands
+    float3 cameraPosition; // Camera position in world space
 };
 
-StructuredBuffer<CullingData> cullingDataList : register(t0); // SRV: Culling data
-StructuredBuffer<IndirectCommand> inputCommands : register(t1); // SRV: Indirect commands
-StructuredBuffer<BlendMode> blendModes : register(t2); // SRV: Blend modes
+cbuffer MeshCount : register(b3)
+{
+    uint meshCount; // Number of meshes
+};
+
+StructuredBuffer<Object> objects : register(t0); // SRV: Object data
+StructuredBuffer<Mesh> meshes : register(t1); // SRV: Meshes
+StructuredBuffer<MeshLOD> meshLODs : register(t2); // SRV: Mesh LODs
 Texture2D<float> gHiZTexture : register(t3);
 SamplerState gSampler : register(s0);
 AppendStructuredBuffer<IndirectCommand> noneBlendOutputCommands : register(u0); // UAV: NoneBlend processed indirect commands
@@ -98,49 +113,75 @@ uint isOccludedInHiZ(AABB box);
 [numthreads(64, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
-    if (DTid.x >= indirectCommandCount)
+    if (DTid.x >= meshCount)
     {
         return; // Out of bounds
     }
     
-    CullingData cullingData = cullingDataList[DTid.x]; // Get culling data for this thread
-    if (cullingData.useCulling)
+    Mesh mesh = meshes[DTid.x]; // Get culling data for this thread
+    float3 center = (mesh.box.min.xyz + mesh.box.max.xyz) * 0.5f;
+    float3 extent = (mesh.box.max.xyz - mesh.box.min.xyz) * 0.5f;
+    center = mul(float4(center, 1.0f), objects[mesh.objectHandle].world).xyz; // Transform center to world space
+    extent = mul(extent, abs((float3x3) objects[mesh.objectHandle].world)); // Transform extent to world space (ignore translation)
+    AABB box;
+    box.min.xyz = center - extent;
+    box.min.w = 1.0f; // Set w to 1 for homogeneous coordinates
+    box.max.xyz = center + extent;
+    box.max.w = 1.0f; // Set w to 1 for homogeneous coordinates
+    uint selectedLOD = 0;
+    if (mesh.useCulling)
     {
-        if (cullingData.box.min.x > cullingData.box.max.x || cullingData.box.min.y > cullingData.box.max.y || cullingData.box.min.z > cullingData.box.max.z)
+        if (box.min.x > box.max.x || box.min.y > box.max.y || box.min.z > box.max.z)
         {
             return; // Cull invalid box
         }
     
-        if (!isBoxInFrustum(cullingData.box))
+        if (!isBoxInFrustum(box))
         {
             return; // Cull box if outside frustum
         }
         
-        if (!isOccludedInHiZ(cullingData.box))
+        if (!isOccludedInHiZ(box))
         {
             return; // Cull box if behind HiZ depth
         }
+        
+        //float distanceToCamera = length(center - cameraPosition);
+        //float radius = max(extent.x, max(extent.y, extent.z));
+        //float screenSize = radius / distanceToCamera * projection._11;
+        //for (uint i = 0; i < mesh.lodCount; i++)
+        //{
+        //    if (screenSize >= meshLODs[mesh.lodOffset + i].error)
+        //    {
+        //        selectedLOD = i;
+        //    }
+        //    else
+        //    {
+        //        break;
+        //    }
+        //}
     }
     
-    switch (blendModes[DTid.x].mode)
+    IndirectCommand outputCommand = meshLODs[mesh.lodOffset + selectedLOD].command;
+    switch (objects[mesh.objectHandle].blendMode)
     {
         case 0: // NoneBlend
-            noneBlendOutputCommands.Append(inputCommands[DTid.x]);
+            noneBlendOutputCommands.Append(outputCommand);
             break;
         case 1: // NormalBlend
-            normalBlendOutputCommands.Append(inputCommands[DTid.x]);
+            normalBlendOutputCommands.Append(outputCommand);
             break;
         case 2: // AdditiveBlend
-            additiveBlendOutputCommands.Append(inputCommands[DTid.x]);
+            additiveBlendOutputCommands.Append(outputCommand);
             break;
         case 3: // SubtractiveBlend
-            subtractiveBlendOutputCommands.Append(inputCommands[DTid.x]);
+            subtractiveBlendOutputCommands.Append(outputCommand);
             break;
         case 4: // MultiplicativeBlend
-            multiplicativeBlendOutputCommands.Append(inputCommands[DTid.x]);
+            multiplicativeBlendOutputCommands.Append(outputCommand);
             break;
         case 5: // ScreenBlend
-            screenBlendOutputCommands.Append(inputCommands[DTid.x]);
+            screenBlendOutputCommands.Append(outputCommand);
             break;
         default:
             break;

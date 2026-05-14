@@ -44,9 +44,6 @@ public:
 	/// @brief ワールド行列の更新
 	void UpdateWorldMatrix();
 
-	/// @brief 当たり判定データの変換
-	void TransformCollisionData();
-
 	/// @brief ローカル座標系の右方向ベクトルの取得
 	/// @param entity エンティティ
 	/// @return 右方向ベクトル

@@ -13,7 +13,7 @@ void SphereRenderSystem::Update() {
 
 	registry_->ForEach<Model, SphereRenderer>([&](uint32_t entity, Model *model, SphereRenderer *sphereRenderer) {
 		for (const MeshData &meshData : model->modelData.meshes) {
-			debugRenderer_->AddSphere(meshData.worldCollisionData.sphere);
+			debugRenderer_->AddSphere(meshData.sphere);
 		}
 		}, exclude<Disabled>());
 #endif // DRAW_LINE

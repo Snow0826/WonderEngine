@@ -252,9 +252,6 @@ void BaseScene::Update() {
 	// ワールド行列の更新
 	transformSystem_->UpdateWorldMatrix();
 
-	// 当たり判定データの変換
-	transformSystem_->TransformCollisionData();
-
 	// カリングデータの更新
 	indirectCommandManager_->UpdateCullingData();
 

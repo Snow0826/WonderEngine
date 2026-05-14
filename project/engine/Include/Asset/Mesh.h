@@ -10,20 +10,21 @@ class Device;
 class VertexBuffer;
 class IndexBuffer;
 
-/// @brief 衝突形状データ
-struct CollisionData final {
-	Collision::Sphere sphere;	// 球
-	Collision::AABB aabb;		// AABB
-	Collision::OBB obb;			// OBB
+/// @brief メッシュLODデータ
+struct MeshLODData final {
+	std::vector<VertexData> vertices;	// 頂点リスト
+	std::vector<uint32_t> indices;		// インデックスリスト
+	float error = 0.0f;					// LODエラー
+	uint32_t handle = 0;				// メッシュハンドル
 };
 
 /// @brief メッシュデータ
 struct MeshData final {
-	std::vector<VertexData> vertices;	// 頂点リスト
-	std::vector<uint32_t> indices;		// インデックスリスト
-	uint32_t materialIndex = 0;			// マテリアルインデックス
-	CollisionData localCollisionData;	// ローカル衝突形状データ
-	CollisionData worldCollisionData;	// ワールド衝突形状データ
+	std::vector<MeshLODData> lods;	// LODデータリスト
+	uint32_t materialIndex = 0;		// マテリアルインデックス
+	Collision::Sphere sphere;		// 球
+	Collision::AABB aabb;			// AABB
+	Collision::OBB obb;				// OBB
 };
 
 /// @brief メッシュ
@@ -43,9 +44,9 @@ public:
 	~MeshManager();
 
 	/// @brief メッシュの生成
-	/// @param meshData メッシュデータ
+	/// @param meshLODData メッシュLODデータ
 	/// @return メッシュハンドル
-	uint32_t CreateMesh(const MeshData &meshData);
+	uint32_t CreateMesh(const MeshLODData &meshLODData);
 
 	/// @brief スプライトの生成
 	/// @return メッシュハンドル
@@ -55,10 +56,14 @@ public:
 	/// @return メッシュハンドル
 	uint32_t CreatePlane();
 
+	/// @brief 立方体の生成
+	/// @return メッシュハンドル
+	uint32_t CreateBox();
+
 	/// @brief 描画
 	/// @param meshHandle メッシュハンドル
 	/// @param instanceCount インスタンス数
-	void Draw(uint32_t meshHandle, uint32_t instanceCount) const;
+	void Draw(uint32_t meshHandle, uint32_t instanceCount = 1) const;
 
 	/// @brief 頂点バッファビューの取得
 	/// @param meshHandle メッシュハンドル
@@ -80,25 +85,25 @@ public:
 	/// @return インデックス数
 	UINT GetIndexCount(uint32_t meshHandle) const;
 
-	/// @brief メッシュデータの再インデックス化
-	/// @param meshData メッシュデータ
-	/// @return 再インデックス化されたメッシュデータ
-	static MeshData ReIndexMeshData(const MeshData &meshData);
+	/// @brief メッシュLODデータの再インデックス化
+	/// @param meshLODData メッシュLODデータ
+	/// @return 再インデックス化されたメッシュLODデータ
+	static MeshLODData ReIndexMeshLODData(const MeshLODData &meshLODData);
 
 	/// @brief ローカル球の生成
-	/// @param meshData メッシュデータ
+	/// @param vertices 頂点データ
 	/// @return ローカル球
-	static Collision::Sphere CreateLocalSphere(const MeshData &meshData);
+	static Collision::Sphere CreateLocalSphere(const std::vector<VertexData> &vertices);
 
 	/// @brief ローカルAABBの生成
-	/// @param meshData メッシュデータ
+	/// @param vertices 頂点データ
 	/// @return ローカルAABB
-	static Collision::AABB CreateLocalAABB(const MeshData &meshData);
+	static Collision::AABB CreateLocalAABB(const std::vector<VertexData> &vertices);
 
 	/// @brief ローカルOBBの生成
-	/// @param meshData メッシュデータ
+	/// @param vertices 頂点データ
 	/// @return ローカルOBB
-	static Collision::OBB CreateLocalOBB(const MeshData &meshData);
+	static Collision::OBB CreateLocalOBB(const std::vector<VertexData> &vertices);
 
 private:
 	Device *device_ = nullptr;					// デバイス

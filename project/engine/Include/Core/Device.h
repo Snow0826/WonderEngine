@@ -71,6 +71,10 @@ public:
 	/// @return Line用ルートシグネチャ
 	ID3D12RootSignature *GetLineRootSignature() const { return lineRootSignature_.Get(); }
 
+	/// @brief Skybox用ルートシグネチャを取得
+	/// @return Skybox用ルートシグネチャ
+	ID3D12RootSignature *GetSkyboxRootSignature() const { return skyboxRootSignature_.Get(); }
+
 	// @brief 深度ステンシルテクスチャコピー用ルートシグネチャを取得
 	/// @return 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *GetDepthStencilCopyRootSignature() const { return depthStencilCopyRootSignature_.Get(); }
@@ -116,6 +120,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> object3dRootSignature_ = nullptr;			// Object3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> instance3dRootSignature_ = nullptr;			// Instance3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> lineRootSignature_ = nullptr;				// Line用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> skyboxRootSignature_ = nullptr;				// Skybox用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthStencilCopyRootSignature_ = nullptr;	// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> generateHiZMipMapRootSignature_ = nullptr;	// HiZミップマップ生成用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> occlusionCullingRootSignature_ = nullptr;	// オクルージョンカリング用ルートシグネチャ

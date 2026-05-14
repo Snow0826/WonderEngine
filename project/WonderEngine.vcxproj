@@ -156,6 +156,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="engine\Source\Component\Skybox.cpp" />
+    <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
     <ClCompile Include="engine\Source\Component\BlendMode.cpp" />
     <ClCompile Include="game\Source\Object\Button.cpp" />
     <ClCompile Include="game\Source\Object\AngelStatue.cpp" />
@@ -248,7 +250,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="game\Source\Object\Player\Player.cpp" />
     <ClCompile Include="engine\Source\Physics\RigidBody.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\Sphere.cpp" />
-    <ClCompile Include="game\Source\Object\Skydome.cpp" />
+    <ClCompile Include="game\Source\Object\SkyboxEntity.cpp" />
     <ClCompile Include="game\Source\Object\AttackParticle.cpp" />
     <ClCompile Include="engine\Source\Component\PointLight.cpp" />
     <ClCompile Include="engine\Source\Math\Quaternion.cpp" />
@@ -260,7 +262,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="game\Source\Object\Title.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="engine\Include\Component\Skybox.h" />
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
+    <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />
+    <ClInclude Include="engine\Include\Utilities\CPUTimer.h" />
     <ClInclude Include="game\Include\Object\Button.h" />
     <ClInclude Include="game\Include\Object\AngelStatue.h" />
     <ClInclude Include="game\Include\Object\Building.h" />
@@ -354,7 +359,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\Physics\RigidBody.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\Sphere.h" />
     <ClInclude Include="game\Include\Object\Ground.h" />
-    <ClInclude Include="game\Include\Object\Skydome.h" />
+    <ClInclude Include="game\Include\Object\SkyboxEntity.h" />
     <ClInclude Include="game\Include\Object\AttackParticle.h" />
     <ClInclude Include="engine\Include\Component\PointLight.h" />
     <ClInclude Include="engine\Include\Math\Quaternion.h" />

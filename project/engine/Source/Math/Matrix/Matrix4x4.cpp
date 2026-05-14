@@ -145,7 +145,6 @@ Matrix4x4 Matrix4x4::transpose() const {
 }
 
 Matrix4x4 Matrix4x4::inverse() const {
-
 	Matrix4x4 result;
 	float A[4][8] = { 0 };
 	size_t n = 4;
@@ -212,7 +211,6 @@ Matrix4x4 Matrix4x4::inverse() const {
 	}
 
 	return result;
-
 }
 
 Vector3 operator*(const Vector3 &vector, const Matrix4x4 &matrix) {

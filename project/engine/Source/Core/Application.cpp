@@ -6,6 +6,7 @@
 #include "Renderer.h"
 #include "SceneManager.h"
 #include "ImGuiManager.h"
+#include "CPUTimer.h"
 #include "Logger.h"
 #include <cassert>
 
@@ -78,11 +79,19 @@ void Application::Run() {
 
 		ImGuiManager::Begin();	// ImGuiの開始処理
 
+		CPUTimer cpuTimer;	// CPUタイマー
+		cpuTimer.Begin();	// CPUタイマーの開始
+
 		sceneManager_->Update();	// 更新処理
 
 		device_->NewFrame();	// 描画開始処理
 
 		renderer_->Render();	// 描画処理
+
+		cpuTimer.End();	// CPUタイマーの終了
+		ImGui::Text("CPU Time: %.2f ms", cpuTimer.GetMs());	// CPUタイマーの結果をImGuiに表示
+
+		ImGuiManager::Render(device_->GetCommandList());	// ImGuiの描画
 
 		device_->EndFrame();	// 描画終了処理
 	}

@@ -16,7 +16,8 @@
 #include "AABB.h"
 #include "Sphere.h"
 #include "Plane.h"
-#include "Skydome.h"
+#include "Skybox.h"
+#include "SkyboxEntity.h"
 #include "Ground.h"
 #include "Wall.h"
 #include "Building.h"
@@ -50,13 +51,16 @@ void GameScene::OnInitialize() {
 	ModelManager *modelManager = sceneManager_->GetModelManager();
 	ParticleManager *particleManager = sceneManager_->GetParticleManager();
 
+	// スカイボックスジェネレーターの初期化
+	SkyboxGenerator skyboxGenerator{ sceneManager_->GetMeshManager(), sceneManager_->GetTextureManager() };
+
 	// ビットマップフォントのテクスチャを取得
 	for (size_t i = 0; i < 10; i++) {
 		bitmapFont_->AddTextureHandle(textureManager->GetTextureReadHandle(std::to_string(i) + ".png"));
 	}
 
-	// 天球の作成
-	Skydome::Create(registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get());
+	// スカイボックスエンティティの作成
+	SkyboxEntity::Create(registry_.get(), &skyboxGenerator, objectManager_.get());
 
 	// 地面の作成
 	Ground::Create(registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get(), footprintManager_.get());
@@ -254,7 +258,7 @@ void GameScene::CheckAllCollisions() const {
 		registry_->HasComponent<SphereCollider>(player_->GetPartsEntity(Player::PartsType::kBody))) {
 		for (const MeshData &playerMesh : playerBodyModel->modelData.meshes) {
 			registry_->ForEach<Collision::Plane, PlaneCollider>([&](uint32_t entity, Collision::Plane *plane, PlaneCollider *planeCollider) {
-				if (IsCollision(playerMesh.worldCollisionData.sphere, *plane)) {
+				if (IsCollision(playerMesh.sphere, *plane)) {
 					player_->OnCollision(*plane);
 				}
 				}, exclude<Disabled>());
@@ -269,8 +273,8 @@ void GameScene::CheckAllCollisions() const {
 		for (const MeshData &playerMesh : playerBodyModel->modelData.meshes) {
 			registry_->ForEach<Model, AABBCollider>([&](uint32_t entity, Model *model, AABBCollider *aabbCollider) {
 				for (const MeshData &mesh : model->modelData.meshes) {
-					if (IsCollision(playerMesh.worldCollisionData.sphere, mesh.worldCollisionData.aabb)) {
-						player_->OnCollision(mesh.worldCollisionData.aabb);
+					if (IsCollision(playerMesh.sphere, mesh.aabb)) {
+						player_->OnCollision(mesh.aabb);
 					}
 				}
 				}, exclude<Disabled>());
@@ -286,7 +290,7 @@ void GameScene::CheckAllCollisions() const {
 			registry_->HasComponent<SphereCollider>(enemy->GetEnemyEntity())) {
 			for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
 				registry_->ForEach<Collision::Plane, PlaneCollider>([&](uint32_t entity, Collision::Plane *plane, PlaneCollider *planeCollider) {
-					if (IsCollision(enemyMesh.worldCollisionData.sphere, *plane)) {
+					if (IsCollision(enemyMesh.sphere, *plane)) {
 						enemy->OnCollision(*plane);
 					}
 					}, exclude<Disabled>());
@@ -304,8 +308,8 @@ void GameScene::CheckAllCollisions() const {
 			for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
 				registry_->ForEach<Model, AABBCollider>([&](uint32_t entity, Model *model, AABBCollider *aabbCollider) {
 					for (const MeshData &mesh : model->modelData.meshes) {
-						if (IsCollision(enemyMesh.worldCollisionData.sphere, mesh.worldCollisionData.aabb)) {
-							enemy->OnCollision(mesh.worldCollisionData.aabb);
+						if (IsCollision(enemyMesh.sphere, mesh.aabb)) {
+							enemy->OnCollision(mesh.aabb);
 						}
 					}
 					}, exclude<Disabled>());
@@ -325,7 +329,7 @@ void GameScene::CheckAllCollisions() const {
 					!registry_->HasComponent<Disabled>(enemy->GetEnemyEntity()) &&
 					registry_->HasComponent<SphereCollider>(enemy->GetEnemyEntity())) {
 					for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
-						if (IsCollision(playerBodyMesh.worldCollisionData.sphere, enemyMesh.worldCollisionData.sphere)) {
+						if (IsCollision(playerBodyMesh.sphere, enemyMesh.sphere)) {
 							player_->OnCollision();
 						}
 					}
@@ -346,7 +350,7 @@ void GameScene::CheckAllCollisions() const {
 					!registry_->HasComponent<Disabled>(enemy->GetEnemyEntity()) &&
 					registry_->HasComponent<SphereCollider>(enemy->GetEnemyEntity())) {
 					for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
-						if (IsCollision(enemyMesh.worldCollisionData.sphere, playerLeftArmMesh.worldCollisionData.sphere)) {
+						if (IsCollision(enemyMesh.sphere, playerLeftArmMesh.sphere)) {
 							enemy->OnCollision();
 						}
 					}
@@ -367,7 +371,7 @@ void GameScene::CheckAllCollisions() const {
 					!registry_->HasComponent<Disabled>(enemy->GetEnemyEntity()) &&
 					registry_->HasComponent<SphereCollider>(enemy->GetEnemyEntity())) {
 					for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
-						if (IsCollision(enemyMesh.worldCollisionData.sphere, playerRightArmMesh.worldCollisionData.sphere)) {
+						if (IsCollision(enemyMesh.sphere, playerRightArmMesh.sphere)) {
 							enemy->OnCollision();
 						}
 					}
@@ -387,7 +391,7 @@ void GameScene::CheckAllCollisions() const {
 				!registry_->HasComponent<Disabled>(enemy->GetEnemyEntity()) &&
 				registry_->HasComponent<SphereCollider>(enemy->GetEnemyEntity())) {
 				for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
-					if (IsCollision(enemyMesh.worldCollisionData.sphere, *playerAttackParticleSphere)) {
+					if (IsCollision(enemyMesh.sphere, *playerAttackParticleSphere)) {
 						enemy->OnCollision();
 					}
 				}
@@ -443,8 +447,8 @@ void GameScene::PopEnemy() {
 	spawnPosition.z = Wrap(spawnPosition.z, -256.0f, 256.0f);
 	registry_->ForEach<Model, AABBCollider>([&](uint32_t entity, Model *model, AABBCollider *aabbCollider) {
 		for (const MeshData &mesh : model->modelData.meshes) {
-			if (IsCollision(mesh.worldCollisionData.aabb, spawnPosition)) {
-				spawnPosition.y = mesh.worldCollisionData.aabb.max.y;
+			if (IsCollision(mesh.aabb, spawnPosition)) {
+				spawnPosition.y = mesh.aabb.max.y;
 			}
 		}
 		}, exclude<Disabled>());

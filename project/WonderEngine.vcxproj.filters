@@ -86,7 +86,7 @@
     <ClCompile Include="game\Source\Object\Player\Player.cpp" />
     <ClCompile Include="engine\Source\Physics\RigidBody.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\Sphere.cpp" />
-    <ClCompile Include="game\Source\Object\Skydome.cpp" />
+    <ClCompile Include="game\Source\Object\SkyboxEntity.cpp" />
     <ClCompile Include="game\Source\Object\AttackParticle.cpp" />
     <ClCompile Include="engine\Source\Component\PointLight.cpp" />
     <ClCompile Include="engine\Source\Math\Quaternion.cpp" />
@@ -96,6 +96,8 @@
     <ClCompile Include="game\Source\Scene\TitleScene\Phase\TitleScenePhaseFadeOut.cpp" />
     <ClCompile Include="game\Source\Scene\TitleScene\Phase\TitleScenePhaseMain.cpp" />
     <ClCompile Include="game\Source\Object\Title.cpp" />
+    <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
+    <ClCompile Include="engine\Source\Component\Skybox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -192,7 +194,7 @@
     <ClInclude Include="engine\Include\Physics\RigidBody.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\Sphere.h" />
     <ClInclude Include="game\Include\Object\Ground.h" />
-    <ClInclude Include="game\Include\Object\Skydome.h" />
+    <ClInclude Include="game\Include\Object\SkyboxEntity.h" />
     <ClInclude Include="game\Include\Object\AttackParticle.h" />
     <ClInclude Include="engine\Include\Component\PointLight.h" />
     <ClInclude Include="engine\Include\Math\Quaternion.h" />
@@ -203,5 +205,8 @@
     <ClInclude Include="game\Include\Scene\TitleScene\Phase\TitleScenePhaseFadeOut.h" />
     <ClInclude Include="game\Include\Scene\TitleScene\Phase\TitleScenePhaseMain.h" />
     <ClInclude Include="game\Include\Object\Title.h" />
+    <ClInclude Include="engine\Include\Utilities\CPUTimer.h" />
+    <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />
+    <ClInclude Include="engine\Include\Component\Skybox.h" />
   </ItemGroup>
 </Project>

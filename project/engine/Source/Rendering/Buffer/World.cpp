@@ -40,7 +40,7 @@ World::World(Device *device, std::ofstream &logStream) {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kViewProjection)]->SetName("ViewProjection");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kMaterial)]->Initialize(device, sizeof(Material), kMaxObject);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kMaterial)]->SetName("Material");
-	constantBuffers_[static_cast<size_t>(ConstantBufferType::kCamera)]->Initialize(device, sizeof(CameraForGPU), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kCamera)]->Initialize(device, sizeof(CameraForGPU), 2);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kCamera)]->SetName("Camera");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDirectionalLight)]->Initialize(device, sizeof(DirectionalLight), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDirectionalLight)]->SetName("DirectionalLight");
@@ -65,12 +65,12 @@ World::World(Device *device, std::ofstream &logStream) {
 	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kSpotLight)] = Resource::CreateUploadBuffer(device, sizeof(SpotLight) * kMaxSpotLight);
 	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kSpotLight)]->SetName("SpotLight");
 	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kSpotLight)]->Map(reinterpret_cast<void **>(&spotLightData_));
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kCulling)] = Resource::CreateUploadBuffer(device, sizeof(CullingData) * kMaxAABB);
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kCulling)]->SetName("Culling");
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kIndirectCommand)] = Resource::CreateBuffer(device, D3D12_HEAP_TYPE_DEFAULT, kCommandSizePerFrame, D3D12_RESOURCE_STATE_COMMON);
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kIndirectCommand)]->SetName("IndirectCommand");
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kBlendMode)] = Resource::CreateUploadBuffer(device, sizeof(BlendModeForGPU) * kMaxAABB);
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kBlendMode)]->SetName("BlendMode");
+	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kObject)] = Resource::CreateUploadBuffer(device, sizeof(CullingObjectData) * kMaxObject);
+	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kObject)]->SetName("Object");
+	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMesh)] = Resource::CreateUploadBuffer(device, sizeof(CullingMeshData) * kMaxAABB);
+	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMesh)]->SetName("Mesh");
+	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMeshLOD)] = Resource::CreateBuffer(device, D3D12_HEAP_TYPE_DEFAULT, sizeof(MeshLOD) * kMaxAABB, D3D12_RESOURCE_STATE_COMMON);
+	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMeshLOD)]->SetName("MeshLOD");
 	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kFootprint)] = Resource::CreateUploadBuffer(device, sizeof(FootprintForGPU) * kMaxFootprint);
 	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kFootprint)]->SetName("Footprint");
 	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kFootprint)]->Map(reinterpret_cast<void **>(&footprintData_));
@@ -103,7 +103,7 @@ World::World(Device *device, std::ofstream &logStream) {
 	processedCommandBufferCounterReset_->Unmap();
 
 	// コマンドバッファ転送用中間バッファの作成
-	commandBufferUpload_ = Resource::CreateUploadBuffer(device, kCommandSizePerFrame);
+	commandBufferUpload_ = Resource::CreateUploadBuffer(device, sizeof(MeshLOD) * kMaxAABB);
 	commandBufferUpload_->SetName("CommandBufferUpload");
 
 	// Line用SRVの設定
@@ -139,30 +139,31 @@ World::World(Device *device, std::ofstream &logStream) {
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kSpotLight)]->GetResource(), srvBufferDesc, spotLightHandle_);
 	Logger::Log(logStream, "SpotLight SRVDescriptorIndex: " + std::to_string(spotLightHandle_) + "\n");
 
-	// Culling用SRVの設定
-	srvBufferDesc.Buffer.NumElements = kMaxAABB;					// 要素数
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(CullingData);	// 構造体のサイズ
+	// カリングオブジェクト用SRVの設定
+	srvBufferDesc.Buffer.NumElements = kMaxAABB;							// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(CullingObjectData);	// 構造体のサイズ
 
-	// Culling用SRVの作成
-	cullingHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kCulling)]->GetResource(), srvBufferDesc, cullingHandle_);
-	Logger::Log(logStream, "Culling SRVDescriptorIndex: " + std::to_string(cullingHandle_) + "\n");
+	// カリングオブジェクト用SRVの作成
+	cullingObjectHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kObject)]->GetResource(), srvBufferDesc, cullingObjectHandle_);
+	Logger::Log(logStream, "CullingObject SRVDescriptorIndex: " + std::to_string(cullingObjectHandle_) + "\n");
 
-	// 間接コマンド用SRVの設定
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(IndirectCommand);
+	// カリングメッシュ用SRVの設定
+	srvBufferDesc.Buffer.NumElements = kMaxAABB;						// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(CullingMeshData);	// 構造体のサイズ
 
-	// 間接コマンド用SRVの作成
-	indirectCommandHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kIndirectCommand)]->GetResource(), srvBufferDesc, indirectCommandHandle_);
-	Logger::Log(logStream, "IndirectCommand SRVDescriptorIndex: " + std::to_string(indirectCommandHandle_) + "\n");
+	// カリングメッシュ用SRVの作成
+	cullingMeshHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMesh)]->GetResource(), srvBufferDesc, cullingMeshHandle_);
+	Logger::Log(logStream, "CullingMesh SRVDescriptorIndex: " + std::to_string(cullingMeshHandle_) + "\n");
 
-	// ブレンドモード用SRVの設定
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(BlendModeForGPU);
+	// メッシュLOD用SRVの設定
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(MeshLOD);	// 構造体のサイズ
 
-	// ブレンドモード用SRVの作成
-	blendModeHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kBlendMode)]->GetResource(), srvBufferDesc, blendModeHandle_);
-	Logger::Log(logStream, "BlendMode SRVDescriptorIndex: " + std::to_string(blendModeHandle_) + "\n");
+	// メッシュLOD用SRVの作成
+	meshLODHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMeshLOD)]->GetResource(), srvBufferDesc, meshLODHandle_);
+	Logger::Log(logStream, "MeshLOD SRVDescriptorIndex: " + std::to_string(meshLODHandle_) + "\n");
 
 	// 深度バッファ用SRVの作成
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDepthStencilCopyDesc{};
@@ -351,12 +352,14 @@ void World::TransferSpotLight() {
 }
 
 void World::TransferCamera() {
+	TransformSystem transformSystem{ registry_ };
+
 	// カリングカメラ
 	registry_->ForEach<Camera, Transform, CullingCamera>([&](uint32_t entity, Camera *camera, Transform *transform, CullingCamera *cullingCamera) {
 		ViewProjectionData viewProjection = MakeViewProjection(*camera, *transform);
 		Frustum frustum = MakeFrustum(viewProjection);
 		CameraForGPU cameraData = {
-			.worldPosition = transform->translate * transform->worldMatrix
+			.worldPosition = transformSystem.GetWorldPosition(entity)
 		};
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kViewProjection)]->CopyData(&viewProjection, sizeof(ViewProjectionData), 1);
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), 0);
@@ -367,8 +370,13 @@ void World::TransferCamera() {
 	registry_->ForEach<Camera, Transform, RenderingCamera>([&](uint32_t entity, Camera *camera, Transform *transform, RenderingCamera *renderingCamera) {
 		ViewProjectionData viewProjection = MakeViewProjection(*camera, *transform);
 		Frustum frustum = MakeFrustum(viewProjection);
+		CameraForGPU cameraData = {
+			.worldPosition = transformSystem.GetWorldPosition(entity)
+		};
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kViewProjection)]->CopyData(&viewProjection, sizeof(ViewProjectionData), 2);
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), 1);
+		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCamera)]->CopyData(&cameraData, sizeof(CameraForGPU), 1);
+
 		}, exclude<Disabled, CullingCamera>());
 }
 
@@ -405,8 +413,8 @@ void World::TransferFootprint() {
 
 	registry_->ForEach<Footprint, Model>([&](uint32_t entity, Footprint *footprint, Model *model) {
 		for (const MeshData &mesh : model->modelData.meshes) {
-			footprintData_[footprint->id].worldPos = mesh.worldCollisionData.sphere.center;
-			footprintData_[footprint->id].radius = mesh.worldCollisionData.sphere.radius;
+			footprintData_[footprint->id].worldPos = mesh.sphere.center;
+			footprintData_[footprint->id].radius = mesh.sphere.radius;
 			footprintData_[footprint->id].color = footprint->color;
 		}
 		}, exclude<Disabled>());

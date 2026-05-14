@@ -20,7 +20,9 @@ void PhysicalSystem::Update(float deltaTime) {
 		if (!torque.isZero()) {
 			Matrix3x3 inertiaTensor = MakeSphereInertiaTensor(rigidBody->mass, rigidBody->radius);	// 慣性テンソルを計算
 			rigidBody->angularMomentum += torque * deltaTime;										// 角運動量を更新
-			rigidBody->angularVelocity = inertiaTensor.inverse() * rigidBody->angularMomentum;		// 角速度を計算
+			if (inertiaTensor.inverse(inertiaTensor)) {
+				rigidBody->angularVelocity = inertiaTensor * rigidBody->angularMomentum;	// 角速度を計算
+			}
 		}
 
 		// 力をリセット

@@ -1,5 +1,6 @@
 #pragma once
-#include <cstdint>
+#include <Vector3.h>
+#include <Vector4.h>
 
 /// @brief 剰余演算
 /// @param x X
@@ -26,3 +27,8 @@ bool NearlyEqual(float a, float b, float epsilon = 1e-5f);
 /// @param scale スケール
 /// @return 量子化された値
 int32_t Quantize(float value, float scale = 10000.0f);
+
+/// @brief Vector4をVector3に変換する
+/// @param v 変換するVector4
+/// @return 変換後のVector3
+Vector3 ToVector3(const Vector4 &v);

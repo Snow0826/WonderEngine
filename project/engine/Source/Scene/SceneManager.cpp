@@ -63,6 +63,7 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	textureManager_->LoadTexture("T_X_RB_3D.png");
 	textureManager_->LoadTexture("rule.png");
 	for (size_t i = 0; i < 10; i++) { textureManager_->LoadTexture(std::to_string(i) + ".png"); }
+	textureManager_->LoadTexture("kloofendal_48d_partly_cloudy_puresky_2k.dds");
 	renderer_->SetTextureManager(textureManager_.get());
 
 	// メッシュマネージャーの生成
@@ -71,20 +72,19 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 
 	// モデルの読み込み
 	modelManager_ = std::make_unique<ModelManager>(textureManager_.get(), meshManager_.get(), logStream_);
-	modelManager_->LoadModel("skydome.obj");
 	modelManager_->LoadModel("ground.obj");
 	modelManager_->LoadModel("wall.gltf");
 	modelManager_->LoadModel("historic_european_brick_building_roebuck.gltf");
-	modelManager_->LoadModel("angel_statue.gltf");
-	modelManager_->LoadModel("title0.obj");
-	modelManager_->LoadModel("title1.obj");
-	modelManager_->LoadModel("title2.obj");
-	modelManager_->LoadModel("body.obj");
-	modelManager_->LoadModel("head.obj");
-	modelManager_->LoadModel("leftArm.obj");
-	modelManager_->LoadModel("rightArm.obj");
-	modelManager_->LoadModel("enemy.obj");
-	modelManager_->LoadModel("cube.obj");
+	//modelManager_->LoadModel("angel_statue.gltf");
+	//modelManager_->LoadModel("title0.obj");
+	//modelManager_->LoadModel("title1.obj");
+	//modelManager_->LoadModel("title2.obj");
+	//modelManager_->LoadModel("body.obj");
+	//modelManager_->LoadModel("head.obj");
+	//modelManager_->LoadModel("leftArm.obj");
+	//modelManager_->LoadModel("rightArm.obj");
+	//modelManager_->LoadModel("enemy.obj");
+	//modelManager_->LoadModel("cube.obj");
 
 	// パーティクルグループの作成
 	particleManager_ = std::make_unique<ParticleManager>(device_, textureManager_.get(), meshManager_.get(), logStream_);

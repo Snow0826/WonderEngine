@@ -1,8 +1,15 @@
 #pragma once
 #include "BlendMode.h"
 #include "Vector4.h"
+#include "Matrix4x4.h"
 #include <d3d12.h>
 #include <vector>
+
+/// @brief カリングオブジェクトデータ(GPU)
+struct CullingObjectData final {
+	Matrix4x4 worldMatrix;	// ワールド行列
+	BlendMode blendMode;	// ブレンドモード
+};
 
 /// @brief AABB(GPU)
 struct AABBForGPU final {
@@ -11,14 +18,12 @@ struct AABBForGPU final {
 };
 
 /// @brief カリングデータ(GPU)
-struct CullingData final {
+struct CullingMeshData final {
 	AABBForGPU aabb;			// AABB
+	uint32_t objectHandle = 0;	// オブジェクトハンドル
+	uint32_t lodOffset = 0;		// LODオフセット
+	uint32_t lodCount = 0;		// LOD数
 	uint32_t useCulling = 0;	// カリングを使用するか
-};
-
-/// @brief GPU用ブレンドモード
-struct BlendModeForGPU final {
-	BlendMode blendMode;	// ブレンドモード
 };
 
 /// @brief テクスチャデータ
@@ -35,6 +40,14 @@ struct IndirectCommand final {
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;			// 頂点バッファビュー
 	D3D12_INDEX_BUFFER_VIEW indexBufferView;			// インデックスバッファビュー
 	D3D12_DRAW_INDEXED_ARGUMENTS drawIndexedArguments;	// 描画コマンド引数
+};
+#pragma pack(pop)
+
+/// @brief メッシュLOD
+#pragma pack(push, 1)
+struct MeshLOD final {
+	IndirectCommand indirectCommand;	// 間接コマンド
+	float error = 0.0f;					// LODエラー
 };
 #pragma pack(pop)
 
@@ -74,16 +87,17 @@ public:
 	/// @brief 間接コマンド数のデバッグ表示
 	void Debug() const;
 
-	/// @brief 間接コマンドカウンターの取得
-	/// @return 間接コマンドカウンター
-	uint32_t GetIndirectCommandCounter() const { return static_cast<uint32_t>(entities_.size()); }
+	/// @brief メッシュカウンターの取得
+	/// @return メッシュカウンター
+	uint32_t GetMeshCounter() const { return meshCounter_; }
 
 private:
 	Registry *registry_ = nullptr;						// レジストリ
 	World *world_ = nullptr;							// ワールド
 	MeshManager *meshManager_ = nullptr;				// メッシュマネージャー
-	CullingData *cullingData_ = nullptr;				// カリングデータ
-	BlendModeForGPU *blendModeData_ = nullptr;			// ブレンドモードデータ
-	IndirectCommand *indirectCommandData_ = nullptr;	// 間接コマンドデータ
+	CullingObjectData *cullingObjectData_ = nullptr;	// カリングオブジェクトデータ
+	CullingMeshData *cullingMeshData_ = nullptr;		// カリングメッシュデータ
+	MeshLOD *meshLODData_ = nullptr;					// メッシュLODデータ
 	std::vector<uint32_t> entities_;					// インデックスからエンティティへのマッピング
+	uint32_t meshCounter_ = 0;							// メッシュカウンター
 };

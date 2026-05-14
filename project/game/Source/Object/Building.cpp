@@ -11,7 +11,7 @@ void Building::Create(const Vector3 &rotate, const Vector3 &translate) {
 	uint32_t entity = registry_->GenerateEntity();
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
 	registry_->AddComponent(entity, Transform{ .scale = {4.0f, 4.0f, 4.0f}, .rotate = rotate, .translate = translate });
-	registry_->AddComponent(entity, Material{ .color = {1.0f, 1.0f, 1.0f, 0.0f} });
+	registry_->AddComponent(entity, Material{});
 	registry_->AddComponent(entity, DirtyTransform{});
 	registry_->AddComponent(entity, DirtyMaterial{});
 	registry_->AddComponent(entity, objectManager_->CreateObject(entity));

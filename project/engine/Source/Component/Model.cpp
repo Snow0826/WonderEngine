@@ -1,13 +1,18 @@
+#define NOMINMAX
 #include "Model.h"
 #include "EntityComponentSystem.h"
 #include "VertexBuffer.h"
 #include "Texture.h"
 #include "Transform.h"
 #include "IndirectCommand.h"
+#include "Matrix3x3.h"
 #include "Logger.h"
 #include "StringConverter.h"
+#include "QuadricErrorMetrics.h"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
+#include <unordered_set>
+#include <queue>
 
 void ModelManager::LoadModel(const std::string &fileName) {
 	// すでに読み込まれている場合は何もしない
@@ -22,8 +27,10 @@ void ModelManager::LoadModel(const std::string &fileName) {
 	model->modelData = LoadModelData(fileName);
 
 	// メッシュの生成
-	for (const MeshData &meshData : model->modelData.meshes) {
-		model->meshHandle.emplace_back(meshManager_->CreateMesh(meshData));
+	for (MeshData &meshData : model->modelData.meshes) {
+		for (MeshLODData &meshLODData : meshData.lods) {
+			meshLODData.handle = meshManager_->CreateMesh(meshLODData);
+		}
 	}
 
 	// テクスチャの読み込み
@@ -96,7 +103,7 @@ ModelData ModelManager::LoadModelData(const std::string &fileName) {
 	assert(scene->HasMeshes());	// メッシュがないのは対応しない
 	for (uint32_t meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex) {
 		aiMesh *mesh = scene->mMeshes[meshIndex];
-		MeshData meshData;
+		MeshLODData meshLODData;
 		for (uint32_t vertexIndex = 0; vertexIndex < mesh->mNumVertices; ++vertexIndex) {
 			aiVector3D position = mesh->mVertices[vertexIndex];
 			aiVector3D texcoord = mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][vertexIndex] : aiVector3D(0, 0, 0);
@@ -106,21 +113,29 @@ ModelData ModelManager::LoadModelData(const std::string &fileName) {
 				.texcoord = { texcoord.x, texcoord.y },
 				.normal = { -normal.x, normal.y, normal.z }
 			};
-			meshData.vertices.emplace_back(vertex);
+			meshLODData.vertices.emplace_back(vertex);
 		}
 
 		for (uint32_t faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex) {
 			aiFace &face = mesh->mFaces[faceIndex];
 			for (uint32_t index = 0; index < face.mNumIndices; ++index) {
-				meshData.indices.emplace_back(face.mIndices[index]);
+				meshLODData.indices.emplace_back(face.mIndices[index]);
 			}
 		}
-		meshData = MeshManager::ReIndexMeshData(meshData);
+		QEMSimplifier qemSimplifier;
+		std::vector<QEMSimplifier::ResultLOD> resultLODs = qemSimplifier.Simplify(meshLODData.vertices, meshLODData.indices);
+		MeshData meshData;
+		for (const QEMSimplifier::ResultLOD &resultLOD : resultLODs) {
+			meshData.lods.emplace_back(MeshLODData{
+				.vertices = resultLOD.vertices,
+				.indices = resultLOD.indices,
+				.error = resultLOD.error
+			});
+		}
 		meshData.materialIndex = mesh->mMaterialIndex;
-		meshData.localCollisionData.sphere = MeshManager::CreateLocalSphere(meshData);
-		meshData.localCollisionData.aabb = MeshManager::CreateLocalAABB(meshData);
-		meshData.localCollisionData.obb = MeshManager::CreateLocalOBB(meshData);
-		meshData.worldCollisionData = meshData.localCollisionData;
+		meshData.sphere = MeshManager::CreateLocalSphere(meshData.lods[0].vertices);
+		meshData.aabb = MeshManager::CreateLocalAABB(meshData.lods[0].vertices);
+		meshData.obb = MeshManager::CreateLocalOBB(meshData.lods[0].vertices);
 		modelData.meshes.emplace_back(meshData);
 	}
 
@@ -230,10 +245,16 @@ void ModelInspector::Draw([[maybe_unused]] uint32_t entity) {
 			}
 
 			for (size_t i = 0; i < model->modelData.meshes.size(); i++) {
-				ImGui::Text("Mesh %zu", i);
-				ImGui::Text("vertices: %zu", model->modelData.meshes[i].vertices.size());
-				ImGui::Text("indices: %zu", model->modelData.meshes[i].indices.size());
-				ImGui::Separator();
+				if (ImGui::TreeNode(("Mesh" + std::to_string(i)).c_str())) {
+					for (size_t j = 0; j < model->modelData.meshes[i].lods.size(); j++) {
+						if(ImGui::TreeNode(("LOD" + std::to_string(j)).c_str())) {
+							ImGui::Text("vertices: %zu", model->modelData.meshes[i].lods[j].vertices.size());
+							ImGui::Text("indices: %zu", model->modelData.meshes[i].lods[j].indices.size());
+							ImGui::TreePop();
+						}
+					}
+					ImGui::TreePop();
+				}
 			}
 		}
 		ImGui::TreePop();

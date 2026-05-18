@@ -122,16 +122,8 @@ ModelData ModelManager::LoadModelData(const std::string &fileName) {
 				meshLODData.indices.emplace_back(face.mIndices[index]);
 			}
 		}
-		QEMSimplifier qemSimplifier;
-		std::vector<QEMSimplifier::ResultLOD> resultLODs = qemSimplifier.Simplify(meshLODData.vertices, meshLODData.indices);
 		MeshData meshData;
-		for (const QEMSimplifier::ResultLOD &resultLOD : resultLODs) {
-			meshData.lods.emplace_back(MeshLODData{
-				.vertices = resultLOD.vertices,
-				.indices = resultLOD.indices,
-				.error = resultLOD.error
-			});
-		}
+		meshData.lods.emplace_back(meshLODData);
 		meshData.materialIndex = mesh->mMaterialIndex;
 		meshData.sphere = MeshManager::CreateLocalSphere(meshData.lods[0].vertices);
 		meshData.aabb = MeshManager::CreateLocalAABB(meshData.lods[0].vertices);

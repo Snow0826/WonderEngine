@@ -24,7 +24,6 @@ Microsoft::WRL::ComPtr<ID3D12RootSignature> RootSignature::Create(std::ofstream 
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> rootSignature = nullptr;
 	hr = device->CreateRootSignature(0, signatureBlob->GetBufferPointer(), signatureBlob->GetBufferSize(), IID_PPV_ARGS(&rootSignature));
 	assert(SUCCEEDED(hr));
-
 	return rootSignature;
 }
 
@@ -34,7 +33,7 @@ RootSignature RootSignature::Add32BitConstant(D3D12_SHADER_VISIBILITY visibility
 	rootParameter.ShaderVisibility = visibility;								// シェーダーの可視性
 	rootParameter.Constants.ShaderRegister = shaderRegister;					// シェーダーのレジスタ番号
 	rootParameter.Constants.Num32BitValues = num32BitValues;					// 32ビット定数の数
-	rootParameters_.push_back(rootParameter);									// メンバ配列に追加
+	rootParameters_.emplace_back(rootParameter);								// メンバ配列に追加
 	return *this;
 }
 
@@ -43,7 +42,7 @@ RootSignature RootSignature::AddCBuffer(D3D12_SHADER_VISIBILITY visibility, UINT
 	rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;	// パラメータの種類
 	rootParameter.ShaderVisibility = visibility;					// シェーダーの可視性
 	rootParameter.Descriptor.ShaderRegister = shaderRegister;		// シェーダーのレジスタ番号
-	rootParameters_.push_back(rootParameter);						// メンバ配列に追加
+	rootParameters_.emplace_back(rootParameter);					// メンバ配列に追加
 	return *this;
 }
 
@@ -54,7 +53,7 @@ RootSignature RootSignature::AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rang
 	descriptorRange.NumDescriptors = numDescriptors;											// ディスクリプタの数
 	descriptorRange.RangeType = rangeType;														// ディスクリプタの種類
 	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;	// ディスクリプタテーブルのオフセット
-	descriptorRanges_.push_back(descriptorRange);												// DescriptorRangeの配列を追加
+	descriptorRanges_.emplace_back(descriptorRange);											// DescriptorRangeの配列を追加
 
 	// DescriptorTableの設定
 	D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable{};
@@ -67,8 +66,7 @@ RootSignature RootSignature::AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rang
 	rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;	// パラメータの種類
 	rootParameter.ShaderVisibility = visibility;								// シェーダーの可視性
 	rootParameter.DescriptorTable = descriptorTable;							// デスクリプタテーブルの設定
-	rootParameters_.push_back(rootParameter);									// RootParameterの配列を追加
-
+	rootParameters_.emplace_back(rootParameter);								// RootParameterの配列を追加
 	return *this;
 }
 
@@ -82,6 +80,6 @@ RootSignature RootSignature::AddSampler(D3D12_FILTER filter, D3D12_TEXTURE_ADDRE
 	staticSampler.MaxLOD = maxLOD;					// 最大LOD
 	staticSampler.ShaderRegister = shaderRegister;	// シェーダーのレジスタ番号
 	staticSampler.ShaderVisibility = visibility;	// シェーダーの可視性
-	staticSamplers_.push_back(staticSampler);		// StaticSamplerの配列を追加
+	staticSamplers_.emplace_back(staticSampler);	// StaticSamplerの配列を追加
 	return *this;
 }

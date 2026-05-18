@@ -126,7 +126,8 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	hr = dxgiFactory_->CreateSwapChainForHwnd(commandQueue_.Get(), hwnd, &swapChainDesc, nullptr, nullptr, reinterpret_cast<IDXGISwapChain1 **>(swapChain_.GetAddressOf()));
 	assert(SUCCEEDED(hr));
 
-	rtvDescriptorHeap_ = DescriptorHeap::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 2, false);	// RTV用のディスクリプタヒープの作成
+	// ディスクリプタヒープの作成
+	rtvDescriptorHeap_ = DescriptorHeap::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 3, false);	// RTV用のディスクリプタヒープの作成
 	gpuCbvSrvUavDescriptorHeap_ = DescriptorHeap::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, DescriptorHeap::kMaxSRVCount, true);		// GPU用のCBV,SRV,UAV用のディスクリプタヒープの作成
 	cpuCbvSrvUavDescriptorHeap_ = DescriptorHeap::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, DescriptorHeap::kMaxSRVCount, false);	// CPU用のCBV,SRV,UAV用のディスクリプタヒープの作成
 	dsvDescriptorHeap_ = DescriptorHeap::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);	// DSV用のディスクリプタヒープの作成
@@ -139,12 +140,13 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	// RTVの作成
 	for (UINT i = 0; i < 2; ++i) {
 		Microsoft::WRL::ComPtr<ID3D12Resource> swapChainResource;
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
 		hr = swapChain_->GetBuffer(i, IID_PPV_ARGS(&swapChainResource));
 		assert(SUCCEEDED(hr));
-		rtvHandle = rtvDescriptorHeap_.CreateRenderTargetView(swapChainResource.Get(), rtvDesc, i);
-		swapChainResources_.push_back(swapChainResource);
-		rtvHandles_.push_back(rtvHandle);
+		uint32_t rtvHandle = rtvDescriptorHeap_.AllocateDescriptor();
+		rtvDescriptorHeap_.CreateRenderTargetView(swapChainResource, rtvDesc, rtvHandle);
+		Logger::Log(logStream, "SwapChain " + std::to_string(i) + " RTVDescriptorIndex: " + std::to_string(rtvHandle) + "\n");
+		swapChainResources_.emplace_back(swapChainResource);
+		rtvHandles_.emplace_back(rtvHandle);
 	}
 
 	// Object3d用ルートシグネチャの作成
@@ -195,6 +197,14 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create SkyboxRootSignature\n");
 	skyboxRootSignature_->SetName(L"SkyboxRootSignature");
+
+	// CopyImage用ルートシグネチャの作成
+	copyImageRootSignature_ = RootSignature()
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 0:Texture
+		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create CopyImageRootSignature\n");
+	copyImageRootSignature_->SetName(L"CopyImageRootSignature");
 
 	// 深度ステンシルテクスチャコピー用ルートシグネチャの作成
 	depthStencilCopyRootSignature_ = RootSignature()
@@ -275,16 +285,13 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	previousDepthStencilTexture_ = Resource::CreateTexture2D(this, width, height, 1, D3D12_RESOURCE_STATE_COPY_DEST, DXGI_FORMAT_D24_UNORM_S8_UINT);
 	previousDepthStencilTexture_->SetName("PreviousDepthStencilTexture");
 
-	// DSVの設定
+	// DSVの作成
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
 	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;	// フォーマット
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;	// テクスチャ2D
-
-	// DSVを作成するDescriptorHeapの位置を取得する
-	dsvHandle_ = dsvDescriptorHeap_.GetCPUDescriptorHandle(0);
-
-	// DSVを作成する
-	device_->CreateDepthStencilView(depthStencilTexture_->GetResource(), &dsvDesc, dsvHandle_);
+	dsvHandle_ = dsvDescriptorHeap_.AllocateDescriptor();
+	dsvDescriptorHeap_.CreateDepthStencilView(depthStencilTexture_->GetResource(), dsvDesc, dsvHandle_);
+	Logger::Log(logStream, "DepthStencilTexture DSVDescriptorIndex: " + std::to_string(dsvHandle_) + "\n");
 
 	// ImGuiの初期化
 	ImGuiManager::Initialize(hwnd, device_, swapChainDesc, rtvDesc, gpuCbvSrvUavDescriptorHeap_, logStream);
@@ -294,7 +301,9 @@ void Device::NewFrame() {
 	// DescriptorHeapを設定する
 	ID3D12DescriptorHeap *descriptorHeaps[] = { gpuCbvSrvUavDescriptorHeap_.GetDescriptorHeap() };
 	commandList_->SetDescriptorHeaps(1, descriptorHeaps);
+}
 
+void Device::SetupSwapChain() {
 	// これから書き込むバックバッファのインデックスを取得
 	UINT backBufferIndex = swapChain_->GetCurrentBackBufferIndex();
 
@@ -302,11 +311,13 @@ void Device::NewFrame() {
 	Resource::TransitionBarrier(commandList_, swapChainResources_[backBufferIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// 描画先のRTVとDSVを設定する
-	commandList_->OMSetRenderTargets(1, &rtvHandles_[backBufferIndex], false, &dsvHandle_);
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvCPUHandle = rtvDescriptorHeap_.GetCPUDescriptorHandle(rtvHandles_[backBufferIndex]);
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvCPUHandle = dsvDescriptorHeap_.GetCPUDescriptorHandle(dsvHandle_);
+	commandList_->OMSetRenderTargets(1, &rtvCPUHandle, false, &dsvCPUHandle);
 
 	// 指定した色で画面全体をクリアする
 	float clearColor[] = { 0.1f, 0.25f, 0.5f, 1.0f };
-	commandList_->ClearRenderTargetView(rtvHandles_[backBufferIndex], clearColor, 0, nullptr);
+	commandList_->ClearRenderTargetView(rtvCPUHandle, clearColor, 0, nullptr);
 
 	// ビューポートとシザー矩形の設定
 	commandList_->RSSetViewports(1, &viewport_);		// ビューポートの設定

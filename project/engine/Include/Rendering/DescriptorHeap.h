@@ -51,8 +51,7 @@ public:
 	/// @param resource リソース
 	/// @param rtvDesc RTVの設定
 	/// @param index インデックス
-	/// @return CPUディスクリプタハンドル
-	D3D12_CPU_DESCRIPTOR_HANDLE CreateRenderTargetView(const Microsoft::WRL::ComPtr<ID3D12Resource> &resource, D3D12_RENDER_TARGET_VIEW_DESC rtvDesc, uint32_t index) const;
+	void CreateRenderTargetView(const Microsoft::WRL::ComPtr<ID3D12Resource> &resource, D3D12_RENDER_TARGET_VIEW_DESC rtvDesc, uint32_t index) const;
 
 	/// @brief SRVを作成
 	/// @param resource リソース
@@ -64,8 +63,7 @@ public:
 	/// @param resource リソース
 	/// @param dsvDesc DSVの設定
 	/// @param index インデックス
-	/// @return CPUディスクリプタハンドル
-	D3D12_CPU_DESCRIPTOR_HANDLE CreateDepthStencilView(const Microsoft::WRL::ComPtr<ID3D12Resource> &resource, D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc, uint32_t index) const;
+	void CreateDepthStencilView(const Microsoft::WRL::ComPtr<ID3D12Resource> &resource, D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc, uint32_t index) const;
 
 	/// @brief UAVを作成
 	/// @param resource リソース

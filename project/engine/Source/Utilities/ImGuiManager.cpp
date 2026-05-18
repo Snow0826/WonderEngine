@@ -15,7 +15,7 @@ void ImGuiManager::Initialize([[maybe_unused]] HWND hwnd, [[maybe_unused]] const
         cbvSrvUavDescriptorHeap.GetDescriptorHeap(),
         cbvSrvUavDescriptorHeap.GetCPUDescriptorHandle(srvIndex),
         cbvSrvUavDescriptorHeap.GetGPUDescriptorHandle(srvIndex));
-	Logger::Log(logStream, "ImGui SRV Descriptor Index: " + std::to_string(srvIndex) + "\n");
+	Logger::Log(logStream, "ImGui SRVDescriptorIndex: " + std::to_string(srvIndex) + "\n");
 #endif // USE_IMGUI
 }
 

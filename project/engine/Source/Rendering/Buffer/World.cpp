@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "World.h"
 #include "Device.h"
+#include "Window.h"
 #include "EntityComponentSystem.h"
 #include "Renderer.h"
 #include "DebugRenderer.h"
@@ -164,6 +165,35 @@ World::World(Device *device, std::ofstream &logStream) {
 	meshLODHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMeshLOD)]->GetResource(), srvBufferDesc, meshLODHandle_);
 	Logger::Log(logStream, "MeshLOD SRVDescriptorIndex: " + std::to_string(meshLODHandle_) + "\n");
+
+	// レンダーテクスチャの作成
+	D3D12_CLEAR_VALUE clearValue{};
+	clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	clearValue.Color[0] = 1.0f;
+	clearValue.Color[1] = 0.0f;
+	clearValue.Color[2] = 0.0f;
+	clearValue.Color[3] = 1.0f;
+	renderTexture_ = Resource::CreateTexture2D(device, Window::GetClientWidth(), Window::GetClientHeight(), 1, D3D12_RESOURCE_STATE_RENDER_TARGET, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, &clearValue);
+
+	// レンダーテクスチャ用のRTVの作成
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
+	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	renderTextureRTVHandle_ = device->GetRTVDescriptorHeap()->AllocateDescriptor();
+	device->GetRTVDescriptorHeap()->CreateRenderTargetView(renderTexture_->GetResource(), rtvDesc, renderTextureRTVHandle_);
+	Logger::Log(logStream, "RenderTexture RTVDescriptorIndex: " + std::to_string(renderTextureRTVHandle_) + "\n");
+
+	// レンダーテクスチャ用のSRVの作成
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvRenderTextureDesc{};
+	srvRenderTextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	srvRenderTextureDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvRenderTextureDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvRenderTextureDesc.Texture2D.MostDetailedMip = 0;
+	srvRenderTextureDesc.Texture2D.MipLevels = 1;
+	srvRenderTextureDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	renderTextureSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(renderTexture_->GetResource(), srvRenderTextureDesc, renderTextureSRVHandle_);
+	Logger::Log(logStream, "RenderTexture SRVDescriptorIndex: " + std::to_string(renderTextureSRVHandle_) + "\n");
 
 	// 深度バッファ用SRVの作成
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDepthStencilCopyDesc{};

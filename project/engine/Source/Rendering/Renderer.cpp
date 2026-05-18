@@ -31,11 +31,13 @@ Renderer::Renderer(Device *device)
 	, instance3dRootSignature_(device->GetInstance3dRootSignature())
 	, lineRootSignature_(device->GetLineRootSignature())
 	, skyboxRootSignature_(device->GetSkyboxRootSignature())
+	, copyImageRootSignature_(device->GetCopyImageRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
 	, footprintRootSignature_(device->GetFootprintRootSignature())
-	, footprintMapRootSignature_(device->GetFootprintMapRootSignature()) {}
+	, footprintMapRootSignature_(device->GetFootprintMapRootSignature()) {
+}
 
 void Renderer::Initialize(std::ofstream &logStream) {
 	std::array<D3D12_BLEND_DESC, static_cast<uint32_t>(BlendMode::kCountOfBlendMode)> blendDescList{};
@@ -151,12 +153,18 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	assert(lineVSBlob);
 	Microsoft::WRL::ComPtr<IDxcBlob> linePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Line.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(linePSBlob);
-	
+
 	// Skyboxのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> skyboxVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Skybox.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(skyboxVSBlob);
 	Microsoft::WRL::ComPtr<IDxcBlob> skyboxPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Skybox.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(skyboxPSBlob);
+
+	// CopyImageのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> copyImageVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/CopyImage.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(copyImageVSBlob);
+	Microsoft::WRL::ComPtr<IDxcBlob> copyImagePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/CopyImage.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(copyImagePSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -272,6 +280,19 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create SkyboxPipelineState\n");
 	skyboxPipelineState_->SetName(L"SkyboxPipelineState");
 
+	// CopyImage用パイプラインステートの生成
+	copyImagePipelineState_ = PipelineState()
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)									// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])			// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)													// RasterizerState
+		.SetDepthState({ .DepthEnable = false })												// DepthStencilState
+		.SetVertexShader(copyImageVSBlob->GetBufferPointer(), copyImageVSBlob->GetBufferSize())	// 頂点シェーダー
+		.SetPixelShader(copyImagePSBlob->GetBufferPointer(), copyImagePSBlob->GetBufferSize())	// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)						// プリミティブトポロジー
+		.Create(device_->GetDevice(), copyImageRootSignature_);
+	Logger::Log(logStream, "Create CopyImagePipelineState\n");
+	copyImagePipelineState_->SetName(L"CopyImagePipelineState");
+
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
 		.SetComputeShader(depthStencilCopyCSBlob->GetBufferPointer(), depthStencilCopyCSBlob->GetBufferSize())	// コンピュートシェーダー
@@ -334,6 +355,9 @@ void Renderer::Initialize(std::ofstream &logStream) {
 }
 
 void Renderer::Render() {
+	// レンダーテクスチャの設定
+	SetupRenderTexture();
+
 	// オクルージョンカリングの実行
 	CopyDepthToHiZ();
 	GenerateHiZMipMap();
@@ -408,6 +432,36 @@ bool Renderer::IsDebugCamera() {
 		exclude<Disabled, CullingCamera>()
 	);
 	return isDebugCamera;
+}
+
+void Renderer::SetupRenderTexture() {
+	DescriptorHeap *rtvDescriptorHeap = device_->GetRTVDescriptorHeap();
+	DescriptorHeap *dsvDescriptorHeap = device_->GetDSVDescriptorHeap();
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvCPUHandle = rtvDescriptorHeap->GetCPUDescriptorHandle(world_->GetRenderTextureRTVHandle());
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvCPUHandle = dsvDescriptorHeap->GetCPUDescriptorHandle(device_->GetDSVHandle());
+
+	// 描画先のRTVとDSVを設定する
+	commandList_->OMSetRenderTargets(1, &rtvCPUHandle, false, &dsvCPUHandle);
+
+	// 指定した色で画面全体をクリアする
+	float clearColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };
+	commandList_->ClearRenderTargetView(rtvCPUHandle, clearColor, 0, nullptr);
+
+	// ビューポートとシザー矩形の設定
+	D3D12_VIEWPORT viewport = device_->GetViewport();
+	D3D12_RECT scissorRect = device_->GetScissorRect();
+	commandList_->RSSetViewports(1, &viewport);			// ビューポートの設定
+	commandList_->RSSetScissorRects(1, &scissorRect);	// シザー矩形の設定
+}
+
+void Renderer::CopyImage() {
+	world_->GetRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	commandList_->SetGraphicsRootSignature(copyImageRootSignature_);
+	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList_->SetPipelineState(copyImagePipelineState_.Get());
+	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(0, world_->GetRenderTextureSRVHandle());
+	commandList_->DrawInstanced(3, 1, 0, 0);
+	world_->GetRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void Renderer::CopyDepthToHiZ() {
@@ -528,7 +582,7 @@ void Renderer::OcclusionCulling() {
 	}
 
 	// 指定した深度で画面全体をクリアする
-	commandList_->ClearDepthStencilView(device_->GetDSVHandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	commandList_->ClearDepthStencilView(device_->GetDSVDescriptorHeap()->GetCPUDescriptorHandle(device_->GetDSVHandle()), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 }
 
 void Renderer::Footprint() {

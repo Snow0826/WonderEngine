@@ -25,6 +25,9 @@ public:
 	/// @brief フレームの開始処理
 	void NewFrame();
 
+	/// @brief スワップチェーンの設定
+	void SetupSwapChain();
+
 	/// @brief フレームの終了処理
 	void EndFrame();
 
@@ -39,6 +42,14 @@ public:
 	/// @return コマンドリスト
 	ID3D12GraphicsCommandList *GetCommandList() const { return commandList_.Get(); }
 
+	/// @brief RTVのディスクリタヒープを取得
+	/// @return RTVのディスクリタヒープ
+	DescriptorHeap *GetRTVDescriptorHeap() { return &rtvDescriptorHeap_; }
+
+	/// @brief DSVのディスクリタヒープを取得
+	/// @return DSVのディスクリタヒープ
+	DescriptorHeap *GetDSVDescriptorHeap() { return &dsvDescriptorHeap_; }
+
 	/// @brief GPU用のCBV,SRV,UAVのディスクリプタヒープを取得
 	/// @return GPU用のCBV,SRV,UAVのディスクリプタヒープ
 	DescriptorHeap *GetGpuCbvSrvUavDescriptorHeap() { return &gpuCbvSrvUavDescriptorHeap_; }
@@ -51,13 +62,17 @@ public:
 	/// @return ビューポート
 	D3D12_VIEWPORT GetViewport() const { return viewport_; }
 
+	/// @brief シザー矩形を取得
+	/// @return シザー矩形
+	D3D12_RECT GetScissorRect() const { return scissorRect_; }
+
 	/// @brief 前フレームの深度ステンシルテクスチャを取得
 	/// @return 前フレームの深度ステンシルテクスチャ
 	Resource *GetPreviousDepthStencilTexture() const { return previousDepthStencilTexture_.get(); }
 
 	/// @brief DSVハンドルを取得
 	/// @return DSVハンドル
-	D3D12_CPU_DESCRIPTOR_HANDLE GetDSVHandle() const { return dsvHandle_; }
+	uint32_t GetDSVHandle() const { return dsvHandle_; }
 
 	/// @brief Object3d用ルートシグネチャを取得
 	/// @return Object3d用ルートシグネチャ
@@ -75,7 +90,11 @@ public:
 	/// @return Skybox用ルートシグネチャ
 	ID3D12RootSignature *GetSkyboxRootSignature() const { return skyboxRootSignature_.Get(); }
 
-	// @brief 深度ステンシルテクスチャコピー用ルートシグネチャを取得
+	/// @brief CopyImage用ルートシグネチャを取得
+	/// @return CopyImage用ルートシグネチャ
+	ID3D12RootSignature *GetCopyImageRootSignature() const { return copyImageRootSignature_.Get(); }
+
+	/// @brief 深度ステンシルテクスチャコピー用ルートシグネチャを取得
 	/// @return 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *GetDepthStencilCopyRootSignature() const { return depthStencilCopyRootSignature_.Get(); }
 
@@ -112,8 +131,8 @@ private:
 	DescriptorHeap gpuCbvSrvUavDescriptorHeap_;												// GPU用のCBV,SRV,UAV用のディスクリプタヒープ
 	DescriptorHeap cpuCbvSrvUavDescriptorHeap_;												// CPU用のCBV,SRV,UAV用のディスクリプタヒープ
 	DescriptorHeap dsvDescriptorHeap_;														// DSV用のディスクリプタヒープ
-	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles_;									// RTVハンドル
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle_{};												// DSVハンドル
+	std::vector<uint32_t> rtvHandles_;														// RTVハンドル
+	uint32_t dsvHandle_;																	// DSVハンドル
 	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> swapChainResources_;				// スワップチェーンリソース
 	std::unique_ptr<Resource> previousDepthStencilTexture_ = nullptr;						// 前フレームの深度ステンシルテクスチャ
 	std::unique_ptr<Resource> depthStencilTexture_ = nullptr;								// 深度ステンシルテクスチャ
@@ -121,6 +140,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> instance3dRootSignature_ = nullptr;			// Instance3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> lineRootSignature_ = nullptr;				// Line用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> skyboxRootSignature_ = nullptr;				// Skybox用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> copyImageRootSignature_ = nullptr;			// CopyImage用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthStencilCopyRootSignature_ = nullptr;	// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> generateHiZMipMapRootSignature_ = nullptr;	// HiZミップマップ生成用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> occlusionCullingRootSignature_ = nullptr;	// オクルージョンカリング用ルートシグネチャ

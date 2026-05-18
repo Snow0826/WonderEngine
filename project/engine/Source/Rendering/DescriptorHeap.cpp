@@ -43,10 +43,9 @@ D3D12_GPU_DESCRIPTOR_HANDLE DescriptorHeap::GetGPUDescriptorHandle(uint32_t inde
 	return handleGPU;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CreateRenderTargetView(const Microsoft::WRL::ComPtr<ID3D12Resource> &resource, D3D12_RENDER_TARGET_VIEW_DESC rtvDesc, uint32_t index) const {
+void DescriptorHeap::CreateRenderTargetView(const Microsoft::WRL::ComPtr<ID3D12Resource> &resource, D3D12_RENDER_TARGET_VIEW_DESC rtvDesc, uint32_t index) const {
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = GetCPUDescriptorHandle(index);
 	device_->CreateRenderTargetView(resource.Get(), &rtvDesc, handle);
-	return handle;
 }
 
 void DescriptorHeap::CreateShaderResourceView(const Microsoft::WRL::ComPtr<ID3D12Resource> &resource, D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc, uint32_t index) const {
@@ -54,10 +53,9 @@ void DescriptorHeap::CreateShaderResourceView(const Microsoft::WRL::ComPtr<ID3D1
 	device_->CreateShaderResourceView(resource.Get(), &srvDesc, handle);
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DescriptorHeap::CreateDepthStencilView(const Microsoft::WRL::ComPtr<ID3D12Resource> &resource, D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc, uint32_t index) const {
+void DescriptorHeap::CreateDepthStencilView(const Microsoft::WRL::ComPtr<ID3D12Resource> &resource, D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc, uint32_t index) const {
 	D3D12_CPU_DESCRIPTOR_HANDLE handle = GetCPUDescriptorHandle(index);
 	device_->CreateDepthStencilView(resource.Get(), &dsvDesc, handle);
-	return handle;
 }
 
 void DescriptorHeap::CreateUnorderedAccessView(const Microsoft::WRL::ComPtr<ID3D12Resource> &resource, D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc, uint32_t index) const {

@@ -25,11 +25,11 @@ public:
 
 	/// @brief クライアント領域の幅を取得
 	/// @return クライアント領域の幅
-	uint32_t GetClientWidth() const { return kClientWidth; }
+	static uint32_t GetClientWidth() { return kClientWidth; }
 
 	/// @brief クライアント領域の高さを取得
 	/// @return クライアント領域の高さ
-	uint32_t GetClientHeight() const { return kClientHeight; }
+	static uint32_t GetClientHeight() { return kClientHeight; }
 
 private:
 	WNDCLASS wndclass_{};	// ウィンドウクラス

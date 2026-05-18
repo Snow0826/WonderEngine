@@ -112,6 +112,12 @@ public:
 		return structuredBuffers_[static_cast<size_t>(type)].get();
 	}
 
+	/// @brief レンダーテクスチャを取得
+	/// @return レンダーテクスチャ
+	Resource *GetRenderTexture() {
+		return renderTexture_.get();
+	}
+
 	/// @brief Hi-Zテクスチャを取得
 	/// @return Hi-Zテクスチャ
 	Resource *GetHiZTexture() {
@@ -150,6 +156,14 @@ public:
 	/// @brief ミップレベル数を取得
 	/// @return ミップレベル数
 	uint32_t GetMipLevels() const { return mipLevels_; }
+
+	/// @brief レンダーテクスチャのRTVハンドルを取得
+	/// @return レンダーテクスチャのRTVハンドル
+	uint32_t GetRenderTextureRTVHandle() const { return renderTextureRTVHandle_; }
+
+	/// @brief レンダーテクスチャのSRVハンドルを取得
+	/// @return レンダーテクスチャのSRVハンドル
+	uint32_t GetRenderTextureSRVHandle() const { return renderTextureSRVHandle_; }
 
 	/// @brief 深度ステンシルコピー元ハンドルを取得
 	/// @return 深度ステンシルコピー元ハンドル
@@ -235,6 +249,7 @@ private:
 	ConstantBuffers constantBuffers_;											// 定数バッファリスト
 	StructuredBuffers structuredBuffers_;										// 構造化バッファリスト
 	BlendBuffers blendProcessedCommandBuffers_;									// ブレンド別処理済みコマンドバッファリスト
+	std::unique_ptr<Resource> renderTexture_ = nullptr;							// レンダーテクスチャ
 	std::unique_ptr<Resource> hiZTexture_ = nullptr;							// Hi-Zテクスチャ
 	std::unique_ptr<Resource> commandBufferUpload_ = nullptr;					// コマンドバッファアップロード用
 	std::unique_ptr<Resource> processedCommandBufferCounterReset_ = nullptr;	// 処理済みコマンドバッファカウンターリセット用
@@ -246,6 +261,8 @@ private:
 	PointLight *pointLightData_ = nullptr;										// 点光源データ
 	SpotLight *spotLightData_ = nullptr;										// スポットライトデータ
 	uint32_t mipLevels_ = 0;													// ミップレベル数
+	uint32_t renderTextureRTVHandle_ = 0;										// レンダーテクスチャRTVハンドル
+	uint32_t renderTextureSRVHandle_ = 0;										// レンダーテクスチャSRVハンドル
 	std::vector<uint32_t> hiZMipMapReadHandles_;								// Hi-Zミップマップ読み取りハンドル
 	std::vector<uint32_t> hiZMipMapWriteHandles_;								// Hi-Zミップマップ書き込みハンドル
 	uint32_t hiZTextureHandle_ = 0;												// Hi-Zテクスチャハンドル

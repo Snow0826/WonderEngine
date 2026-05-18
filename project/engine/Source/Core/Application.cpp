@@ -94,6 +94,10 @@ void Application::Run() {
 		ImGui::Text("CPU Time: %.2f ms", cpuTimer.GetMs());	// CPUタイマーの結果をImGuiに表示
 #endif // USE_IMGUI
 
+		device_->SetupSwapChain();	// スワップチェーンの設定
+
+		renderer_->CopyImage();	// 画像のコピー
+
 		ImGuiManager::Render(device_->GetCommandList());	// ImGuiの描画
 
 		device_->EndFrame();	// 描画終了処理

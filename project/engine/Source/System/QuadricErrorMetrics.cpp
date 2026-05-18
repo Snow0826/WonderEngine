@@ -7,7 +7,7 @@ std::vector<QEMSimplifier::ResultLOD> QEMSimplifier::Simplify(const std::vector<
 	lods.emplace_back(BuildLOD(0.0f));
 
 	float lastError = 0.0f;
-
+	float accumulatedMaxError = 0.0f;
 	while (!queue_.empty()) {
 		QEMEdge e = queue_.top();
 		queue_.pop();
@@ -18,11 +18,11 @@ std::vector<QEMSimplifier::ResultLOD> QEMSimplifier::Simplify(const std::vector<
 
 		UpdateEdges(e.v1);
 
-		float error = e.cost;
+		accumulatedMaxError = std::max(accumulatedMaxError, e.cost);
 
-		if (error > lastError * errorScale) {
-			lods.emplace_back(BuildLOD(error));
-			lastError = error;
+		if (accumulatedMaxError > lastError * errorScale) {
+			lods.emplace_back(BuildLOD(std::sqrt(accumulatedMaxError)));
+			lastError = accumulatedMaxError;
 		}
 
 		if (CountValidTriangles() < minTriangles)

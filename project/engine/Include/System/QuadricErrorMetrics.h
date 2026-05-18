@@ -55,7 +55,6 @@ private:
 	std::priority_queue<QEMEdge> queue_;
 
 private:
-
 	void Build(const std::vector<VertexData> &vertices, const std::vector<uint32_t> &indices);
 
 	void BuildTriangles(const std::vector<uint32_t> &indices);

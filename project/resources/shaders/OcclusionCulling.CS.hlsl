@@ -146,20 +146,19 @@ void main(uint3 DTid : SV_DispatchThreadID)
             return; // Cull box if behind HiZ depth
         }
         
-        //float distanceToCamera = length(center - cameraPosition);
-        //float radius = max(extent.x, max(extent.y, extent.z));
-        //float screenSize = radius / distanceToCamera * projection._11;
-        //for (uint i = 0; i < mesh.lodCount; i++)
-        //{
-        //    if (screenSize >= meshLODs[mesh.lodOffset + i].error)
-        //    {
-        //        selectedLOD = i;
-        //    }
-        //    else
-        //    {
-        //        break;
-        //    }
-        //}
+        float distanceToCamera = length(center - cameraPosition);
+        for (uint i = 0; i < mesh.lodCount; i++)
+        {
+            float projectedError = meshLODs[mesh.lodOffset + i].error * projection._11 / distanceToCamera;
+            if (projectedError < 0.001f)
+            {
+                selectedLOD = i;
+            }
+            else
+            {
+                break;
+            }
+        }
     }
     
     IndirectCommand outputCommand = meshLODs[mesh.lodOffset + selectedLOD].command;

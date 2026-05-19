@@ -80,7 +80,7 @@ private:
 	ID3D12RootSignature *instance3dRootSignature_ = nullptr;								// Instance3d用ルートシグネチャ
 	ID3D12RootSignature *lineRootSignature_ = nullptr;										// Line用ルートシグネチャ
 	ID3D12RootSignature *skyboxRootSignature_ = nullptr;									// Skybox用ルートシグネチャ
-	ID3D12RootSignature *copyImageRootSignature_ = nullptr;									// CopyImage用ルートシグネチャ
+	ID3D12RootSignature *fullscreenRootSignature_ = nullptr;								// Fullscreen用ルートシグネチャ
 	ID3D12RootSignature *depthStencilCopyRootSignature_ = nullptr;							// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *generateHiZMipMapRootSignature_ = nullptr;							// HiZミップマップ生成用ルートシグネチャ
 	ID3D12RootSignature *occlusionCullingRootSignature_ = nullptr;							// オクルージョンカリング用ルートシグネチャ
@@ -91,7 +91,8 @@ private:
 	BlendPipelineState particlePipelineState_;												// Particle用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> linePipelineState_ = nullptr;				// Line用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> skyboxPipelineState_ = nullptr;				// Skybox用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> copyImagePipelineState_ = nullptr;			// CopyImage用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> fullscreenPipelineState_ = nullptr;			// Fullscreen用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> grayscalePipelineState_ = nullptr;			// Grayscale用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthStencilCopyPipelineState_ = nullptr;	// 深度ステンシルテクスチャコピー用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> generateHiZMipMapPipelineState_ = nullptr;	// HiZミップマップ生成用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> occlusionCullingPipelineState_ = nullptr;	// オクルージョンカリング用パイプラインステート

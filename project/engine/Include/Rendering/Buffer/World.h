@@ -234,6 +234,10 @@ public:
 	/// @param isResult 結果表示フラグ
 	void SetResult(bool isResult) { isResult_ = isResult; }
 
+	/// @brief グレースケール表示フラグを取得
+	/// @return グレースケール表示フラグ
+	bool IsGrayscale() const { return isGrayscale_; }
+
 private:
 	using ConstantBuffers = std::array<std::unique_ptr<ConstantBuffer>, static_cast<size_t>(ConstantBufferType::kCountOfConstantBufferType)>;
 	using StructuredBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
@@ -279,6 +283,7 @@ private:
 	BlendHandle blendProcessedIndirectCommandHandle_;							// ブレンド別処理済み間接コマンドハンドル
 	bool isCulling_ = false;													// カリング有効フラグ
 	bool isResult_ = false;														// 結果表示フラグ
+	bool isGrayscale_ = false;													// グレースケール表示フラグ
 
 	/// @brief UAVカウンター用にアライメントを調整する
 	/// @param bufferSize バッファサイズ

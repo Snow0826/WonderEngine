@@ -343,6 +343,7 @@ void World::Edit() {
 
 	ImGui::Checkbox("Result", &isResult_);
 	ImGui::DragInt4("Color", &colorData_->x, 1.0f, 0, 100);
+	ImGui::Checkbox("Grayscale", &isGrayscale_);
 #endif // USE_IMGUI
 }
 

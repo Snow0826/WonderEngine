@@ -31,7 +31,7 @@ Renderer::Renderer(Device *device)
 	, instance3dRootSignature_(device->GetInstance3dRootSignature())
 	, lineRootSignature_(device->GetLineRootSignature())
 	, skyboxRootSignature_(device->GetSkyboxRootSignature())
-	, copyImageRootSignature_(device->GetCopyImageRootSignature())
+	, fullscreenRootSignature_(device->GetFullscreenRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
@@ -160,11 +160,15 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> skyboxPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Skybox.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(skyboxPSBlob);
 
-	// CopyImageのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> copyImageVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/CopyImage.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(copyImageVSBlob);
-	Microsoft::WRL::ComPtr<IDxcBlob> copyImagePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/CopyImage.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(copyImagePSBlob);
+	// Fullscreenのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> fullscreenVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Fullscreen.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(fullscreenVSBlob);
+	Microsoft::WRL::ComPtr<IDxcBlob> fullscreenPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Fullscreen.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(fullscreenPSBlob);
+
+	// Grayscaleのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> grayscalePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Grayscale.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(grayscalePSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -280,18 +284,31 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create SkyboxPipelineState\n");
 	skyboxPipelineState_->SetName(L"SkyboxPipelineState");
 
-	// CopyImage用パイプラインステートの生成
-	copyImagePipelineState_ = PipelineState()
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)									// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])			// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)													// RasterizerState
-		.SetDepthState({ .DepthEnable = false })												// DepthStencilState
-		.SetVertexShader(copyImageVSBlob->GetBufferPointer(), copyImageVSBlob->GetBufferSize())	// 頂点シェーダー
-		.SetPixelShader(copyImagePSBlob->GetBufferPointer(), copyImagePSBlob->GetBufferSize())	// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)						// プリミティブトポロジー
-		.Create(device_->GetDevice(), copyImageRootSignature_);
-	Logger::Log(logStream, "Create CopyImagePipelineState\n");
-	copyImagePipelineState_->SetName(L"CopyImagePipelineState");
+	// Fullscreen用パイプラインステートの生成
+	fullscreenPipelineState_ = PipelineState()
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
+		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
+		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
+		.SetPixelShader(fullscreenPSBlob->GetBufferPointer(), fullscreenPSBlob->GetBufferSize())	// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+		.Create(device_->GetDevice(), fullscreenRootSignature_);
+	Logger::Log(logStream, "Create FullscreenPipelineState\n");
+	fullscreenPipelineState_->SetName(L"FullscreenPipelineState");
+
+	// Grayscale用パイプラインステートの生成
+	grayscalePipelineState_ = PipelineState()
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
+		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
+		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
+		.SetPixelShader(grayscalePSBlob->GetBufferPointer(), grayscalePSBlob->GetBufferSize())		// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+		.Create(device_->GetDevice(), fullscreenRootSignature_);
+	Logger::Log(logStream, "Create GrayscalePipelineState\n");
+	grayscalePipelineState_->SetName(L"GrayscalePipelineState");
 
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
@@ -456,9 +473,9 @@ void Renderer::SetupRenderTexture() {
 
 void Renderer::CopyImage() {
 	world_->GetRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	commandList_->SetGraphicsRootSignature(copyImageRootSignature_);
+	commandList_->SetGraphicsRootSignature(fullscreenRootSignature_);
 	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	commandList_->SetPipelineState(copyImagePipelineState_.Get());
+	commandList_->SetPipelineState(world_->IsGrayscale() ? grayscalePipelineState_.Get() : fullscreenPipelineState_.Get());
 	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(0, world_->GetRenderTextureSRVHandle());
 	commandList_->DrawInstanced(3, 1, 0, 0);
 	world_->GetRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET);

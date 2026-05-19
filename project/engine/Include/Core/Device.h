@@ -90,9 +90,9 @@ public:
 	/// @return Skybox用ルートシグネチャ
 	ID3D12RootSignature *GetSkyboxRootSignature() const { return skyboxRootSignature_.Get(); }
 
-	/// @brief CopyImage用ルートシグネチャを取得
-	/// @return CopyImage用ルートシグネチャ
-	ID3D12RootSignature *GetCopyImageRootSignature() const { return copyImageRootSignature_.Get(); }
+	/// @brief Fullscreen用ルートシグネチャを取得
+	/// @return Fullscreen用ルートシグネチャ
+	ID3D12RootSignature *GetFullscreenRootSignature() const { return fullscreenRootSignature_.Get(); }
 
 	/// @brief 深度ステンシルテクスチャコピー用ルートシグネチャを取得
 	/// @return 深度ステンシルテクスチャコピー用ルートシグネチャ
@@ -140,7 +140,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> instance3dRootSignature_ = nullptr;			// Instance3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> lineRootSignature_ = nullptr;				// Line用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> skyboxRootSignature_ = nullptr;				// Skybox用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> copyImageRootSignature_ = nullptr;			// CopyImage用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> fullscreenRootSignature_ = nullptr;			// Fullscreen用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthStencilCopyRootSignature_ = nullptr;	// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> generateHiZMipMapRootSignature_ = nullptr;	// HiZミップマップ生成用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> occlusionCullingRootSignature_ = nullptr;	// オクルージョンカリング用ルートシグネチャ

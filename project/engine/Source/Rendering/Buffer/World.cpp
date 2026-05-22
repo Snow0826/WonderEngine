@@ -24,6 +24,14 @@
 #include "Logger.h"
 #include <d3dx12.h>
 
+namespace {
+	std::vector<std::string> postEffectNames = {
+		"None",
+		"GrayScale",
+		"Vignette",
+	};
+}
+
 const UINT World::kCommandSizePerFrame = World::kMaxAABB * sizeof(IndirectCommand);
 const UINT World::kCommandBufferCounterOffset = AlignForUavCounter(World::kCommandSizePerFrame);
 
@@ -47,6 +55,10 @@ World::World(Device *device, std::ofstream &logStream) {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDirectionalLight)]->SetName("DirectionalLight");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFrustum)]->Initialize(device, sizeof(Frustum), 2);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFrustum)]->SetName("Frustum");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGrayscaleColor)]->Initialize(device, sizeof(GrayscaleColor), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGrayscaleColor)]->SetName("GrayscaleColor");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kVignetteParam)]->Initialize(device, sizeof(VignetteParam), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kVignetteParam)]->SetName("VignetteParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->Initialize(device, sizeof(FootprintMap), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->SetName("FootprintMap");
 
@@ -320,6 +332,8 @@ void World::Update() {
 	TransferCamera();
 	TransferTransform();
 	TransferMaterial();
+	TransferGrayscaleColor();
+	TransferVignetteParam();
 	TransferFootprint();
 	TransferFootprintMap();
 }
@@ -343,7 +357,36 @@ void World::Edit() {
 
 	ImGui::Checkbox("Result", &isResult_);
 	ImGui::DragInt4("Color", &colorData_->x, 1.0f, 0, 100);
-	ImGui::Checkbox("Grayscale", &isGrayscale_);
+
+	if (ImGui::BeginCombo("PostEffect", postEffectNames[static_cast<size_t>(postEffect_)].c_str())) {
+		for (size_t i = 0; i < postEffectNames.size(); i++) {
+			bool selected = (postEffectNames[i] == postEffectNames[static_cast<size_t>(postEffect_)]);
+			if (ImGui::Selectable(postEffectNames[i].c_str(), selected)) {
+				postEffect_ = static_cast<PostEffect>(i);
+			}
+			if (selected) {
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
+	}
+
+	if (ImGui::TreeNode("Grayscale")) {
+		ImGui::ColorEdit3("Color", &grayscaleColor_.r, ImGuiColorEditFlags_Float);
+		if (ImGui::Button("Reset")) {
+			grayscaleColor_ = { .r = 1.0f, .g = 1.0f, .b = 1.0f };
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Vignette")) {
+		ImGui::DragFloat("Scale", &vignetteParam_.scale, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		ImGui::DragFloat("Intensity", &vignetteParam_.intensity, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		if (ImGui::Button("Reset")) {
+			vignetteParam_ = { .scale = 16.0f, .intensity = 0.8f };
+		}
+		ImGui::TreePop();
+	}
 #endif // USE_IMGUI
 }
 
@@ -432,6 +475,14 @@ void World::TransferMaterial() {
 		constantBuffers_[static_cast<size_t>(ConstantBufferType::kMaterial)]->CopyData(material, sizeof(Material), object->handle);
 		registry_->RemoveComponent<DirtyMaterial>(entity);
 		}, exclude<Disabled>());
+}
+
+void World::TransferGrayscaleColor() {
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGrayscaleColor)]->CopyData(&grayscaleColor_, sizeof(GrayscaleColor), 0);
+}
+
+void World::TransferVignetteParam() {
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kVignetteParam)]->CopyData(&vignetteParam_, sizeof(VignetteParam), 0);
 }
 
 void World::TransferFootprint() {

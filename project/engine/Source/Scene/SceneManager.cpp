@@ -53,6 +53,8 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 
 	// テクスチャの読み込み
 	textureManager_ = std::make_unique<TextureManager>(device_, logStream_);
+	renderer_->SetTextureManager(textureManager_.get());
+	textureManager_->LoadTexture("kloofendal_48d_partly_cloudy_puresky_2k.dds");
 	textureManager_->LoadTexture("white8x8.png");
 	textureManager_->LoadTexture("debugfont.png");
 	textureManager_->LoadTexture("win.png");
@@ -63,8 +65,6 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	textureManager_->LoadTexture("T_X_RB_3D.png");
 	textureManager_->LoadTexture("rule.png");
 	for (size_t i = 0; i < 10; i++) { textureManager_->LoadTexture(std::to_string(i) + ".png"); }
-	textureManager_->LoadTexture("kloofendal_48d_partly_cloudy_puresky_2k.dds");
-	renderer_->SetTextureManager(textureManager_.get());
 
 	// メッシュマネージャーの生成
 	meshManager_ = std::make_unique<MeshManager>(device_);

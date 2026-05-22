@@ -98,6 +98,8 @@
     <ClCompile Include="game\Source\Object\Title.cpp" />
     <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
+    <ClCompile Include="engine\Source\Component\Cylinder.cpp" />
+    <ClCompile Include="game\Source\Object\CylinderEntity.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -208,5 +210,7 @@
     <ClInclude Include="engine\Include\Utilities\CPUTimer.h" />
     <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />
+    <ClInclude Include="engine\Include\Component\Cylinder.h" />
+    <ClInclude Include="game\Include\Object\CylinderEntity.h" />
   </ItemGroup>
 </Project>

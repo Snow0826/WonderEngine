@@ -29,6 +29,10 @@ public:
 	/// @return 頂点データ
 	VertexData *GetVertexData() const { return vertexData_; }
 
+	/// @brief 頂点数を取得する
+	/// @return 頂点数
+	size_t GetVertices() const { return vertices_; }
+
 private:
 	ID3D12GraphicsCommandList *commandList_ = nullptr;	// コマンドリスト
 	std::unique_ptr<Resource> resource_ = nullptr;		// リソース

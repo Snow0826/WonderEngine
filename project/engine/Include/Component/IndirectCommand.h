@@ -56,6 +56,9 @@ struct IndirectCommandHandle final {
 	std::vector<uint32_t> handles;	// ハンドル
 };
 
+/// @brief カリングコンポーネント
+struct UseCulling final {};
+
 class Registry;
 class World;
 class MeshManager;
@@ -76,10 +79,6 @@ public:
 	/// @brief 間接コマンドの削除
 	/// @param entity エンティティ
 	void RemoveIndirectCommand(uint32_t entity);
-
-	/// @brief ブレンドモードデータの設定
-	/// @param entity エンティティ
-	void SetBlendModeData(uint32_t entity);
 
 	/// @brief カリングデータの更新
 	void UpdateCullingData();

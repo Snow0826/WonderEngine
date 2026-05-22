@@ -156,6 +156,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="game\Source\Object\CylinderEntity.cpp" />
+    <ClCompile Include="engine\Source\Component\Cylinder.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
     <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
     <ClCompile Include="engine\Source\Component\BlendMode.cpp" />
@@ -262,6 +264,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="game\Source\Object\Title.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="game\Include\Object\CylinderEntity.h" />
+    <ClInclude Include="engine\Include\Component\Cylinder.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
     <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />

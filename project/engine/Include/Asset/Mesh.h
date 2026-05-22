@@ -60,6 +60,14 @@ public:
 	/// @return メッシュハンドル
 	uint32_t CreateBox();
 
+	/// @brief 円柱の生成
+	/// @param divide 分割数
+	/// @param topRadius 上面の半径
+	/// @param bottomRadius 下面の半径
+	/// @param height 高さ
+	/// @return メッシュハンドル
+	uint32_t CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height);
+
 	/// @brief 描画
 	/// @param meshHandle メッシュハンドル
 	/// @param instanceCount インスタンス数
@@ -91,19 +99,19 @@ public:
 	static MeshLODData ReIndexMeshLODData(const MeshLODData &meshLODData);
 
 	/// @brief ローカル球の生成
-	/// @param vertices 頂点データ
+	/// @param meshHandle メッシュハンドル
 	/// @return ローカル球
-	static Collision::Sphere CreateLocalSphere(const std::vector<VertexData> &vertices);
+	Collision::Sphere CreateLocalSphere(uint32_t meshHandle);
 
 	/// @brief ローカルAABBの生成
-	/// @param vertices 頂点データ
+	/// @param meshHandle メッシュハンドル
 	/// @return ローカルAABB
-	static Collision::AABB CreateLocalAABB(const std::vector<VertexData> &vertices);
+	Collision::AABB CreateLocalAABB(uint32_t meshHandle);
 
 	/// @brief ローカルOBBの生成
-	/// @param vertices 頂点データ
+	/// @param meshHandle メッシュハンドル
 	/// @return ローカルOBB
-	static Collision::OBB CreateLocalOBB(const std::vector<VertexData> &vertices);
+	Collision::OBB CreateLocalOBB(uint32_t meshHandle);
 
 private:
 	Device *device_ = nullptr;					// デバイス

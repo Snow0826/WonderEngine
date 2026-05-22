@@ -1,77 +1,90 @@
-#include <SampleScene.h>
-#include <SceneManager.h>
-#include <Skybox.h>
-#include <SkyboxEntity.h>
-#include <Ground.h>
-#include <Wall.h>
-#include <Building.h>
-#include <AngelStatue.h>
-#include <Vector3.h>
-#include <numbers>
+#define NOMINMAX
+#include "SampleScene.h"
+#include "SceneManager.h"
+#include "Skybox.h"
+#include "SkyboxEntity.h"
+#include "Cylinder.h"
+#include "CylinderEntity.h"
+#include "DebugRenderer.h"
+#include "Random.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
+namespace {
+	Vector3 start;
+	Vector3 direction{ 0.0f, 1.0f, 0.0f };
+	float length = 5.0f;
+	int32_t depth = 5;
+	uint32_t divide = 32;
+	float topRadius = 1.0f;
+	float bottomRadius = 1.0f;
+	float height = 3.0f;
+}
 
 SampleScene::SampleScene() = default;
 SampleScene::~SampleScene() = default;
 
 void SampleScene::OnInitialize() {
-	// モデルマネージャーの取得
-	ModelManager *modelManager = sceneManager_->GetModelManager();
+	// マネージャーの取得
+	MeshManager *meshManager = sceneManager_->GetMeshManager();
+	TextureManager *textureManager = sceneManager_->GetTextureManager();
 
-	// スカイボックスジェネレーターの初期化
-	SkyboxGenerator skyboxGenerator{ sceneManager_->GetMeshManager(), sceneManager_->GetTextureManager() };
+	// ジェネレーターの初期化
+	SkyboxGenerator skyboxGenerator{ meshManager, textureManager };
 
 	// スカイボックスエンティティの作成
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator, objectManager_.get());
-
-	// 地面の作成
-	Ground::Create(registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get(), footprintManager_.get());
-
-	// 壁の作成
-	Wall wall{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
-	for (int32_t i = -7; i < 7; i++) {
-		wall.Create({ .x = -std::numbers::pi_v<float> / 2.0f }, { static_cast<float>(i + 1) * 36.0f, 4.0f, 256.0f });
-		wall.Create({ .x = -std::numbers::pi_v<float> / 2.0f }, { static_cast<float>(i + 1) * 36.0f, 27.0f, 256.0f });
-		wall.Create({ .x = -std::numbers::pi_v<float> / 2.0f, .y = std::numbers::pi_v<float> / 2.0f }, { 256.0f, 4.0f, static_cast<float>(i) * 36.0f });
-		wall.Create({ .x = -std::numbers::pi_v<float> / 2.0f, .y = std::numbers::pi_v<float> / 2.0f }, { 256.0f, 27.0f, static_cast<float>(i) * 36.0f });
-		wall.Create({ .x = -std::numbers::pi_v<float> / 2.0f, .y = std::numbers::pi_v<float> }, { static_cast<float>(i) * 36.0f, 4.0f, -256.0f });
-		wall.Create({ .x = -std::numbers::pi_v<float> / 2.0f, .y = std::numbers::pi_v<float> }, { static_cast<float>(i) * 36.0f, 27.0f, -256.0f });
-		wall.Create({ .x = -std::numbers::pi_v<float> / 2.0f, .y = std::numbers::pi_v<float> *1.5f }, { -256.0f, 4.0f, static_cast<float>(i + 1) * 36.0f });
-		wall.Create({ .x = -std::numbers::pi_v<float> / 2.0f, .y = std::numbers::pi_v<float> *1.5f }, { -256.0f, 27.0f, static_cast<float>(i + 1) * 36.0f });
-	}
-
-	// 建物の作成
-	Building building{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
-	for (size_t i = 0; i < 3; i++) {
-		building.Create({}, { .x = -44.0f, .z = static_cast<float>(i) * -40.0f - 75.0f });
-		building.Create({}, { .x = -44.0f, .z = static_cast<float>(i) * 40.0f + 112.0f });
-		building.Create({}, { .x = 24.0f, .z = static_cast<float>(i) * -40.0f - 75.0f });
-		building.Create({}, { .x = 24.0f, .z = static_cast<float>(i) * 40.0f + 112.0f });
-		building.Create({ .y = std::numbers::pi_v<float> / 2.0f }, { .x = static_cast<float>(i) * -40.0f - 75.0f, .z = 44.0f });
-		building.Create({ .y = std::numbers::pi_v<float> / 2.0f }, { .x = static_cast<float>(i) * 40.0f + 112.0f, .z = 44.0f });
-		building.Create({ .y = std::numbers::pi_v<float> / 2.0f }, { .x = static_cast<float>(i) * -40.0f - 75.0f, .z = -24.0f });
-		building.Create({ .y = std::numbers::pi_v<float> / 2.0f }, { .x = static_cast<float>(i) * 40.0f + 112.0f, .z = -24.0f });
-		building.Create({ .y = std::numbers::pi_v<float> }, { .x = -24.0f, .z = static_cast<float>(i) * -40.0f - 112.0f });
-		building.Create({ .y = std::numbers::pi_v<float> }, { .x = -24.0f, .z = static_cast<float>(i) * 40.0f + 75.0f });
-		building.Create({ .y = std::numbers::pi_v<float> }, { .x = 44.0f, .z = static_cast<float>(i) * -40.0f - 112.0f });
-		building.Create({ .y = std::numbers::pi_v<float> }, { .x = 44.0f, .z = static_cast<float>(i) * 40.0f + 75.0f });
-		building.Create({ .y = std::numbers::pi_v<float> *1.5f }, { .x = static_cast<float>(i) * -40.0f - 112.0f, .z = 24.0f });
-		building.Create({ .y = std::numbers::pi_v<float> *1.5f }, { .x = static_cast<float>(i) * 40.0f + 75.0f, .z = 24.0f });
-		building.Create({ .y = std::numbers::pi_v<float> *1.5f }, { .x = static_cast<float>(i) * -40.0f - 112.0f, .z = -44.0f });
-		building.Create({ .y = std::numbers::pi_v<float> *1.5f }, { .x = static_cast<float>(i) * 40.0f + 75.0f, .z = -44.0f });
-	}
-
-	for (size_t i = 0; i < 2; i++) {
-		building.Create({}, { .x = 64.0f, .z = -15.0f + static_cast<float>(i) * 68.0f });
-		building.Create({ .y = std::numbers::pi_v<float> / 2.0f }, { .x = -15.0f + static_cast<float>(i) * 68.0f, .z = -64.0f });
-		building.Create({ .y = std::numbers::pi_v<float> }, { .x = -64.0f, .z = -53.0f + static_cast<float>(i) * 68.0f });
-		building.Create({ .y = std::numbers::pi_v<float> *1.5f }, { .x = -53.0f + static_cast<float>(i) * 68.0f, .z = 64.0f });
-	}
-
-	// 天使像の作成
-	AngelStatue angelStatue{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
-	angelStatue.Create({}, { .y = 8.0f, .z = -250.0f });
-	angelStatue.Create({ .y = std::numbers::pi_v<float> / 2.0f }, { .x = -250.0f, .y = 8.0f });
-	angelStatue.Create({ .y = std::numbers::pi_v<float> }, { .y = 8.0f, .z = 250.0f });
-	angelStatue.Create({ .y = std::numbers::pi_v<float> *1.5f }, { .x = 250.0f, .y = 8.0f });
 }
 
-void SampleScene::OnUpdate() {}
+void SampleScene::OnUpdate() {
+#ifdef USE_IMGUI
+	if (ImGui::TreeNode("Branch")) {
+		ImGui::DragFloat3("Start", &start.x, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		ImGui::DragFloat3("Direction", &direction.x, 0.1f, 0.0f, 1.0f);
+		ImGui::DragFloat("Length", &length, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		ImGui::DragInt("Depth", &depth, 1, 0, 10);
+		direction = direction.normalized();
+		if (ImGui::Button("Generate")) {
+			GenerateBranch(start, direction, length, depth);
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Cylinder")) {
+		int32_t divideInt = divide;
+		ImGui::DragInt("Divide", &divideInt, 1, 3, 500);
+		ImGui::DragFloat("TopRadius", &topRadius, 0.1f, 0.0f, std::numeric_limits<float>::max());
+		ImGui::DragFloat("BottomRadius", &bottomRadius, 0.1f, 0.0f, std::numeric_limits<float>::max());
+		ImGui::DragFloat("Height", &height, 0.1f, 0.0f, std::numeric_limits<float>::max());
+		divide = static_cast<uint32_t>(divideInt);
+		if (ImGui::Button("Generate")) {
+			MeshManager *meshManager = sceneManager_->GetMeshManager();
+			TextureManager *textureManager = sceneManager_->GetTextureManager();
+			CylinderGenerator cylinderGenerator{ meshManager, textureManager };
+			CylinderEntity cylinderEntity{ registry_.get(), &cylinderGenerator, objectManager_.get(), indirectCommandManager_.get() };
+			cylinderEntity.Create(divide, topRadius, bottomRadius, height);
+		}
+		ImGui::TreePop();
+	}
+#endif // USE_IMGUI
+
+	for (const Branch &branch : branches_) {
+		debugRenderer_->AddLine({ .start = branch.start, .end = branch.end, .color = { 0.0f, 1.0f, 0.0f, 1.0f } });
+	}
+}
+
+void SampleScene::GenerateBranch(const Vector3 &start, const Vector3 &direction, float length, int32_t depth) {
+	if (depth <= 0) {
+		return;
+	}
+
+	Vector3 end = start + direction * length;
+	branches_.emplace_back(Branch{ start, end });
+
+	for (size_t i = 0; i < 2; i++) {
+		Vector3 newDirection = direction + Random::generate({ -1.0f, 0.0f, -1.0f }, { 1.0f, 1.0f, 1.0f }).normalized();
+		GenerateBranch(end, newDirection.normalized(), length * 0.7f, depth - 1);
+	}
+}

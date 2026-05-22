@@ -1,8 +1,9 @@
 #include "Fullscreen.hlsli"
 
-cbuffer ColorBuffer : register(b0)
+cbuffer VignetteBuffer : register(b0)
 {
-    float3 color;
+    float scale;
+    float intensity;
 };
 
 Texture2D<float4> gTexture : register(t0);
@@ -17,7 +18,9 @@ PixelShaderOutput main(VertexShaderOutput input)
 {
     PixelShaderOutput output;
     output.color = gTexture.Sample(gSampler, input.texcoord);
-    float value = dot(output.color.rgb, float3(0.2125f, 0.7154f, 0.0721f));
-    output.color.rgb = value * color;
+    float2 correct = input.texcoord * (1.0f - input.texcoord.yx);
+    float vignette = correct.x * correct.y * scale;
+    vignette = saturate(pow(vignette, intensity));
+    output.color.rgb *= vignette;
     return output;
 }

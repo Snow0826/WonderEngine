@@ -206,6 +206,24 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create FullscreenRootSignature\n");
 	fullscreenRootSignature_->SetName(L"FullscreenRootSignature");
 
+	// Grayscale用ルートシグネチャの作成
+	grayscaleRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:Color
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
+		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create GrayscaleRootSignature\n");
+	grayscaleRootSignature_->SetName(L"GrayscaleRootSignature");
+
+	// Vignette用ルートシグネチャの作成
+	vignetteRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:Vignette
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
+		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create VignetteRootSignature\n");
+	vignetteRootSignature_->SetName(L"VignetteRootSignature");
+
 	// 深度ステンシルテクスチャコピー用ルートシグネチャの作成
 	depthStencilCopyRootSignature_ = RootSignature()
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 0:DepthStencil

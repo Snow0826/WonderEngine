@@ -22,7 +22,6 @@ void BlendModeInspector::Draw([[maybe_unused]] uint32_t entity) {
 				bool selected = (blendModeNames[i] == blendModeNames[static_cast<size_t>(*blendMode)]);
 				if (ImGui::Selectable(blendModeNames[i].c_str(), selected)) {
 					*blendMode = static_cast<BlendMode>(i);
-					indirectCommandManager_->SetBlendModeData(entity);
 				}
 				if (selected) {
 					ImGui::SetItemDefaultFocus();

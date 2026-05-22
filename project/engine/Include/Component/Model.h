@@ -36,9 +36,6 @@ struct Model final {
 	std::string name;						// モデル名
 };
 
-/// @brief カリングコンポーネント
-struct UseCulling final {};
-
 class TextureManager;
 class MeshManager;
 

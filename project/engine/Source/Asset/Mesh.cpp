@@ -5,6 +5,7 @@
 #include "Collision.h"
 #include "Resource.h"
 #include <algorithm>
+#include <numbers>
 
 MeshManager::MeshManager(Device *device) : device_(device) {}
 MeshManager::~MeshManager() = default;
@@ -211,6 +212,114 @@ uint32_t MeshManager::CreateBox() {
 	return meshHandle;
 }
 
+uint32_t MeshManager::CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height) {
+	// 頂点データの生成
+	std::vector<VertexData> vertices;
+	const float radianPerDivide = std::numbers::pi_v<float> *2.0f / static_cast<float>(divide);
+
+	// 円柱の側面の頂点データの生成
+	for (uint32_t index = 0; index <= divide; ++index) {
+		float sin = std::sin(radianPerDivide * index);
+		float cos = std::cos(radianPerDivide * index);
+		float u = static_cast<float>(index) / static_cast<float>(divide);
+		float slope = (bottomRadius - topRadius) / height;
+		vertices.emplace_back(VertexData{
+			.position = { -sin * topRadius, height, cos * topRadius, 1.0f },
+			.texcoord = { u, 0.0f },
+			.normal = { -sin, slope, cos }
+			});
+		vertices.emplace_back(VertexData{
+			.position = { -sin * bottomRadius, 0.0f, cos * bottomRadius, 1.0f },
+			.texcoord = { u, 1.0f },
+			.normal = { -sin, slope, cos }
+			});
+	}
+
+	// 円柱の上面の頂点データの生成
+	uint32_t topCenterIndex = static_cast<uint32_t>(vertices.size());
+	vertices.emplace_back(VertexData{
+		.position = { 0.0f, height, 0.0f, 1.0f },
+		.texcoord = { 0.5f, 0.5f },
+		.normal = { 0.0f, 1.0f, 0.0f }
+		});
+
+	uint32_t topBaseIndex = static_cast<uint32_t>(vertices.size());
+	for (uint32_t index = 0; index <= divide; ++index) {
+		float sin = std::sin(radianPerDivide * index);
+		float cos = std::cos(radianPerDivide * index);
+		vertices.emplace_back(VertexData{
+			.position = { -sin * topRadius, height, cos * topRadius, 1.0f },
+			.texcoord = { -sin * 0.5f + 0.5f, -cos * 0.5f + 0.5f },
+			.normal = { 0.0f, 1.0f, 0.0f }
+			});
+	}
+
+	// 円柱の下面の頂点データの生成
+	uint32_t bottomCenterIndex = static_cast<uint32_t>(vertices.size());
+	vertices.emplace_back(VertexData{
+		.position = { 0.0f, 0.0f, 0.0f, 1.0f },
+		.texcoord = { 0.5f, 0.5f },
+		.normal = { 0.0f, -1.0f, 0.0f }
+		});
+
+	uint32_t bottomBaseIndex = static_cast<uint32_t>(vertices.size());
+	for (uint32_t index = 0; index <= divide; ++index) {
+		float sin = std::sin(radianPerDivide * index);
+		float cos = std::cos(radianPerDivide * index);
+		vertices.emplace_back(VertexData{
+			.position = { -sin * bottomRadius, 0.0f, cos * bottomRadius, 1.0f },
+			.texcoord = { -sin * 0.5f + 0.5f, cos * 0.5f + 0.5f },
+			.normal = { 0.0f, -1.0f, 0.0f }
+			});
+	}
+
+	// インデックスデータの生成
+	std::vector<uint32_t> indices;
+
+	// 円柱の側面のインデックスデータの生成
+	for (uint32_t i = 0; i < divide; ++i) {
+		uint32_t baseVertex = i * 2;
+		// 三角形1
+		indices.emplace_back(baseVertex);		// 上面の頂点
+		indices.emplace_back(baseVertex + 1);	// 下面の頂点
+		indices.emplace_back(baseVertex + 2);	// 次の上面の頂点
+		// 三角形2
+		indices.emplace_back(baseVertex + 2);	// 次の上面の頂点
+		indices.emplace_back(baseVertex + 1);	// 下面の頂点
+		indices.emplace_back(baseVertex + 3);	// 次の下面の頂点
+	}
+
+	// 円柱の上面のインデックスデータの生成
+	for (uint32_t i = 0; i < divide; i++) {
+		indices.emplace_back(topCenterIndex);		// 上面の中心の頂点
+		indices.emplace_back(topBaseIndex + i);		// 上面の周囲の頂点
+		indices.emplace_back(topBaseIndex + i + 1);	// 上面の周囲の頂点
+	}
+
+	// 円柱の下面のインデックスデータの生成
+	for (uint32_t i = 0; i < divide; i++) {
+		indices.emplace_back(bottomCenterIndex);		// 下面の中心の頂点
+		indices.emplace_back(bottomBaseIndex + i + 1);	// 下面の周囲の頂点
+		indices.emplace_back(bottomBaseIndex + i);		// 下面の周囲の頂点
+	}
+
+	// メッシュの生成
+	uint32_t meshHandle = static_cast<uint32_t>(meshes_.size());
+	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
+
+	// 頂点バッファの生成と初期化
+	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
+	mesh->vertexBuffer->Initialize(device_, vertices.size());
+	std::memcpy(mesh->vertexBuffer->GetVertexData(), vertices.data(), sizeof(VertexData) * vertices.size());
+
+	// インデックスバッファの生成と初期化
+	mesh->indexBuffer = std::make_unique<IndexBuffer>();
+	mesh->indexBuffer->Initialize(device_, indices.size());
+	std::memcpy(mesh->indexBuffer->GetIndexData(), indices.data(), sizeof(uint32_t) * indices.size());
+	meshes_.emplace_back(std::move(mesh));
+	return meshHandle;
+}
+
 void MeshManager::Draw(uint32_t meshHandle, uint32_t instanceCount) const {
 	meshes_[meshHandle]->vertexBuffer->IASetVertexBuffers();				// VBVの設定
 	meshes_[meshHandle]->indexBuffer->IASetIndexBuffer();					// IBVの設定
@@ -254,20 +363,23 @@ MeshLODData MeshManager::ReIndexMeshLODData(const MeshLODData &meshLODData) {
 	return reIndexedMeshLODData;
 }
 
-Collision::Sphere MeshManager::CreateLocalSphere(const std::vector<VertexData> &vertices) {
+Collision::Sphere MeshManager::CreateLocalSphere(uint32_t meshHandle) {
+	VertexData *vertexData = meshes_[meshHandle]->vertexBuffer->GetVertexData();
+	size_t vertices = meshes_[meshHandle]->vertexBuffer->GetVertices();
+
 	// 中心点の計算
 	Vector3 center = { 0.0f, 0.0f, 0.0f };
-	for (const VertexData &vertexData : vertices) {
-		center.x += vertexData.position.x;
-		center.y += vertexData.position.y;
-		center.z += vertexData.position.z;
+	for (size_t i = 0; i < vertices; ++i) {
+		center.x += vertexData[i].position.x;
+		center.y += vertexData[i].position.y;
+		center.z += vertexData[i].position.z;
 	}
-	center /= static_cast<float>(vertices.size());
+	center /= static_cast<float>(vertices);
 
 	// 半径の計算
 	float radius = 0.0f;
-	for (const VertexData &vertexData : vertices) {
-		float distance = center.distanceFrom({ vertexData.position.x, vertexData.position.y, vertexData.position.z });
+	for (size_t i = 0; i < vertices; ++i) {
+		float distance = center.distanceFrom({ vertexData[i].position.x, vertexData[i].position.y, vertexData[i].position.z });
 		radius = std::max(radius, distance);
 	}
 
@@ -279,32 +391,38 @@ Collision::Sphere MeshManager::CreateLocalSphere(const std::vector<VertexData> &
 	return sphere;
 }
 
-Collision::AABB MeshManager::CreateLocalAABB(const std::vector<VertexData> &vertices) {
+Collision::AABB MeshManager::CreateLocalAABB(uint32_t meshHandle) {
+	VertexData *vertexData = meshes_[meshHandle]->vertexBuffer->GetVertexData();
+	size_t vertices = meshes_[meshHandle]->vertexBuffer->GetVertices();
+
 	Collision::AABB aabb = {
-		.min = { vertices[0].position.x, vertices[0].position.y, vertices[0].position.z },
+		.min = { vertexData[0].position.x, vertexData[0].position.y, vertexData[0].position.z },
 		.max = aabb.min
 	};
 
-	for (const VertexData &vertexData : vertices) {
-		aabb.min.x = std::min(aabb.min.x, vertexData.position.x);
-		aabb.min.y = std::min(aabb.min.y, vertexData.position.y);
-		aabb.min.z = std::min(aabb.min.z, vertexData.position.z);
-		aabb.max.x = std::max(aabb.max.x, vertexData.position.x);
-		aabb.max.y = std::max(aabb.max.y, vertexData.position.y);
-		aabb.max.z = std::max(aabb.max.z, vertexData.position.z);
+	for (size_t i = 0; i < vertices; ++i) {
+		aabb.min.x = std::min(aabb.min.x, vertexData[i].position.x);
+		aabb.min.y = std::min(aabb.min.y, vertexData[i].position.y);
+		aabb.min.z = std::min(aabb.min.z, vertexData[i].position.z);
+		aabb.max.x = std::max(aabb.max.x, vertexData[i].position.x);
+		aabb.max.y = std::max(aabb.max.y, vertexData[i].position.y);
+		aabb.max.z = std::max(aabb.max.z, vertexData[i].position.z);
 	}
 	return aabb;
 }
 
-Collision::OBB MeshManager::CreateLocalOBB(const std::vector<VertexData> &vertices) {
+Collision::OBB MeshManager::CreateLocalOBB(uint32_t meshHandle) {
+	VertexData *vertexData = meshes_[meshHandle]->vertexBuffer->GetVertexData();
+	size_t vertices = meshes_[meshHandle]->vertexBuffer->GetVertices();
+
 	// 中心点の計算
 	Vector3 center = { 0.0f, 0.0f, 0.0f };
-	for (const VertexData &vertexData : vertices) {
-		center.x += vertexData.position.x;
-		center.y += vertexData.position.y;
-		center.z += vertexData.position.z;
+	for (size_t i = 0; i < vertices; ++i) {
+		center.x += vertexData[i].position.x;
+		center.y += vertexData[i].position.y;
+		center.z += vertexData[i].position.z;
 	}
-	center /= static_cast<float>(vertices.size());
+	center /= static_cast<float>(vertices);
 	// 各軸方向の単位ベクトルの計算（仮にX軸、Y軸、Z軸とする）
 	Vector3 orientations[3] = {
 		{ 1.0f, 0.0f, 0.0f },	// X軸
@@ -314,11 +432,11 @@ Collision::OBB MeshManager::CreateLocalOBB(const std::vector<VertexData> &vertic
 
 	// 各軸方向の半分の長さの計算
 	Vector3 size = { 0.0f, 0.0f, 0.0f };
-	for (const VertexData &vertexData : vertices) {
+	for (size_t i = 0; i < vertices; ++i) {
 		Vector3 relativePos = {
-			vertexData.position.x - center.x,
-			vertexData.position.y - center.y,
-			vertexData.position.z - center.z
+			vertexData[i].position.x - center.x,
+			vertexData[i].position.y - center.y,
+			vertexData[i].position.z - center.z
 		};
 		size.x = std::max(size.x, std::abs(relativePos.dot(orientations[0])));
 		size.y = std::max(size.y, std::abs(relativePos.dot(orientations[1])));

@@ -14,6 +14,19 @@ struct LightCount final {
 	uint32_t spotLightCount = 0;	// スポットライトの数
 };
 
+/// @brief グレースケールカラー
+struct GrayscaleColor final {
+	float r = 0.0f;	// 赤
+	float g = 0.0f;	// 緑
+	float b = 0.0f;	// 青
+};
+
+/// @brief ビネットパラメータ
+struct VignetteParam final {
+	float scale = 0.0f;		// 倍率
+	float intensity = 0.0f;	// 強さ
+};
+
 /// @brief int型4要素ベクトル
 struct Int4 final {
 	int32_t x = 0;
@@ -37,6 +50,8 @@ enum class ConstantBufferType {
 	kCamera,					// カメラ
 	kDirectionalLight,			// 平行光源
 	kFrustum,					// 視錐台
+	kGrayscaleColor,			// グレースケールカラー
+	kVignetteParam,				// ビネットパラメータ
 	kFootprintMap,				// フットプリントマップ
 	kCountOfConstantBufferType	// 定数バッファの種類の数
 };
@@ -51,6 +66,14 @@ enum class StructuredBufferType {
 	kMeshLOD,						// メッシュLOD
 	kFootprint,						// フットプリント
 	kCountOfStructuredBufferType	// 構造化バッファの種類の数
+};
+
+/// @brief ポストエフェクト
+enum class PostEffect {
+	kNone,				// なし
+	kGrayscale,			// グレースケール
+	kVignette,			// ビネット
+	kCountOfPostEffect	// ポストエフェクトの数
 };
 
 class Device;
@@ -234,9 +257,9 @@ public:
 	/// @param isResult 結果表示フラグ
 	void SetResult(bool isResult) { isResult_ = isResult; }
 
-	/// @brief グレースケール表示フラグを取得
-	/// @return グレースケール表示フラグ
-	bool IsGrayscale() const { return isGrayscale_; }
+	/// @brief ポストエフェクトを取得
+	/// @return ポストエフェクト
+	PostEffect GetPostEffect() const { return postEffect_; }
 
 private:
 	using ConstantBuffers = std::array<std::unique_ptr<ConstantBuffer>, static_cast<size_t>(ConstantBufferType::kCountOfConstantBufferType)>;
@@ -259,6 +282,8 @@ private:
 	std::unique_ptr<Resource> processedCommandBufferCounterReset_ = nullptr;	// 処理済みコマンドバッファカウンターリセット用
 	std::unique_ptr<Resource> footprintMapBuffer_ = nullptr;					// フットプリントマップバッファ
 	std::unique_ptr<Resource> footprintMapReadbackBuffer_ = nullptr;			// フットプリントマップ読み戻しバッファ
+	GrayscaleColor grayscaleColor_ = { .r = 1.0f, .g = 1.0f, .b = 1.0f };		// グレースケールカラー
+	VignetteParam vignetteParam_ = { .scale = 16.0f, .intensity = 0.8f };		// ビネットパラメータ
 	FootprintForGPU *footprintData_ = nullptr;									// フットプリントデータ
 	Int4 *colorData_ = nullptr;													// 色データ
 	Rendering::Line *lineData_ = nullptr;										// ラインデータ
@@ -281,9 +306,9 @@ private:
 	uint32_t cullingMeshHandle_ = 0;											// カリングメッシュハンドル
 	uint32_t meshLODHandle_ = 0;												// メッシュLODハンドル
 	BlendHandle blendProcessedIndirectCommandHandle_;							// ブレンド別処理済み間接コマンドハンドル
+	PostEffect postEffect_ = PostEffect::kNone;									// ポストエフェクト
 	bool isCulling_ = false;													// カリング有効フラグ
 	bool isResult_ = false;														// 結果表示フラグ
-	bool isGrayscale_ = false;													// グレースケール表示フラグ
 
 	/// @brief UAVカウンター用にアライメントを調整する
 	/// @param bufferSize バッファサイズ
@@ -310,6 +335,12 @@ private:
 
 	/// @brief マテリアルの転送
 	void TransferMaterial();
+
+	/// @brief グレースケールカラーの転送
+	void TransferGrayscaleColor();
+
+	/// @brief ビネットパラメータの転送
+	void TransferVignetteParam();
 
 	/// @brief フットプリントの転送
 	void TransferFootprint();

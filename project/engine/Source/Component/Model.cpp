@@ -26,13 +26,6 @@ void ModelManager::LoadModel(const std::string &fileName) {
 	// モデルデータの読み込み
 	model->modelData = LoadModelData(fileName);
 
-	// メッシュの生成
-	for (MeshData &meshData : model->modelData.meshes) {
-		for (MeshLODData &meshLODData : meshData.lods) {
-			meshLODData.handle = meshManager_->CreateMesh(meshLODData);
-		}
-	}
-
 	// テクスチャの読み込み
 	for (const MaterialData &materialData : model->modelData.materials) {
 		model->textureHandle.emplace_back(textureManager_->LoadTexture(materialData.textureFilePath));
@@ -122,12 +115,15 @@ ModelData ModelManager::LoadModelData(const std::string &fileName) {
 				meshLODData.indices.emplace_back(face.mIndices[index]);
 			}
 		}
+		meshLODData = meshManager_->ReIndexMeshLODData(meshLODData);
+		meshLODData.error = 0.0f;
+		meshLODData.handle = meshManager_->CreateMesh(meshLODData);
 		MeshData meshData;
 		meshData.lods.emplace_back(meshLODData);
 		meshData.materialIndex = mesh->mMaterialIndex;
-		meshData.sphere = MeshManager::CreateLocalSphere(meshData.lods[0].vertices);
-		meshData.aabb = MeshManager::CreateLocalAABB(meshData.lods[0].vertices);
-		meshData.obb = MeshManager::CreateLocalOBB(meshData.lods[0].vertices);
+		meshData.sphere = meshManager_->CreateLocalSphere(meshLODData.handle);
+		meshData.aabb = meshManager_->CreateLocalAABB(meshLODData.handle);
+		meshData.obb = meshManager_->CreateLocalOBB(meshLODData.handle);
 		modelData.meshes.emplace_back(meshData);
 	}
 

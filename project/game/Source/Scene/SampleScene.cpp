@@ -5,6 +5,8 @@
 #include "SkyboxEntity.h"
 #include "Cylinder.h"
 #include "CylinderEntity.h"
+#include "HitEffectParticle.h"
+#include "SlashEffectParticle.h"
 #include "DebugRenderer.h"
 #include "Random.h"
 
@@ -30,12 +32,21 @@ void SampleScene::OnInitialize() {
 	// マネージャーの取得
 	MeshManager *meshManager = sceneManager_->GetMeshManager();
 	TextureManager *textureManager = sceneManager_->GetTextureManager();
+	ParticleManager *particleManager = sceneManager_->GetParticleManager();
 
 	// ジェネレーターの初期化
 	SkyboxGenerator skyboxGenerator{ meshManager, textureManager };
 
 	// スカイボックスエンティティの作成
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator, objectManager_.get());
+
+	// ヒットエフェクトのパーティクルの初期化
+	hitEffectParticle_ = std::make_unique<HitEffectParticle>(registry_.get(), particleManager);
+	hitEffectParticle_->Initialize();
+
+	// スラッシュエフェクトのパーティクルの初期化
+	slashEffectParticle_ = std::make_unique<SlashEffectParticle>(registry_.get(), particleManager);
+	slashEffectParticle_->Initialize();
 }
 
 void SampleScene::OnUpdate() {
@@ -69,6 +80,12 @@ void SampleScene::OnUpdate() {
 		ImGui::TreePop();
 	}
 #endif // USE_IMGUI
+
+	// ヒットエフェクトのパーティクルの更新
+	hitEffectParticle_->Update();
+
+	// スラッシュエフェクトのパーティクルの更新
+	slashEffectParticle_->Update();
 
 	for (const Branch &branch : branches_) {
 		debugRenderer_->AddLine({ .start = branch.start, .end = branch.end, .color = { 0.0f, 1.0f, 0.0f, 1.0f } });

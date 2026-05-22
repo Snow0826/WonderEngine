@@ -244,6 +244,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="game\Source\Object\Ground.cpp" />
     <ClCompile Include="game\Source\System\CameraController.cpp" />
     <ClCompile Include="engine\Source\Component\IndirectCommand.cpp" />
+    <ClCompile Include="game\Source\Object\HitEffectParticle.cpp" />
     <ClCompile Include="main.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">MaxSpeed</Optimization>
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">true</WholeProgramOptimization>
@@ -262,6 +263,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="game\Source\Scene\TitleScene\Phase\TitleScenePhaseFadeOut.cpp" />
     <ClCompile Include="game\Source\Scene\TitleScene\Phase\TitleScenePhaseMain.cpp" />
     <ClCompile Include="game\Source\Object\Title.cpp" />
+    <ClCompile Include="game\Source\Object\SlashEffectParticle.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="game\Include\Object\CylinderEntity.h" />
@@ -374,6 +376,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="game\Include\Scene\TitleScene\Phase\TitleScenePhaseFadeOut.h" />
     <ClInclude Include="game\Include\Scene\TitleScene\Phase\TitleScenePhaseMain.h" />
     <ClInclude Include="game\Include\Object\Title.h" />
+    <ClInclude Include="game\Include\Object\HitEffectParticle.h" />
+    <ClInclude Include="game\Include\Object\SlashEffectParticle.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

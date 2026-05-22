@@ -3,6 +3,9 @@
 #include "Vector3.h"
 #include <vector>
 
+class HitEffectParticle;
+class SlashEffectParticle;
+
 /// @brief サンプルシーン
 class SampleScene : public BaseScene {
 public:
@@ -26,6 +29,8 @@ private:
 	};
 
 	std::vector<Branch> branches_;	// 枝のリスト
+	std::unique_ptr<HitEffectParticle> hitEffectParticle_ = nullptr;		// ヒットエフェクトのパーティクル
+	std::unique_ptr<SlashEffectParticle> slashEffectParticle_ = nullptr;	// スラッシュエフェクトのパーティクル
 
 	/// @brief 枝の生成
 	/// @param start 開始位置

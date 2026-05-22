@@ -92,6 +92,8 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	particleManager_->CreateParticleGroup("rightArm", "speckle.png");
 	particleManager_->CreateParticleGroup("attack", "circle.png");
 	particleManager_->CreateParticleGroup("death", "gradation.png");
+	particleManager_->CreateParticleGroup("hitEffect", "circle2.png");
+	particleManager_->CreateParticleGroup("slashEffect", "circle2.png");
 
 	// 現在のシーンの初期化
 	currentScene_ = new SampleScene;

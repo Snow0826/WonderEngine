@@ -46,6 +46,7 @@ struct Emitter final {
 	Transform transform;		// SRTデータ
 	Collision::AABB area;		// 発生範囲
 	Range<Vector3> scale;		// 大きさ
+	Range<Vector3> rotate;		// 回転
 	Range<Vector3> velocity;	// 速度
 	Range<Vector4> color;		// 色
 	Range<float> lifeTime;		// 寿命

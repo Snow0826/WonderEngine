@@ -124,8 +124,9 @@ void ParticleManager::UpdateParticle() {
 					(*particleIterator).transform.translate += (*particleIterator).velocity * kDeltaTime;
 					(*particleIterator).age += kDeltaTime;
 					Matrix4x4 scaleMatrix = MakeScaleMatrix((*particleIterator).transform.scale);
+					Matrix4x4 rotateMatrix = MakeRotateMatrix((*particleIterator).transform.rotate);
 					Matrix4x4 translateMatrix = MakeTranslateMatrix((*particleIterator).transform.translate);
-					(*particleIterator).transform.worldMatrix = scaleMatrix * billboardMatrix * translateMatrix;
+					(*particleIterator).transform.worldMatrix = scaleMatrix * rotateMatrix * billboardMatrix * translateMatrix;
 					particleDataList_.at(particleGroup->particleDataName)[particleGroup->numInstance].worldMatrix = (*particleIterator).transform.worldMatrix;
 					particleDataList_.at(particleGroup->particleDataName)[particleGroup->numInstance].color = (*particleIterator).color;
 					float alpha = 1.0f - ((*particleIterator).age / (*particleIterator).lifeTime);
@@ -143,6 +144,7 @@ Particle ParticleManager::CreateParticle(uint32_t entity) {
 	Emitter *emitter = registry_->GetComponent<Emitter>(entity);
 	Particle particle;
 	particle.transform.scale = Random::generate(emitter->scale.min, emitter->scale.max);
+	particle.transform.rotate = Random::generate(emitter->rotate.min, emitter->rotate.max);
 	particle.transform.translate = emitter->transform.translate + Random::generate(emitter->area.min, emitter->area.max);
 	particle.velocity = Random::generate(emitter->velocity.min, emitter->velocity.max);
 	particle.color = Random::generate(emitter->color.min, emitter->color.max);

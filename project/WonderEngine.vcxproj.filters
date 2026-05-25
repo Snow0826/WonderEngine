@@ -102,6 +102,7 @@
     <ClCompile Include="game\Source\Object\CylinderEntity.cpp" />
     <ClCompile Include="game\Source\Object\HitEffectParticle.cpp" />
     <ClCompile Include="game\Source\Object\SlashEffectParticle.cpp" />
+    <ClCompile Include="game\Source\Object\AnimatedCube.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -216,5 +217,6 @@
     <ClInclude Include="game\Include\Object\CylinderEntity.h" />
     <ClInclude Include="game\Include\Object\HitEffectParticle.h" />
     <ClInclude Include="game\Include\Object\SlashEffectParticle.h" />
+    <ClInclude Include="game\Include\Object\AnimatedCube.h" />
   </ItemGroup>
 </Project>

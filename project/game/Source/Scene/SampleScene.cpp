@@ -7,6 +7,7 @@
 #include "CylinderEntity.h"
 #include "HitEffectParticle.h"
 #include "SlashEffectParticle.h"
+#include "AnimatedCube.h"
 #include "DebugRenderer.h"
 #include "Random.h"
 
@@ -33,6 +34,7 @@ void SampleScene::OnInitialize() {
 	MeshManager *meshManager = sceneManager_->GetMeshManager();
 	TextureManager *textureManager = sceneManager_->GetTextureManager();
 	ParticleManager *particleManager = sceneManager_->GetParticleManager();
+	ModelManager *modelManager = sceneManager_->GetModelManager();
 
 	// ジェネレーターの初期化
 	SkyboxGenerator skyboxGenerator{ meshManager, textureManager };
@@ -47,6 +49,10 @@ void SampleScene::OnInitialize() {
 	// スラッシュエフェクトのパーティクルの初期化
 	slashEffectParticle_ = std::make_unique<SlashEffectParticle>(registry_.get(), particleManager);
 	slashEffectParticle_->Initialize();
+
+	// アニメーションキューブの作成
+	AnimatedCube animatedCube{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
+	animatedCube.Create();
 }
 
 void SampleScene::OnUpdate() {

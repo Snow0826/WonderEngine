@@ -8,8 +8,8 @@
 /// @brief ノード
 struct Node final {
 	std::string name;			// ノード名
-	Vector3 translation;		// 平行移動
-	Quaternion rotation;		// 回転（クォータニオン）
+	Vector3 translate;			// 平行移動
+	Quaternion rotate;			// 回転（クォータニオン）
 	Vector3 scale;				// スケーリング
 	std::vector<Node> children;	// 子ノードリスト
 };

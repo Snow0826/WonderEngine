@@ -156,6 +156,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="game\Source\Object\AnimatedCube.cpp" />
     <ClCompile Include="game\Source\Object\CylinderEntity.cpp" />
     <ClCompile Include="engine\Source\Component\Cylinder.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
@@ -266,6 +267,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="game\Source\Object\SlashEffectParticle.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="game\Include\Object\AnimatedCube.h" />
     <ClInclude Include="game\Include\Object\CylinderEntity.h" />
     <ClInclude Include="engine\Include\Component\Cylinder.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />

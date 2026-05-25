@@ -19,25 +19,25 @@ void AnimationSystem::Update(float deltaTime) {
 		for (NodeAnimation nodeAnimation : animationClip.nodeAnimations) {
 			switch (*mode) {
 				case AnimationInterpolationMode::Linear:
-					if (!nodeAnimation.translations.empty()) {
-						model->modelData.rootNode.translation = SampleLinearVector3(nodeAnimation.translations, player->currentTime);
+					if (!nodeAnimation.translate.keyframes.empty()) {
+						model->modelData.rootNode.translate = SampleLinearVector3(nodeAnimation.translate.keyframes, player->currentTime);
 					}
-					if (!nodeAnimation.rotations.empty()) {
-						model->modelData.rootNode.rotation = SampleLinearQuaternion(nodeAnimation.rotations, player->currentTime);
+					if (!nodeAnimation.rotate.keyframes.empty()) {
+						model->modelData.rootNode.rotate = SampleLinearQuaternion(nodeAnimation.rotate.keyframes, player->currentTime);
 					}
-					if (!nodeAnimation.scales.empty()) {
-						model->modelData.rootNode.scale = SampleLinearVector3(nodeAnimation.scales, player->currentTime);
+					if (!nodeAnimation.scale.keyframes.empty()) {
+						model->modelData.rootNode.scale = SampleLinearVector3(nodeAnimation.scale.keyframes, player->currentTime);
 					}
 					break;
 				case AnimationInterpolationMode::Step:
-					if (!nodeAnimation.translations.empty()) {
-						model->modelData.rootNode.translation = SampleStepVector3(nodeAnimation.translations, player->currentTime);
+					if (!nodeAnimation.translate.keyframes.empty()) {
+						model->modelData.rootNode.translate = SampleStepVector3(nodeAnimation.translate.keyframes, player->currentTime);
 					}
-					if (!nodeAnimation.rotations.empty()) {
-						model->modelData.rootNode.rotation = SampleStepQuaternion(nodeAnimation.rotations, player->currentTime);
+					if (!nodeAnimation.rotate.keyframes.empty()) {
+						model->modelData.rootNode.rotate = SampleStepQuaternion(nodeAnimation.rotate.keyframes, player->currentTime);
 					}
-					if (!nodeAnimation.scales.empty()) {
-						model->modelData.rootNode.scale = SampleStepVector3(nodeAnimation.scales, player->currentTime);
+					if (!nodeAnimation.scale.keyframes.empty()) {
+						model->modelData.rootNode.scale = SampleStepVector3(nodeAnimation.scale.keyframes, player->currentTime);
 					}
 					break;
 				default:
@@ -63,7 +63,7 @@ Vector3 AnimationSystem::SampleLinearVector3(const std::vector<KeyFrameVector3> 
 	for (size_t i = 0; i < keyframes.size() - 1; ++i) {
 		const KeyFrameVector3 &kf0 = keyframes[i];
 		const KeyFrameVector3 &kf1 = keyframes[i + 1];
-		if (time < kf1.time) {
+		if (time >= kf0.time && time <= kf1.time) {
 			float t = (time - kf0.time) / (kf1.time - kf0.time);
 			return Easing<Vector3>::Lerp(kf0.value, kf1.value, t);
 		}
@@ -84,7 +84,7 @@ Quaternion AnimationSystem::SampleLinearQuaternion(const std::vector<KeyFrameQua
 	for (size_t i = 0; i < keyframes.size() - 1; ++i) {
 		const KeyFrameQuaternion &kf0 = keyframes[i];
 		const KeyFrameQuaternion &kf1 = keyframes[i + 1];
-		if (time < kf1.time) {
+		if (time >= kf0.time && time <= kf1.time) {
 			float t = (time - kf0.time) / (kf1.time - kf0.time);
 			return Quaternion::Slerp(kf0.value, kf1.value, t);
 		}
@@ -105,7 +105,7 @@ Vector3 AnimationSystem::SampleStepVector3(const std::vector<KeyFrameVector3> &k
 	for (size_t i = 0; i < keyframes.size() - 1; ++i) {
 		const KeyFrameVector3 &kf0 = keyframes[i];
 		const KeyFrameVector3 &kf1 = keyframes[i + 1];
-		if (time < kf1.time) {
+		if (time >= kf0.time && time <= kf1.time) {
 			return kf0.value;
 		}
 	}
@@ -125,7 +125,7 @@ Quaternion AnimationSystem::SampleStepQuaternion(const std::vector<KeyFrameQuate
 	for (size_t i = 0; i < keyframes.size() - 1; ++i) {
 		const KeyFrameQuaternion &kf0 = keyframes[i];
 		const KeyFrameQuaternion &kf1 = keyframes[i + 1];
-		if (time < kf1.time) {
+		if (time >= kf0.time && time <= kf1.time) {
 			return kf0.value;
 		}
 	}

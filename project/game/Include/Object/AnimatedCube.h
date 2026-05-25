@@ -4,26 +4,24 @@ class Registry;
 class IndirectCommandManager;
 class ModelManager;
 class ObjectManager;
-struct Vector3;
 
-/// @brief 天使の像
-class AngelStatue {
+/// @brief アニメーションするキューブ
+class AnimatedCube {
 public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
 	/// @param indirectCommandManager 間接コマンドマネージャー
 	/// @param modelManager モデルマネージャー
 	/// @param objectManager オブジェクトマネージャー
-	AngelStatue(Registry *registry, IndirectCommandManager *indirectCommandManager, ModelManager *modelManager, ObjectManager *objectManager)
+	AnimatedCube(Registry *registry, IndirectCommandManager *indirectCommandManager, ModelManager *modelManager, ObjectManager *objectManager)
 		: registry_(registry)
 		, indirectCommandManager_(indirectCommandManager)
 		, modelManager_(modelManager)
-		, objectManager_(objectManager) {}
+		, objectManager_(objectManager) {
+	}
 
-	/// @brief 建物の作成
-	/// @param rotate 回転
-	/// @param translate 平行移動
-	void Create(const Vector3 &rotate, const Vector3 &translate);
+	/// @brief アニメーションするキューブの作成
+	void Create();
 
 private:
 	Registry *registry_;								// レジストリ

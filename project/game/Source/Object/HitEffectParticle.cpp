@@ -7,7 +7,7 @@
 void HitEffectParticle::Initialize() {
 	// エミッターの設定
 	Emitter emitter{
-		.transform{},
+		.transform{ .translate = { -3.0f, 0.0f, 0.0f } },
 		.area = {},
 		.scale = {
 			.min = { 0.05f, 1.0f, 1.0f },

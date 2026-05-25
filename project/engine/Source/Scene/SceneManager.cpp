@@ -73,6 +73,7 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	// モデルの読み込み
 	modelManager_ = std::make_unique<ModelManager>(textureManager_.get(), meshManager_.get(), logStream_);
 	modelManager_->LoadModel("ground.obj");
+	modelManager_->LoadModel("AnimatedCube.gltf");
 	modelManager_->LoadModel("wall.gltf");
 	modelManager_->LoadModel("historic_european_brick_building_roebuck.gltf");
 	modelManager_->LoadModel("angel_statue.gltf");

@@ -67,7 +67,7 @@ bool ModelManager::Combo(const std::string &label, Model *model) {
 }
 
 Matrix4x4 ModelManager::MakeLocalMatrix(const Node &node) {
-	Matrix4x4 result = MakeAffineMatrix(node.scale, node.rotation, node.translation);
+	Matrix4x4 result = MakeAffineMatrix(node.scale, node.rotate, node.translate);
 	for (const Node &child : node.children) {
 		result *= MakeLocalMatrix(child);
 	}
@@ -162,23 +162,33 @@ ModelData ModelManager::LoadModelData(const std::string &fileName) {
 				// キーフレームの読み込み
 				for (uint32_t keyIndex = 0; keyIndex < channel->mNumPositionKeys; ++keyIndex) {
 					aiVectorKey key = channel->mPositionKeys[keyIndex];
-					float time = static_cast<float>(key.mTime / animation->mTicksPerSecond);
-					aiVector3D position = key.mValue;
-					nodeAnimation.translations.emplace_back(KeyFrameVector3{ time, Vector3{ -position.x, position.y, position.z } });
+					KeyFrameVector3 keyframe = {
+						.time = static_cast<float>(key.mTime / animation->mTicksPerSecond),
+						.value = { -key.mValue.x, key.mValue.y, key.mValue.z }
+					};
+					nodeAnimation.translate.keyframes.emplace_back(keyframe);
 				}
 
 				for (uint32_t keyIndex = 0; keyIndex < channel->mNumRotationKeys; ++keyIndex) {
 					aiQuatKey key = channel->mRotationKeys[keyIndex];
 					float time = static_cast<float>(key.mTime / animation->mTicksPerSecond);
-					aiQuaternion rotation = key.mValue;
-					nodeAnimation.rotations.emplace_back(KeyFrameQuaternion{ time, Quaternion{ -rotation.x, rotation.y, rotation.z, rotation.w } });
+					aiQuaternion rotate = key.mValue;
+					KeyFrameQuaternion keyframe = {
+						.time = time,
+						.value = { rotate.x, -rotate.y, -rotate.z, rotate.w }
+					};
+					nodeAnimation.rotate.keyframes.emplace_back(keyframe);
 				}
 
 				for (uint32_t keyIndex = 0; keyIndex < channel->mNumScalingKeys; ++keyIndex) {
 					aiVectorKey key = channel->mScalingKeys[keyIndex];
 					float time = static_cast<float>(key.mTime / animation->mTicksPerSecond);
 					aiVector3D scale = key.mValue;
-					nodeAnimation.scales.emplace_back(KeyFrameVector3{ time, Vector3{ scale.x, scale.y, scale.z } });
+					KeyFrameVector3 keyframe = {
+						.time = time,
+						.value = { scale.x, scale.y, scale.z }
+					};
+					nodeAnimation.scale.keyframes.emplace_back(keyframe);
 				}
 				animationClip.nodeAnimations.emplace_back(nodeAnimation);
 			}
@@ -194,20 +204,20 @@ ModelData ModelManager::LoadModelData(const std::string &fileName) {
 
 Node ModelManager::ReadNode(const aiNode *node) {
 	Node result;
-	aiVector3D scale, translation;
-	aiQuaternion rotation;
+	aiVector3D scale, translate;
+	aiQuaternion rotate;
 
 	// ノード名の設定
 	result.name = node->mName.C_Str();
 
 	// 変換行列の分解
-	node->mTransformation.Decompose(scale, rotation, translation);
+	node->mTransformation.Decompose(scale, rotate, translate);
 
 	// 平行移動の設定
-	result.translation = { -translation.x, translation.y, translation.z };
+	result.translate = { -translate.x, translate.y, translate.z };
 
 	// 回転の設定
-	result.rotation = { -rotation.x, rotation.y, rotation.z, rotation.w };
+	result.rotate = { rotate.x, -rotate.y, -rotate.z, rotate.w };
 
 	// スケーリングの設定
 	result.scale = { scale.x, scale.y, scale.z };

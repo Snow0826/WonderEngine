@@ -99,7 +99,7 @@
     <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
     <ClCompile Include="engine\Source\Component\Cylinder.cpp" />
-    <ClCompile Include="game\Source\Object\CylinderEntity.cpp" />
+    <ClCompile Include="engine\Source\System\TreeGenerator.cpp" />
     <ClCompile Include="game\Source\Object\HitEffectParticle.cpp" />
     <ClCompile Include="game\Source\Object\SlashEffectParticle.cpp" />
     <ClCompile Include="game\Source\Object\AnimatedCube.cpp" />
@@ -214,7 +214,7 @@
     <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />
     <ClInclude Include="engine\Include\Component\Cylinder.h" />
-    <ClInclude Include="game\Include\Object\CylinderEntity.h" />
+    <ClInclude Include="engine\Include\System\TreeGenerator.h" />
     <ClInclude Include="game\Include\Object\HitEffectParticle.h" />
     <ClInclude Include="game\Include\Object\SlashEffectParticle.h" />
     <ClInclude Include="game\Include\Object\AnimatedCube.h" />

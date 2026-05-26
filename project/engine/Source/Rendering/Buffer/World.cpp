@@ -29,6 +29,7 @@ namespace {
 		"None",
 		"GrayScale",
 		"Vignette",
+		"BoxFilter",
 	};
 }
 
@@ -59,14 +60,19 @@ World::World(Device *device, std::ofstream &logStream) {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGrayscaleColor)]->SetName("GrayscaleColor");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kVignetteParam)]->Initialize(device, sizeof(VignetteParam), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kVignetteParam)]->SetName("VignetteParam");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kBoxFilterParam)]->Initialize(device, sizeof(BoxFilterParam), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kBoxFilterParam)]->SetName("BoxFilterParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->Initialize(device, sizeof(FootprintMap), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->SetName("FootprintMap");
 
 	// スプライト用のビュープロジェクションの初期データ設定
 	ViewProjectionData viewProjection;
 	viewProjection.view = MakeIdentity4x4();
-	viewProjection.projection = MakeOrthographicMatrix(0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 100.0f);
+	viewProjection.projection = MakeOrthographicMatrix(0.0f, 0.0f, static_cast<float>(Window::GetClientWidth()), static_cast<float>(Window::GetClientHeight()), 0.0f, 100.0f);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kViewProjection)]->CopyData(&viewProjection, sizeof(ViewProjectionData), 0);
+
+	// BoxFilter用のパラメータの初期データ設定
+	boxFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
 
 	// 構造化バッファの初期化
 	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kLine)] = Resource::CreateUploadBuffer(device, sizeof(Rendering::Line) * kMaxLine);
@@ -334,6 +340,7 @@ void World::Update() {
 	TransferMaterial();
 	TransferGrayscaleColor();
 	TransferVignetteParam();
+	TransferBoxFilterParam();
 	TransferFootprint();
 	TransferFootprintMap();
 }
@@ -384,6 +391,14 @@ void World::Edit() {
 		ImGui::DragFloat("Intensity", &vignetteParam_.intensity, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		if (ImGui::Button("Reset")) {
 			vignetteParam_ = { .scale = 16.0f, .intensity = 0.8f };
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("BoxFilter")) {
+		ImGui::DragInt("KernelRadius", &boxFilterParam_.kernelRadius, 1.0f, 1, 16);
+		if (ImGui::Button("Reset")) {
+			boxFilterParam_.kernelRadius = 1;
 		}
 		ImGui::TreePop();
 	}
@@ -483,6 +498,10 @@ void World::TransferGrayscaleColor() {
 
 void World::TransferVignetteParam() {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kVignetteParam)]->CopyData(&vignetteParam_, sizeof(VignetteParam), 0);
+}
+
+void World::TransferBoxFilterParam() {
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kBoxFilterParam)]->CopyData(&boxFilterParam_, sizeof(BoxFilterParam), 0);
 }
 
 void World::TransferFootprint() {

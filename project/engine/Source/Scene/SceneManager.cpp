@@ -56,15 +56,6 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	renderer_->SetTextureManager(textureManager_.get());
 	textureManager_->LoadTexture("kloofendal_48d_partly_cloudy_puresky_2k.dds");
 	textureManager_->LoadTexture("white8x8.png");
-	textureManager_->LoadTexture("debugfont.png");
-	textureManager_->LoadTexture("win.png");
-	textureManager_->LoadTexture("lose.png");
-	textureManager_->LoadTexture("UI.png");
-	textureManager_->LoadTexture("T_X_X_Color_3D.png");
-	textureManager_->LoadTexture("T_X_A_Color_3D.png");
-	textureManager_->LoadTexture("T_X_RB_3D.png");
-	textureManager_->LoadTexture("rule.png");
-	for (size_t i = 0; i < 10; i++) { textureManager_->LoadTexture(std::to_string(i) + ".png"); }
 
 	// メッシュマネージャーの生成
 	meshManager_ = std::make_unique<MeshManager>(device_);
@@ -72,27 +63,10 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 
 	// モデルの読み込み
 	modelManager_ = std::make_unique<ModelManager>(textureManager_.get(), meshManager_.get(), logStream_);
-	modelManager_->LoadModel("ground.obj");
 	modelManager_->LoadModel("AnimatedCube.gltf");
-	modelManager_->LoadModel("wall.gltf");
-	modelManager_->LoadModel("historic_european_brick_building_roebuck.gltf");
-	modelManager_->LoadModel("angel_statue.gltf");
-	modelManager_->LoadModel("title0.obj");
-	modelManager_->LoadModel("title1.obj");
-	modelManager_->LoadModel("title2.obj");
-	modelManager_->LoadModel("body.obj");
-	modelManager_->LoadModel("head.obj");
-	modelManager_->LoadModel("leftArm.obj");
-	modelManager_->LoadModel("rightArm.obj");
-	modelManager_->LoadModel("enemy.obj");
-	modelManager_->LoadModel("cube.obj");
 
 	// パーティクルグループの作成
 	particleManager_ = std::make_unique<ParticleManager>(device_, textureManager_.get(), meshManager_.get(), logStream_);
-	particleManager_->CreateParticleGroup("leftArm", "speckle.png");
-	particleManager_->CreateParticleGroup("rightArm", "speckle.png");
-	particleManager_->CreateParticleGroup("attack", "circle.png");
-	particleManager_->CreateParticleGroup("death", "gradation.png");
 	particleManager_->CreateParticleGroup("hitEffect", "circle2.png");
 	particleManager_->CreateParticleGroup("slashEffect", "circle2.png");
 

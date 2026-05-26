@@ -226,12 +226,12 @@ uint32_t MeshManager::CreateCylinder(uint32_t divide, float topRadius, float bot
 		vertices.emplace_back(VertexData{
 			.position = { -sin * topRadius, height, cos * topRadius, 1.0f },
 			.texcoord = { u, 0.0f },
-			.normal = { -sin, slope, cos }
+			.normal = Vector3{ -sin, slope, cos }.normalized()
 			});
 		vertices.emplace_back(VertexData{
 			.position = { -sin * bottomRadius, 0.0f, cos * bottomRadius, 1.0f },
 			.texcoord = { u, 1.0f },
-			.normal = { -sin, slope, cos }
+			.normal = Vector3{ -sin, slope, cos }.normalized()
 			});
 	}
 

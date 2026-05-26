@@ -34,6 +34,7 @@ Renderer::Renderer(Device *device)
 	, fullscreenRootSignature_(device->GetFullscreenRootSignature())
 	, grayscaleRootSignature_(device->GetGrayscaleRootSignature())
 	, vignetteRootSignature_(device->GetVignetteRootSignature())
+	, boxFilterRootSignature_(device->GetBoxFilterRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
@@ -175,6 +176,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// Vignetteのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> vignettePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Vignette.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(vignettePSBlob);
+
+	// BoxFilterのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> boxFilterPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/BoxFilter.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(boxFilterPSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -328,6 +333,19 @@ void Renderer::Initialize(std::ofstream &logStream) {
 		.Create(device_->GetDevice(), vignetteRootSignature_);
 	Logger::Log(logStream, "Create VignettePipelineState\n");
 	vignettePipelineState_->SetName(L"VignettePipelineState");
+
+	// BoxFilter用パイプラインステートの生成
+	boxFilterPipelineState_ = PipelineState()
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
+		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
+		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
+		.SetPixelShader(boxFilterPSBlob->GetBufferPointer(), boxFilterPSBlob->GetBufferSize())		// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+		.Create(device_->GetDevice(), boxFilterRootSignature_);
+	Logger::Log(logStream, "Create BoxFilterPipelineState\n");
+	boxFilterPipelineState_->SetName(L"BoxFilterPipelineState");
 
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
@@ -509,6 +527,12 @@ void Renderer::CopyImage() {
 			commandList_->SetGraphicsRootSignature(vignetteRootSignature_);
 			commandList_->SetPipelineState(vignettePipelineState_.Get());
 			world_->GetConstantBuffer(ConstantBufferType::kVignetteParam)->BindToGraphics(0, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetRenderTextureSRVHandle());
+			break;
+		case PostEffect::kBoxFilter:
+			commandList_->SetGraphicsRootSignature(boxFilterRootSignature_);
+			commandList_->SetPipelineState(boxFilterPipelineState_.Get());
+			world_->GetConstantBuffer(ConstantBufferType::kBoxFilterParam)->BindToGraphics(0, 0);
 			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetRenderTextureSRVHandle());
 			break;
 		case PostEffect::kCountOfPostEffect:

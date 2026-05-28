@@ -83,3 +83,17 @@ RootSignature RootSignature::AddSampler(D3D12_FILTER filter, D3D12_TEXTURE_ADDRE
 	staticSamplers_.emplace_back(staticSampler);	// StaticSamplerの配列を追加
 	return *this;
 }
+
+RootSignature RootSignature::AddSampler(D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE modeU, D3D12_TEXTURE_ADDRESS_MODE modeV, D3D12_TEXTURE_ADDRESS_MODE modeW, D3D12_COMPARISON_FUNC comparison, FLOAT maxLOD, UINT shaderRegister, D3D12_SHADER_VISIBILITY visibility) {
+	D3D12_STATIC_SAMPLER_DESC staticSampler{};
+	staticSampler.Filter = filter;					// フィルタリング
+	staticSampler.AddressU = modeU;					// U座標のアドレスモード
+	staticSampler.AddressV = modeV;					// V座標のアドレスモード
+	staticSampler.AddressW = modeW;					// W座標のアドレスモード
+	staticSampler.ComparisonFunc = comparison;		// 比較関数
+	staticSampler.MaxLOD = maxLOD;					// 最大LOD
+	staticSampler.ShaderRegister = shaderRegister;	// シェーダーのレジスタ番号
+	staticSampler.ShaderVisibility = visibility;	// シェーダーの可視性
+	staticSamplers_.emplace_back(staticSampler);	// StaticSamplerの配列を追加
+	return *this;
+}

@@ -11,7 +11,7 @@
     <ClCompile Include="engine\Source\Component\UVTransform.cpp" />
     <ClCompile Include="engine\Source\Scene\BitmapFont.cpp" />
     <ClCompile Include="engine\Source\Component\Footprint.cpp" />
-    <ClCompile Include="engine\Source\Component\SpotLight.cpp" />
+    <ClCompile Include="engine\Source\Component\Light\SpotLight.cpp" />
     <ClCompile Include="engine\Source\Scene\Text.cpp" />
     <ClCompile Include="game\Source\Object\Player\Behavior\AttackBehavior\PlayerAttackBehaviorEnd.cpp" />
     <ClCompile Include="game\Source\Object\Player\Behavior\AttackBehavior\PlayerAttackBehaviorStart.cpp" />
@@ -23,15 +23,15 @@
     <ClCompile Include="game\Source\Object\ArmParticle.cpp" />
     <ClCompile Include="game\Source\Object\DeathParticle.cpp" />
     <ClCompile Include="game\Source\Object\Enemy.cpp" />
-    <ClCompile Include="engine\Source\Rendering\DebugRenderer\Capsule.cpp" />
-    <ClCompile Include="engine\Source\Rendering\DebugRenderer\OBB.cpp" />
-    <ClCompile Include="engine\Source\Rendering\DebugRenderer\Plane.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\CapsuleRenderer.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\OBBRenderer.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\PlaneRenderer.cpp" />
     <ClCompile Include="engine\Source\Component\Particle.cpp" />
     <ClCompile Include="engine\Source\Math\MathUtility.cpp" />
     <ClCompile Include="engine\Source\Rendering\Buffer\World.cpp" />
-    <ClCompile Include="engine\Source\Rendering\DebugRenderer\AABB.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\AABBRenderer.cpp" />
     <ClCompile Include="engine\Source\Component\Transform.cpp" />
-    <ClCompile Include="engine\Source\Component\DirectionalLight.cpp" />
+    <ClCompile Include="engine\Source\Component\Light\DirectionalLight.cpp" />
     <ClCompile Include="engine\Source\Component\Material.cpp" />
     <ClCompile Include="engine\Source\Core\Application.cpp" />
     <ClCompile Include="engine\Source\Core\Audio.cpp" />
@@ -68,7 +68,7 @@
     <ClCompile Include="engine\Source\Utilities\ImGuiManager.cpp" />
     <ClCompile Include="engine\Source\Utilities\Logger.cpp" />
     <ClCompile Include="engine\Source\Utilities\StringConverter.cpp" />
-    <ClCompile Include="engine\Source\Rendering\DebugRenderer\Frustum.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\FrustumRenderer.cpp" />
     <ClCompile Include="game\Source\Scene\GameScene\GameScene.cpp" />
     <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhaseClear.cpp" />
     <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhaseClearFadeIn.cpp" />
@@ -85,10 +85,10 @@
     <ClCompile Include="engine\Source\Asset\Mesh.cpp" />
     <ClCompile Include="game\Source\Object\Player\Player.cpp" />
     <ClCompile Include="engine\Source\Physics\RigidBody.cpp" />
-    <ClCompile Include="engine\Source\Rendering\DebugRenderer\Sphere.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\SphereRenderer.cpp" />
     <ClCompile Include="game\Source\Object\SkyboxEntity.cpp" />
     <ClCompile Include="game\Source\Object\AttackParticle.cpp" />
-    <ClCompile Include="engine\Source\Component\PointLight.cpp" />
+    <ClCompile Include="engine\Source\Component\Light\PointLight.cpp" />
     <ClCompile Include="engine\Source\Math\Quaternion.cpp" />
     <ClCompile Include="game\Source\Object\Wall.cpp" />
     <ClCompile Include="game\Source\Scene\TitleScene\TitleScene.cpp" />
@@ -98,11 +98,16 @@
     <ClCompile Include="game\Source\Object\Title.cpp" />
     <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
-    <ClCompile Include="engine\Source\Component\Cylinder.cpp" />
+    <ClCompile Include="engine\Source\Component\Primitive\Cylinder.cpp" />
     <ClCompile Include="engine\Source\System\TreeGenerator.cpp" />
-    <ClCompile Include="game\Source\Object\HitEffectParticle.cpp" />
-    <ClCompile Include="game\Source\Object\SlashEffectParticle.cpp" />
+    <ClCompile Include="game\Source\Object\HitEffect.cpp" />
+    <ClCompile Include="game\Source\Object\SlashEffect.cpp" />
     <ClCompile Include="game\Source\Object\AnimatedCube.cpp" />
+    <ClCompile Include="engine\Source\Component\Primitive\Ring.cpp" />
+    <ClCompile Include="engine\Source\Component\Primitive\Box.cpp" />
+    <ClCompile Include="engine\Source\Component\Primitive\Plane.cpp" />
+    <ClCompile Include="game\Source\Object\SlashRingEffect.cpp" />
+    <ClCompile Include="game\Source\Object\HitRingEffect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -116,15 +121,15 @@
     <ClInclude Include="engine\Include\Scene\BitmapFont.h" />
     <ClInclude Include="engine\Include\Component\Footprint.h" />
     <ClInclude Include="engine\Include\Component\FootprintMap.h" />
-    <ClInclude Include="engine\Include\Component\SpotLight.h" />
+    <ClInclude Include="engine\Include\Component\Light\SpotLight.h" />
     <ClInclude Include="engine\Include\Component\BlendMode.h" />
     <ClInclude Include="engine\Include\Scene\Text.h" />
     <ClInclude Include="game\Include\Object\ArmParticle.h" />
     <ClInclude Include="game\Include\Object\DeathParticle.h" />
     <ClInclude Include="game\Include\Object\Enemy.h" />
-    <ClInclude Include="engine\Include\Rendering\DebugRenderer\Capsule.h" />
-    <ClInclude Include="engine\Include\Rendering\DebugRenderer\OBB.h" />
-    <ClInclude Include="engine\Include\Rendering\DebugRenderer\Plane.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\CapsuleRenderer.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\OBBRenderer.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\PlaneRenderer.h" />
     <ClInclude Include="game\Include\Object\Player\Behavior\AttackBehavior\BasePlayerAttackBehavior.h" />
     <ClInclude Include="game\Include\Object\Player\Behavior\AttackBehavior\PlayerAttackBehaviorEnd.h" />
     <ClInclude Include="game\Include\Object\Player\Behavior\AttackBehavior\PlayerAttackBehaviorStart.h" />
@@ -147,9 +152,9 @@
     <ClInclude Include="engine\Include\Component\Particle.h" />
     <ClInclude Include="engine\Include\Math\MathUtility.h" />
     <ClInclude Include="engine\Include\Rendering\Buffer\World.h" />
-    <ClInclude Include="engine\Include\Rendering\DebugRenderer\AABB.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\AABBRenderer.h" />
     <ClInclude Include="engine\Include\Asset\VertexData.h" />
-    <ClInclude Include="engine\Include\Component\DirectionalLight.h" />
+    <ClInclude Include="engine\Include\Component\Light\DirectionalLight.h" />
     <ClInclude Include="engine\Include\Component\Material.h" />
     <ClInclude Include="engine\Include\Component\Transform.h" />
     <ClInclude Include="engine\Include\Core\Application.h" />
@@ -192,16 +197,16 @@
     <ClInclude Include="engine\Include\Utilities\Logger.h" />
     <ClInclude Include="engine\Include\Utilities\StringConverter.h" />
     <ClInclude Include="engine\Include\Asset\Mesh.h" />
-    <ClInclude Include="engine\Include\Rendering\DebugRenderer\Frustum.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\FrustumRenderer.h" />
     <ClInclude Include="game\Include\Scene\GameScene\GameScene.h" />
     <ClInclude Include="game\Include\Scene\SampleScene.h" />
     <ClInclude Include="game\Include\Object\Player\Player.h" />
     <ClInclude Include="engine\Include\Physics\RigidBody.h" />
-    <ClInclude Include="engine\Include\Rendering\DebugRenderer\Sphere.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\SphereRenderer.h" />
     <ClInclude Include="game\Include\Object\Ground.h" />
     <ClInclude Include="game\Include\Object\SkyboxEntity.h" />
     <ClInclude Include="game\Include\Object\AttackParticle.h" />
-    <ClInclude Include="engine\Include\Component\PointLight.h" />
+    <ClInclude Include="engine\Include\Component\Light\PointLight.h" />
     <ClInclude Include="engine\Include\Math\Quaternion.h" />
     <ClInclude Include="engine\Include\Component\IndirectCommand.h" />
     <ClInclude Include="game\Include\Object\Wall.h" />
@@ -213,10 +218,19 @@
     <ClInclude Include="engine\Include\Utilities\CPUTimer.h" />
     <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />
-    <ClInclude Include="engine\Include\Component\Cylinder.h" />
+    <ClInclude Include="engine\Include\Component\Primitive\Cylinder.h" />
     <ClInclude Include="engine\Include\System\TreeGenerator.h" />
-    <ClInclude Include="game\Include\Object\HitEffectParticle.h" />
-    <ClInclude Include="game\Include\Object\SlashEffectParticle.h" />
+    <ClInclude Include="game\Include\Object\HitEffect.h" />
+    <ClInclude Include="game\Include\Object\SlashEffect.h" />
     <ClInclude Include="game\Include\Object\AnimatedCube.h" />
+    <ClInclude Include="engine\Include\Component\Primitive\Ring.h" />
+    <ClInclude Include="engine\Include\Component\MeshType.h" />
+    <ClInclude Include="engine\Include\Component\Primitive\Plane.h" />
+    <ClInclude Include="engine\Include\Component\Primitive\Box.h" />
+    <ClInclude Include="game\Include\Object\SlashRingEffect.h" />
+    <ClInclude Include="game\Include\Object\HitRingEffect.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

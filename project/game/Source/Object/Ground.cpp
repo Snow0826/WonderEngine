@@ -6,10 +6,10 @@
 #include "Model.h"
 #include "Transform.h"
 #include "Material.h"
-#include "Plane.h"
+#include "PlaneRenderer.h"
 #include "FootprintMap.h"
 #include "Footprint.h"
-#include "Sphere.h"
+#include "SphereRenderer.h"
 #include <cassert>
 
 void Ground::Create(Registry *registry, IndirectCommandManager *indirectCommandManager, ModelManager *modelManager, ObjectManager *objectManager, FootprintManager *footprintManager) {

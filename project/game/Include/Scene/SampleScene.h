@@ -1,8 +1,10 @@
 #pragma once
 #include "BaseScene.h"
 
-class HitEffectParticle;
-class SlashEffectParticle;
+class HitEffect;
+class SlashEffect;
+class HitRingEffect;
+class SlashRingEffect;
 
 /// @brief サンプルシーン
 class SampleScene : public BaseScene {
@@ -20,6 +22,8 @@ public:
 	void OnUpdate() override;
 
 private:
-	std::unique_ptr<HitEffectParticle> hitEffectParticle_ = nullptr;		// ヒットエフェクトのパーティクル
-	std::unique_ptr<SlashEffectParticle> slashEffectParticle_ = nullptr;	// スラッシュエフェクトのパーティクル
+	std::unique_ptr<HitEffect> hitEffect_ = nullptr;				// ヒットエフェクト
+	std::unique_ptr<SlashEffect> slashEffect_ = nullptr;			// スラッシュエフェクト
+	std::unique_ptr<HitRingEffect> hitRingEffect_ = nullptr;		// ヒットリングエフェクト
+	std::unique_ptr<SlashRingEffect> slashRingEffect_ = nullptr;	// スラッシュリングエフェクト
 };

@@ -59,6 +59,13 @@ public:
 	/// @brief 立方体の生成
 	/// @return メッシュハンドル
 	uint32_t CreateBox();
+	
+	/// @brief 円環の生成
+	/// @param divide 分割数
+	/// @param outerRadius 外半径
+	/// @param innerRadius 内半径
+	/// @return メッシュハンドル
+	uint32_t CreateRing(uint32_t divide, float outerRadius, float innerRadius);
 
 	/// @brief 円柱の生成
 	/// @param divide 分割数

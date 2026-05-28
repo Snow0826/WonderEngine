@@ -17,8 +17,8 @@
 #include "DirectionalLight.h"
 #include "PointLight.h"
 #include "SpotLight.h"
-#include "Frustum.h"
-#include "AABB.h"
+#include "FrustumRenderer.h"
+#include "AABBRenderer.h"
 #include "Footprint.h"
 #include "FootprintMap.h"
 #include "Logger.h"
@@ -33,11 +33,9 @@ namespace {
 	};
 }
 
-const UINT World::kCommandSizePerFrame = World::kMaxAABB * sizeof(IndirectCommand);
-const UINT World::kCommandBufferCounterOffset = AlignForUavCounter(World::kCommandSizePerFrame);
-
 World::World(Device *device, std::ofstream &logStream) {
 	DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device->GetGpuCbvSrvUavDescriptorHeap();
+	DescriptorHeap *cpuCbvSrvUavDescriptorHeap = device->GetCpuCbvSrvUavDescriptorHeap();
 
 	// 定数バッファの初期化
 	for (auto &constantBuffer : constantBuffers_) {
@@ -50,8 +48,8 @@ World::World(Device *device, std::ofstream &logStream) {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kViewProjection)]->SetName("ViewProjection");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kMaterial)]->Initialize(device, sizeof(Material), kMaxObject);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kMaterial)]->SetName("Material");
-	constantBuffers_[static_cast<size_t>(ConstantBufferType::kCamera)]->Initialize(device, sizeof(CameraForGPU), 2);
-	constantBuffers_[static_cast<size_t>(ConstantBufferType::kCamera)]->SetName("Camera");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kCameraPosition)]->Initialize(device, sizeof(CameraPosition), 2);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kCameraPosition)]->SetName("CameraPosition");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDirectionalLight)]->Initialize(device, sizeof(DirectionalLight), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDirectionalLight)]->SetName("DirectionalLight");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFrustum)]->Initialize(device, sizeof(Frustum), 2);
@@ -94,36 +92,27 @@ World::World(Device *device, std::ofstream &logStream) {
 	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kFootprint)]->SetName("Footprint");
 	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kFootprint)]->Map(reinterpret_cast<void **>(&footprintData_));
 
-	// ブレンドモード名リスト
-	std::array<std::string, static_cast<size_t>(BlendMode::kCountOfBlendMode)> blendModeNames = {
-		"None",
-		"Normal",
-		"Additive",
-		"Subtractive",
-		"Multiplicative",
-		"Screen"
-	};
-
-	// ブレンド別処理済みコマンドバッファリストの初期化
-	for (size_t i = 0; i < static_cast<size_t>(BlendMode::kCountOfBlendMode); ++i) {
-		blendProcessedCommandBuffers_[i] = Resource::CreateRWBuffer(device, kCommandBufferCounterOffset + sizeof(UINT));
-		const std::string name = blendModeNames[i] + "BlendProcessedCommandBuffer";
-		blendProcessedCommandBuffers_[i]->SetName(name);
-	}
-
-	// 処理済みコマンドバッファカウンタリセット用バッファの作成
-	processedCommandBufferCounterReset_ = Resource::CreateUploadBuffer(device, sizeof(UINT));
-	processedCommandBufferCounterReset_->SetName("ProcessedCommandBufferCounterReset");
-
-	// カウンタリセット用バッファに0を書き込む
-	UINT8 *pMappedCounterReset = nullptr;
-	processedCommandBufferCounterReset_->Map(reinterpret_cast<void **>(&pMappedCounterReset));
-	ZeroMemory(pMappedCounterReset, sizeof(UINT));
-	processedCommandBufferCounterReset_->Unmap();
-
 	// コマンドバッファ転送用中間バッファの作成
 	commandBufferUpload_ = Resource::CreateUploadBuffer(device, sizeof(MeshLOD) * kMaxAABB);
 	commandBufferUpload_->SetName("CommandBufferUpload");
+
+	// カリング済みコマンドバッファの初期化
+	processedCommandBuffer_ = Resource::CreateRWBuffer(device, sizeof(IndirectCommand) * kMaxAABB);
+	processedCommandBuffer_->SetName("ProcessedCommandBuffer");
+
+	// コマンドカウンターバッファの初期化
+	constexpr size_t kMaxQueue = static_cast<size_t>(MeshType::kCountOfMeshType) * static_cast<size_t>(BlendMode::kCountOfBlendMode);
+	commandCounterBuffer_ = Resource::CreateRWBuffer(device, sizeof(uint32_t) * kMaxQueue);
+	commandCounterBuffer_->SetName("CommandCounterBuffer");
+
+	// キューオフセットリストの初期化
+	for (uint32_t i = 0; i < queueOffsets_.size(); i++) {
+		uint32_t queueIndex = i * 4;
+		queueOffsets_[i].x = queueIndex * kMaxCommandPerQueue;
+		queueOffsets_[i].y = (queueIndex + 1) * kMaxCommandPerQueue;
+		queueOffsets_[i].z = (queueIndex + 2) * kMaxCommandPerQueue;
+		queueOffsets_[i].w = (queueIndex + 3) * kMaxCommandPerQueue;
+	}
 
 	// Line用SRVの設定
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvBufferDesc{};
@@ -277,22 +266,36 @@ World::World(Device *device, std::ofstream &logStream) {
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(hiZTexture_->GetResource(), srvHiZTextureDesc, hiZTextureHandle_);
 	Logger::Log(logStream, "HiZTexture SRVDescriptorIndex: " + std::to_string(hiZTextureHandle_) + "\n");
 
-	for (size_t i = 0; i < static_cast<size_t>(BlendMode::kCountOfBlendMode); i++) {
-		// 処理済みコマンドバッファ用UAVの設定
-		D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc{};
-		uavDesc.Format = DXGI_FORMAT_UNKNOWN;								// バッファなのでフォーマットなし
-		uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;					// バッファビュー
-		uavDesc.Buffer.FirstElement = 0;									// 先頭の要素
-		uavDesc.Buffer.NumElements = kMaxAABB;								// 要素数
-		uavDesc.Buffer.StructureByteStride = sizeof(IndirectCommand);		// 構造体のサイズ
-		uavDesc.Buffer.CounterOffsetInBytes = kCommandBufferCounterOffset;	// カウンタあり
-		uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;					// 特になし
+	// カリング済みコマンドバッファ用UAVの設定
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavBufferDesc{};
+	uavBufferDesc.Format = DXGI_FORMAT_UNKNOWN;							// バッファなのでフォーマットなし
+	uavBufferDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;			// バッファビュー
+	uavBufferDesc.Buffer.FirstElement = 0;								// 先頭の要素
+	uavBufferDesc.Buffer.NumElements = kMaxAABB;						// 要素数
+	uavBufferDesc.Buffer.StructureByteStride = sizeof(IndirectCommand);	// 構造体のサイズ
+	uavBufferDesc.Buffer.CounterOffsetInBytes = 0;						// カウンタなし
+	uavBufferDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;			// 特になし
 
-		// 処理済みコマンドバッファ用UAVの作成
-		blendProcessedIndirectCommandHandle_[i] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-		gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(blendProcessedCommandBuffers_[i]->GetResource(), blendProcessedCommandBuffers_[i]->GetResource(), uavDesc, blendProcessedIndirectCommandHandle_[i]);
-		Logger::Log(logStream, blendModeNames[i] + "ProcessedIndirectCommand UAVDescriptorIndex: " + std::to_string(blendProcessedIndirectCommandHandle_[i]) + "\n");
-	}
+	// カリング済みコマンドバッファ用UAVの作成
+	processedCommandHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(processedCommandBuffer_->GetResource(), uavBufferDesc, processedCommandHandle_);
+	Logger::Log(logStream, "ProcessedCommand UAVDescriptorIndex: " + std::to_string(processedCommandHandle_) + "\n");
+
+	// コマンドカウンターバッファ用UAVの設定
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavCounterBufferDesc{};
+	uavCounterBufferDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;	// バッファビュー
+	uavCounterBufferDesc.Format = DXGI_FORMAT_R32_TYPELESS;				// カウンターバッファはフォーマットR32_TYPELESSで作成し、UAVではR32_UINTとして扱う
+	uavCounterBufferDesc.Buffer.FirstElement = 0;						// 先頭の要素
+	uavCounterBufferDesc.Buffer.NumElements = kMaxQueue;				// 要素数
+	uavCounterBufferDesc.Buffer.StructureByteStride = 0;				// 構造体のサイズ
+	uavCounterBufferDesc.Buffer.CounterOffsetInBytes = 0;				// カウンタなし
+	uavCounterBufferDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;		// RAWフラグを設定して、バッファ全体を1つの要素として扱う
+
+	// コマンドカウンターバッファ用UAVの作成
+	commandCounterHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(commandCounterBuffer_->GetResource(), uavCounterBufferDesc, commandCounterHandle_);
+	cpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(commandCounterBuffer_->GetResource(), uavCounterBufferDesc, commandCounterHandle_);
+	Logger::Log(logStream, "CommandCounter UAVDescriptorIndex: " + std::to_string(commandCounterHandle_) + "\n");
 
 	// フットプリント用SRVの設定
 	srvBufferDesc.Buffer.NumElements = kMaxFootprint;					// 要素数
@@ -309,14 +312,8 @@ World::World(Device *device, std::ofstream &logStream) {
 	footprintMapBuffer_->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 	// フットプリントマップ用UAVの設定
-	D3D12_UNORDERED_ACCESS_VIEW_DESC uavBufferDesc{};
-	uavBufferDesc.Format = DXGI_FORMAT_UNKNOWN;					// バッファなのでフォーマットなし
-	uavBufferDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;	// バッファビュー
-	uavBufferDesc.Buffer.FirstElement = 0;						// 先頭の要素
 	uavBufferDesc.Buffer.NumElements = 1;						// 要素数
 	uavBufferDesc.Buffer.StructureByteStride = sizeof(Int4);	// 構造体のサイズ
-	uavBufferDesc.Buffer.CounterOffsetInBytes = 0;				// カウンタなし
-	uavBufferDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;	// 特になし
 
 	// フットプリントマップ用UAVの作成
 	footprintMapHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
@@ -447,24 +444,24 @@ void World::TransferCamera() {
 	registry_->ForEach<Camera, Transform, CullingCamera>([&](uint32_t entity, Camera *camera, Transform *transform, CullingCamera *cullingCamera) {
 		ViewProjectionData viewProjection = MakeViewProjection(*camera, *transform);
 		Frustum frustum = MakeFrustum(viewProjection);
-		CameraForGPU cameraData = {
+		CameraPosition cameraPosition = {
 			.worldPosition = transformSystem.GetWorldPosition(entity)
 		};
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kViewProjection)]->CopyData(&viewProjection, sizeof(ViewProjectionData), 1);
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), 0);
-		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCamera)]->CopyData(&cameraData, sizeof(CameraForGPU), 0);
+		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCameraPosition)]->CopyData(&cameraPosition, sizeof(CameraPosition), 0);
 		}, exclude<Disabled>());
 
 	// デバッグカメラ
 	registry_->ForEach<Camera, Transform, RenderingCamera>([&](uint32_t entity, Camera *camera, Transform *transform, RenderingCamera *renderingCamera) {
 		ViewProjectionData viewProjection = MakeViewProjection(*camera, *transform);
 		Frustum frustum = MakeFrustum(viewProjection);
-		CameraForGPU cameraData = {
+		CameraPosition cameraPosition = {
 			.worldPosition = transformSystem.GetWorldPosition(entity)
 		};
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kViewProjection)]->CopyData(&viewProjection, sizeof(ViewProjectionData), 2);
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), 1);
-		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCamera)]->CopyData(&cameraData, sizeof(CameraForGPU), 1);
+		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCameraPosition)]->CopyData(&cameraPosition, sizeof(CameraPosition), 1);
 
 		}, exclude<Disabled, CullingCamera>());
 }

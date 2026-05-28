@@ -1,4 +1,5 @@
 #pragma once
+#include "MeshType.h"
 #include "BlendMode.h"
 #include <wrl/client.h>
 #include <d3d12.h>
@@ -65,6 +66,8 @@ public:
 
 private:
 	using BlendPipelineState = std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>, static_cast<uint32_t>(BlendMode::kCountOfBlendMode)>;
+	using MeshPipelineState = std::array<BlendPipelineState, static_cast<uint32_t>(MeshType::kCountOfMeshType)>;
+	using MeshCommandSignature = std::array<Microsoft::WRL::ComPtr<ID3D12CommandSignature>, static_cast<uint32_t>(MeshType::kCountOfMeshType)>;
 	Device *device_ = nullptr;																// デバイス
 	DescriptorHeap *gpuCbvSrvUavDescriptorHeap_ = nullptr;									// GPU用のCBV,SRV,UAVのディスクリプタヒープ
 	DescriptorHeap *cpuCbvSrvUavDescriptorHeap_ = nullptr;									// CPU用のCBV,SRV,UAVのディスクリプタヒープ
@@ -77,7 +80,9 @@ private:
 	TextureManager *textureManager_ = nullptr;												// テクスチャマネージャー
 	FootprintManager *footprintManager_ = nullptr;											// フットプリントマネージャー
 	ID3D12RootSignature *object3dRootSignature_ = nullptr;									// Object3d用ルートシグネチャ
+	ID3D12RootSignature *ringObject3dRootSignature_ = nullptr;								// RingObject3d用ルートシグネチャ
 	ID3D12RootSignature *instance3dRootSignature_ = nullptr;								// Instance3d用ルートシグネチャ
+	ID3D12RootSignature *ringInstance3dRootSignature_ = nullptr;							// RingInstance3d用ルートシグネチャ
 	ID3D12RootSignature *lineRootSignature_ = nullptr;										// Line用ルートシグネチャ
 	ID3D12RootSignature *skyboxRootSignature_ = nullptr;									// Skybox用ルートシグネチャ
 	ID3D12RootSignature *fullscreenRootSignature_ = nullptr;								// Fullscreen用ルートシグネチャ
@@ -89,9 +94,9 @@ private:
 	ID3D12RootSignature *occlusionCullingRootSignature_ = nullptr;							// オクルージョンカリング用ルートシグネチャ
 	ID3D12RootSignature *footprintRootSignature_ = nullptr;									// フットプリント用ルートシグネチャ
 	ID3D12RootSignature *footprintMapRootSignature_ = nullptr;								// フットプリントマップ用ルートシグネチャ
-	BlendPipelineState modelPipelineState_;													// Model用パイプラインステート
+	MeshPipelineState meshPipelineState_;													// Mesh用パイプラインステート
+	MeshPipelineState meshParticlePipelineState_;											// MeshParticle用パイプラインステート
 	BlendPipelineState spritePipelineState_;												// Sprite用パイプラインステート
-	BlendPipelineState particlePipelineState_;												// Particle用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> linePipelineState_ = nullptr;				// Line用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> skyboxPipelineState_ = nullptr;				// Skybox用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> fullscreenPipelineState_ = nullptr;			// Fullscreen用パイプラインステート
@@ -103,7 +108,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> occlusionCullingPipelineState_ = nullptr;	// オクルージョンカリング用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintPipelineState_ = nullptr;			// フットプリント用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintMapPipelineState_ = nullptr;		// フットプリントマップ用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12CommandSignature> commandSignature_ = nullptr;				// コマンドシグネチャ
+	MeshCommandSignature meshCommandSignature_;												// メッシュコマンドシグネチャ
 	bool isGameFinished_ = false;															// ゲーム終了フラグ
 
 	/// @brief デバッグカメラかどうか取得
@@ -128,14 +133,8 @@ private:
 	/// @brief 結果マップの読み込み
 	void LoadResultMap();
 
-	/// @brief モデルの描画前処理
-	void PreDrawModel();
-
-	/// @brief カリングモデルの描画
-	void DrawModel();
-
-	/// @brief パーティクルの描画前処理
-	void PreDrawParticle();
+	/// @brief メッシュの描画
+	void DrawMesh();
 
 	/// @brief パーティクルの描画
 	void DrawParticle();

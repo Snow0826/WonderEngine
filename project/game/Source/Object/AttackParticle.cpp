@@ -2,7 +2,7 @@
 #include "BlendMode.h"
 #include "EntityComponentSystem.h"
 #include "Particle.h"
-#include "Sphere.h"
+#include "SphereRenderer.h"
 #include "Footprint.h"
 #include <numbers>
 

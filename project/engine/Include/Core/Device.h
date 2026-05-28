@@ -78,9 +78,17 @@ public:
 	/// @return Object3d用ルートシグネチャ
 	ID3D12RootSignature *GetObject3dRootSignature() const { return object3dRootSignature_.Get(); }
 
+	/// @brief RingObject3d用ルートシグネチャを取得
+	/// @return RingObject3d用ルートシグネチャ
+	ID3D12RootSignature *GetRingObject3dRootSignature() const { return ringObject3dRootSignature_.Get(); }
+
 	/// @brief Instance3d用ルートシグネチャを取得
 	/// @return Instance3d用ルートシグネチャ
 	ID3D12RootSignature *GetInstance3dRootSignature() const { return instance3dRootSignature_.Get(); }
+
+	/// @brief RingInstance3d用ルートシグネチャを取得
+	/// @return RingInstance3d用ルートシグネチャ
+	ID3D12RootSignature *GetRingInstance3dRootSignature() const { return ringInstance3dRootSignature_.Get(); }
 
 	/// @brief Line用ルートシグネチャを取得
 	/// @return Line用ルートシグネチャ
@@ -149,7 +157,9 @@ private:
 	std::unique_ptr<Resource> previousDepthStencilTexture_ = nullptr;						// 前フレームの深度ステンシルテクスチャ
 	std::unique_ptr<Resource> depthStencilTexture_ = nullptr;								// 深度ステンシルテクスチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> object3dRootSignature_ = nullptr;			// Object3d用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringObject3dRootSignature_ = nullptr;		// RingObject3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> instance3dRootSignature_ = nullptr;			// Instance3d用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringInstance3dRootSignature_ = nullptr;		// RingInstance3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> lineRootSignature_ = nullptr;				// Line用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> skyboxRootSignature_ = nullptr;				// Skybox用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> fullscreenRootSignature_ = nullptr;			// Fullscreen用ルートシグネチャ

@@ -5,7 +5,10 @@
 #include "ConstantBuffer.h"
 #include "BlendMode.h"
 #include "Model.h"
+#include "Plane.h"
+#include "Box.h"
 #include "Cylinder.h"
+#include "Ring.h"
 #include "Object.h"
 #include "Transform.h"
 
@@ -18,6 +21,9 @@ IndirectCommandManager::IndirectCommandManager(Registry *registry, World *world,
 IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity) {
 	IndirectCommandHandle indirectCommandHandle;
 	Model *model = registry_->GetComponent<Model>(entity);
+	Plane *plane = registry_->GetComponent<Plane>(entity);
+	Box *box = registry_->GetComponent<Box>(entity);
+	Ring *ring = registry_->GetComponent<Ring>(entity);
 	Cylinder *cylinder = registry_->GetComponent<Cylinder>(entity);
 	Object *object = registry_->GetComponent<Object>(entity);
 	if (!object) {
@@ -45,6 +51,57 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 				indirectCommandHandle.handles.emplace_back(handle);
 			}
 		}
+	} else if (plane) {
+		meshCounter_++;
+		uint32_t handle = static_cast<uint32_t>(entities_.size());
+		entities_.emplace_back(entity);
+		meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
+		meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
+		meshLODData_[handle].indirectCommand.textureData.textureHandle = plane->textureHandle;
+		meshLODData_[handle].indirectCommand.textureData.enableMipMaps = plane->enableMipMaps;
+		meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(plane->meshHandle);
+		meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(plane->meshHandle);
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(plane->meshHandle);
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.InstanceCount = 1;
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.StartIndexLocation = 0;
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.BaseVertexLocation = 0;
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.StartInstanceLocation = 0;
+		meshLODData_[handle].error = plane->error;
+		indirectCommandHandle.handles.emplace_back(handle);
+	} else if (box) {
+		meshCounter_++;
+		uint32_t handle = static_cast<uint32_t>(entities_.size());
+		entities_.emplace_back(entity);
+		meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
+		meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
+		meshLODData_[handle].indirectCommand.textureData.textureHandle = box->textureHandle;
+		meshLODData_[handle].indirectCommand.textureData.enableMipMaps = box->enableMipMaps;
+		meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(box->meshHandle);
+		meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(box->meshHandle);
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(box->meshHandle);
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.InstanceCount = 1;
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.StartIndexLocation = 0;
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.BaseVertexLocation = 0;
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.StartInstanceLocation = 0;
+		meshLODData_[handle].error = box->error;
+		indirectCommandHandle.handles.emplace_back(handle);
+	} else if (ring) {
+		meshCounter_++;
+		uint32_t handle = static_cast<uint32_t>(entities_.size());
+		entities_.emplace_back(entity);
+		meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
+		meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
+		meshLODData_[handle].indirectCommand.textureData.textureHandle = ring->textureHandle;
+		meshLODData_[handle].indirectCommand.textureData.enableMipMaps = ring->enableMipMaps;
+		meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(ring->meshHandle);
+		meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(ring->meshHandle);
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(ring->meshHandle);
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.InstanceCount = 1;
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.StartIndexLocation = 0;
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.BaseVertexLocation = 0;
+		meshLODData_[handle].indirectCommand.drawIndexedArguments.StartInstanceLocation = 0;
+		meshLODData_[handle].error = ring->error;
+		indirectCommandHandle.handles.emplace_back(handle);
 	} else if (cylinder) {
 		meshCounter_++;
 		uint32_t handle = static_cast<uint32_t>(entities_.size());
@@ -99,6 +156,7 @@ void IndirectCommandManager::UpdateCullingData() {
 	uint32_t meshLODDataOffset = 0;
 	registry_->ForEach<Model, Transform, BlendMode, Object>([&](uint32_t entity, Model *model, Transform *transform, BlendMode *blendMode, Object *object) {
 		cullingObjectData_[object->handle].worldMatrix = transform->worldMatrix;
+		cullingObjectData_[object->handle].meshType = MeshType::kModel;
 		cullingObjectData_[object->handle].blendMode = *blendMode;
 		for (const MeshData &mesh : model->modelData.meshes) {
 			cullingMeshData_[cullingMeshDataOffset] = {
@@ -116,8 +174,63 @@ void IndirectCommandManager::UpdateCullingData() {
 		}
 		});
 
+	registry_->ForEach<Plane, Transform, BlendMode, Object>([&](uint32_t entity, Plane *plane, Transform *transform, BlendMode *blendMode, Object *object) {
+		cullingObjectData_[object->handle].worldMatrix = transform->worldMatrix;
+		cullingObjectData_[object->handle].meshType = MeshType::kPlane;
+		cullingObjectData_[object->handle].blendMode = *blendMode;
+		cullingMeshData_[cullingMeshDataOffset] = {
+			.aabb = {
+				.min = { plane->aabb.min.x, plane->aabb.min.y, plane->aabb.min.z, 1.0f },
+				.max = { plane->aabb.max.x, plane->aabb.max.y, plane->aabb.max.z, 1.0f }
+			},
+			.objectHandle = object->handle,
+			.lodOffset = meshLODDataOffset,
+			.lodCount = 1,
+			.useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0
+		};
+		meshLODDataOffset++;
+		cullingMeshDataOffset++;
+		});
+
+	registry_->ForEach<Box, Transform, BlendMode, Object>([&](uint32_t entity, Box *box, Transform *transform, BlendMode *blendMode, Object *object) {
+		cullingObjectData_[object->handle].worldMatrix = transform->worldMatrix;
+		cullingObjectData_[object->handle].meshType = MeshType::kBox;
+		cullingObjectData_[object->handle].blendMode = *blendMode;
+		cullingMeshData_[cullingMeshDataOffset] = {
+			.aabb = {
+				.min = { box->aabb.min.x, box->aabb.min.y, box->aabb.min.z, 1.0f },
+				.max = { box->aabb.max.x, box->aabb.max.y, box->aabb.max.z, 1.0f }
+			},
+			.objectHandle = object->handle,
+			.lodOffset = meshLODDataOffset,
+			.lodCount = 1,
+			.useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0
+		};
+		meshLODDataOffset++;
+		cullingMeshDataOffset++;
+		});
+
+	registry_->ForEach<Ring, Transform, BlendMode, Object>([&](uint32_t entity, Ring *ring, Transform *transform, BlendMode *blendMode, Object *object) {
+		cullingObjectData_[object->handle].worldMatrix = transform->worldMatrix;
+		cullingObjectData_[object->handle].meshType = MeshType::kRing;
+		cullingObjectData_[object->handle].blendMode = *blendMode;
+		cullingMeshData_[cullingMeshDataOffset] = {
+			.aabb = {
+				.min = { ring->aabb.min.x, ring->aabb.min.y, ring->aabb.min.z, 1.0f },
+				.max = { ring->aabb.max.x, ring->aabb.max.y, ring->aabb.max.z, 1.0f }
+			},
+			.objectHandle = object->handle,
+			.lodOffset = meshLODDataOffset,
+			.lodCount = 1,
+			.useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0
+		};
+		meshLODDataOffset++;
+		cullingMeshDataOffset++;
+		});
+
 	registry_->ForEach<Cylinder, Transform, BlendMode, Object>([&](uint32_t entity, Cylinder *cylinder, Transform *transform, BlendMode *blendMode, Object *object) {
 		cullingObjectData_[object->handle].worldMatrix = transform->worldMatrix;
+		cullingObjectData_[object->handle].meshType = MeshType::kCylinder;
 		cullingObjectData_[object->handle].blendMode = *blendMode;
 		cullingMeshData_[cullingMeshDataOffset] = {
 			.aabb = {

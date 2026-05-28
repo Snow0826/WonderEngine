@@ -1,13 +1,13 @@
-#include "HitEffectParticle.h"
+#include "HitEffect.h"
 #include "BlendMode.h"
 #include "EntityComponentSystem.h"
 #include "Particle.h"
 #include <numbers>
 
-void HitEffectParticle::Initialize() {
+void HitEffect::Initialize() {
 	// エミッターの設定
 	Emitter emitter{
-		.transform{ .translate = { -3.0f, 0.0f, 0.0f } },
+		.transform{.translate = { -3.0f, 0.0f, 0.0f } },
 		.area = {},
 		.scale = {
 			.min = { 0.05f, 1.0f, 1.0f },
@@ -38,6 +38,6 @@ void HitEffectParticle::Initialize() {
 	registry_->AddComponent(entity_, emitter);
 }
 
-void HitEffectParticle::Update() {
+void HitEffect::Update() {
 	particleManager_->Emit(entity_);
 }

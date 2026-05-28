@@ -44,6 +44,18 @@ public:
 	/// @return ルートシグネチャ
 	RootSignature AddSampler(D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE mode, D3D12_COMPARISON_FUNC comparison, FLOAT maxLOD, UINT shaderRegister, D3D12_SHADER_VISIBILITY visibility);
 
+	/// @brief StaticSamplerの追加
+	/// @param filter フィルタリングモード
+	/// @param modeU U方向のアドレスモード
+	/// @param modeV V方向のアドレスモード
+	/// @param modeW W方向のアドレスモード
+	/// @param comparison 比較関数
+	/// @param maxLOD 最大LOD
+	/// @param shaderRegister シェーダーのレジスタ番号
+	/// @param visibility シェーダーの可視性
+	/// @return ルートシグネチャ
+	RootSignature AddSampler(D3D12_FILTER filter, D3D12_TEXTURE_ADDRESS_MODE modeU, D3D12_TEXTURE_ADDRESS_MODE modeV, D3D12_TEXTURE_ADDRESS_MODE modeW, D3D12_COMPARISON_FUNC comparison, FLOAT maxLOD, UINT shaderRegister, D3D12_SHADER_VISIBILITY visibility);
+
 private:
 	std::vector<D3D12_DESCRIPTOR_RANGE> descriptorRanges_{};	// DescriptorRangeの配列
 	std::vector<D3D12_ROOT_PARAMETER> rootParameters_{};		// RootParameterの配列

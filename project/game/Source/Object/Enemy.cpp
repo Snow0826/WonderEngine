@@ -6,8 +6,8 @@
 #include "Model.h"
 #include "Transform.h"
 #include "Material.h"
-#include "AABB.h"
-#include "Sphere.h"
+#include "AABBRenderer.h"
+#include "SphereRenderer.h"
 #include "RigidBody.h"
 #include "Footprint.h"
 

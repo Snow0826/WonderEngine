@@ -14,11 +14,12 @@ ParticleManager::ParticleManager(Device *device, TextureManager *textureManager,
 	: device_(device)
 	, textureManager_(textureManager)
 	, meshManager_(meshManager)
-	, logStream_(logStream) {}
+	, logStream_(logStream) {
+}
 
 ParticleManager::~ParticleManager() = default;
 
-void ParticleManager::CreateParticleGroup(const std::string &name, const std::string &textureFileName) {
+void ParticleManager::CreateParticleGroup(const std::string &name, MeshType meshType, const std::string &textureFileName) {
 	// すでに読み込まれている場合は何もしない
 	if (particleGroups_.contains(name)) {
 		Logger::Log(*logStream_, "Particle already created: " + name + " with handle:" + std::to_string(particleGroups_.at(name).instanceHandle) + "\n");
@@ -27,7 +28,27 @@ void ParticleManager::CreateParticleGroup(const std::string &name, const std::st
 
 	// パーティクルグループの作成
 	ParticleGroup particleGroup;
-	particleGroup.meshHandle = meshManager_->CreatePlane();
+	particleGroup.meshType = meshType;
+	switch (particleGroup.meshType) {
+		case MeshType::kModel:
+			break;
+		case MeshType::kPlane:
+			particleGroup.meshHandle = meshManager_->CreatePlane();
+			break;
+		case MeshType::kBox:
+			particleGroup.meshHandle = meshManager_->CreateBox();
+			break;
+		case MeshType::kRing:
+			particleGroup.meshHandle = meshManager_->CreateRing(32, 0.5f, 0.1f);
+			break;
+		case MeshType::kCylinder:
+			particleGroup.meshHandle = meshManager_->CreateCylinder(32, 1.0f, 1.0f, 3.0f);
+			break;
+		case MeshType::kCountOfMeshType:
+			break;
+		default:
+			break;
+	}
 	particleGroup.textureHandle = textureManager_->LoadTexture(textureFileName);
 	particleGroup.textureFileName = textureFileName;
 	particleGroup.particleDataName = name;
@@ -183,6 +204,12 @@ void EmitterInspector::Draw([[maybe_unused]] uint32_t entity) {
 			ImGui::DragFloat3("AreaMax", &emitter->area.max.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
 			ImGui::DragFloat3("ScaleMin", &emitter->scale.min.x, 0.01f, 0.0f, std::numeric_limits<float>::max());
 			ImGui::DragFloat3("ScaleMax", &emitter->scale.max.x, 0.01f, 0.0f, std::numeric_limits<float>::max());
+			ImGui::SliderAngle("RotateMinX", &emitter->rotate.min.x, -360.0f, 360.0f);
+			ImGui::SliderAngle("RotateMinY", &emitter->rotate.min.y, -360.0f, 360.0f);
+			ImGui::SliderAngle("RotateMinZ", &emitter->rotate.min.z, -360.0f, 360.0f);
+			ImGui::SliderAngle("RotateMaxX", &emitter->rotate.max.x, -360.0f, 360.0f);
+			ImGui::SliderAngle("RotateMaxY", &emitter->rotate.max.y, -360.0f, 360.0f);
+			ImGui::SliderAngle("RotateMaxZ", &emitter->rotate.max.z, -360.0f, 360.0f);
 			ImGui::DragFloat3("VelocityMin", &emitter->velocity.min.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
 			ImGui::DragFloat3("VelocityMax", &emitter->velocity.max.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
 			ImGui::ColorEdit4("ColorMin", &emitter->color.min.x);

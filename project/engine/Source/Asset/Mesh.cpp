@@ -212,6 +212,52 @@ uint32_t MeshManager::CreateBox() {
 	return meshHandle;
 }
 
+uint32_t MeshManager::CreateRing(uint32_t divide, float outerRadius, float innerRadius) {
+	uint32_t meshHandle = static_cast<uint32_t>(meshes_.size());
+	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
+
+	// 頂点バッファの生成と初期化
+	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
+	mesh->vertexBuffer->Initialize(device_, (divide + 1) * 2);
+	VertexData *vertexData = mesh->vertexBuffer->GetVertexData();
+
+	const float radianPerDivide = std::numbers::pi_v<float> *2.0f / static_cast<float>(divide);
+	for (uint32_t index = 0; index <= divide; ++index) {
+		float sin = std::sin(radianPerDivide * index);
+		float cos = std::cos(radianPerDivide * index);
+		float u = static_cast<float>(index) / static_cast<float>(divide);
+		uint32_t baseVertex = index * 2;
+		// 外周の頂点データの生成
+		vertexData[baseVertex].position = { -sin * outerRadius, cos * outerRadius, 0.0f, 1.0f };	// 頂点座標
+		vertexData[baseVertex].texcoord = { u, 0.0f };												// テクスチャ座標
+		vertexData[baseVertex].normal = { 0.0f, 0.0f, 1.0f };										// 法線
+		// 内周の頂点データの生成
+		vertexData[baseVertex + 1].position = { -sin * innerRadius, cos * innerRadius, 0.0f, 1.0f };	// 頂点座標
+		vertexData[baseVertex + 1].texcoord = { u, 1.0f };												// テクスチャ座標
+		vertexData[baseVertex + 1].normal = { 0.0f, 0.0f, 1.0f };										// 法線
+	}
+
+	// インデックスバッファの生成と初期化
+	mesh->indexBuffer = std::make_unique<IndexBuffer>();
+	mesh->indexBuffer->Initialize(device_, divide * 6);
+	uint32_t *indexData = mesh->indexBuffer->GetIndexData();
+	for (uint32_t i = 0; i < divide; i++) {
+		uint32_t baseVertex = i * 2;
+		uint32_t baseIndex = i * 6;
+		// 三角形1
+		indexData[baseIndex] = baseVertex;			// 外周の頂点
+		indexData[baseIndex + 1] = baseVertex + 1;	// 内周の頂点
+		indexData[baseIndex + 2] = baseVertex + 2;	// 次の外周の頂点
+		// 三角形2
+		indexData[baseIndex + 3] = baseVertex + 2;	// 次の外周の頂点
+		indexData[baseIndex + 4] = baseVertex + 1;	// 内周の頂点
+		indexData[baseIndex + 5] = baseVertex + 3;	// 次の内周の頂点
+	}
+
+	meshes_.emplace_back(std::move(mesh));
+	return meshHandle;
+}
+
 uint32_t MeshManager::CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height) {
 	// 頂点データの生成
 	std::vector<VertexData> vertices;

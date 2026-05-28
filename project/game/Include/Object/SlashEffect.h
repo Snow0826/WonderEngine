@@ -4,13 +4,13 @@
 class Registry;
 class ParticleManager;
 
-/// @brief スラッシュエフェクトのパーティクル
-class SlashEffectParticle {
+/// @brief スラッシュエフェクト
+class SlashEffect {
 public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
 	/// @param particleManager パーティクルマネージャー
-	SlashEffectParticle(Registry *registry, ParticleManager *particleManager)
+	SlashEffect(Registry *registry, ParticleManager *particleManager)
 		: registry_(registry), particleManager_(particleManager) {
 	}
 
@@ -21,7 +21,7 @@ public:
 	void Update();
 
 private:
-	Registry *registry_;				// レジストリ
-	ParticleManager *particleManager_;	// パーティクルマネージャー
-	uint32_t entity_ = 0;				// エンティティ
+	Registry *registry_ = nullptr;					// レジストリ
+	ParticleManager *particleManager_ = nullptr;	// パーティクルマネージャー
+	uint32_t entity_ = 0;							// エンティティ
 };

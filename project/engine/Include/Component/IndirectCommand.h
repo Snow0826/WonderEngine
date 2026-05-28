@@ -1,4 +1,5 @@
 #pragma once
+#include "MeshType.h"
 #include "BlendMode.h"
 #include "Vector4.h"
 #include "Matrix4x4.h"
@@ -8,6 +9,7 @@
 /// @brief カリングオブジェクトデータ(GPU)
 struct CullingObjectData final {
 	Matrix4x4 worldMatrix;	// ワールド行列
+	MeshType meshType;		// メッシュタイプ
 	BlendMode blendMode;	// ブレンドモード
 };
 

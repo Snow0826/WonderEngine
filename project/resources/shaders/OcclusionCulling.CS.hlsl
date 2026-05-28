@@ -1,6 +1,10 @@
+static const uint kMaxMeshType = 5; // Number of mesh types (Model, Plane, Box, Ring, Cylinder)
+static const uint kMaxBlendMode = 6; // Number of blend modes (None, Normal, Additive, Subtractive, Multiplicative, Screen)
+
 struct Object
 {
     float4x4 world; // World matrix for the object
+    uint meshType; // Mesh type for the object (0: Model, 1: Plane, 2: Box, 3: Ring, 4: Cylinder)
     uint blendMode; // Blend mode for the object (0: None, 1: Normal, 2: Additive, 3: Subtractive, 4: Multiplicative, 5: Screen)
 };
 
@@ -82,14 +86,15 @@ cbuffer ViewProjection : register(b1)
     float4x4 projection; // Projection matrix
 };
 
-cbuffer Camera : register(b2)
+cbuffer CameraPosition : register(b2)
 {
     float3 cameraPosition; // Camera position in world space
 };
 
-cbuffer MeshCount : register(b3)
+cbuffer Constants : register(b3)
 {
     uint meshCount; // Number of meshes
+    uint4 queueOffsets[(kMaxMeshType * kMaxBlendMode + 3) / 4]; // Offsets for each mesh type and blend mode combination
 };
 
 StructuredBuffer<Object> objects : register(t0); // SRV: Object data
@@ -97,12 +102,8 @@ StructuredBuffer<Mesh> meshes : register(t1); // SRV: Meshes
 StructuredBuffer<MeshLOD> meshLODs : register(t2); // SRV: Mesh LODs
 Texture2D<float> gHiZTexture : register(t3);
 SamplerState gSampler : register(s0);
-AppendStructuredBuffer<IndirectCommand> noneBlendOutputCommands : register(u0); // UAV: NoneBlend processed indirect commands
-AppendStructuredBuffer<IndirectCommand> normalBlendOutputCommands : register(u1); // UAV: NormalBlend processed indirect commands
-AppendStructuredBuffer<IndirectCommand> additiveBlendOutputCommands : register(u2); // UAV: AdditiveBlend processed indirect commands
-AppendStructuredBuffer<IndirectCommand> subtractiveBlendOutputCommands : register(u3); // UAV: SubtractiveBlend processed indirect commands
-AppendStructuredBuffer<IndirectCommand> multiplicativeBlendOutputCommands : register(u4); // UAV: MultiplicativeBlend processed indirect commands
-AppendStructuredBuffer<IndirectCommand> screenBlendOutputCommands : register(u5); // UAV: ScreenBlend processed indirect commands
+RWStructuredBuffer<IndirectCommand> commands : register(u0); // UAV: Processed Indirect Commands
+RWByteAddressBuffer commandCounters : register(u1); // UAV: Counters for Processed Indirect Commands
 
 UVAABB GetBoxInUVSpace(AABB box);
 
@@ -161,30 +162,12 @@ void main(uint3 DTid : SV_DispatchThreadID)
         }
     }
     
-    IndirectCommand outputCommand = meshLODs[mesh.lodOffset + selectedLOD].command;
-    switch (objects[mesh.objectHandle].blendMode)
-    {
-        case 0: // NoneBlend
-            noneBlendOutputCommands.Append(outputCommand);
-            break;
-        case 1: // NormalBlend
-            normalBlendOutputCommands.Append(outputCommand);
-            break;
-        case 2: // AdditiveBlend
-            additiveBlendOutputCommands.Append(outputCommand);
-            break;
-        case 3: // SubtractiveBlend
-            subtractiveBlendOutputCommands.Append(outputCommand);
-            break;
-        case 4: // MultiplicativeBlend
-            multiplicativeBlendOutputCommands.Append(outputCommand);
-            break;
-        case 5: // ScreenBlend
-            screenBlendOutputCommands.Append(outputCommand);
-            break;
-        default:
-            break;
-    }
+    IndirectCommand command = meshLODs[mesh.lodOffset + selectedLOD].command;
+    uint queueIndex = objects[mesh.objectHandle].meshType * kMaxBlendMode + objects[mesh.objectHandle].blendMode;
+    uint dstIndex;
+    commandCounters.InterlockedAdd(queueIndex * 4, 1, dstIndex);
+    uint queueOffset = queueOffsets[queueIndex / 4][queueIndex % 4];
+    commands[queueOffset + dstIndex] = command;
 }
 
 UVAABB GetBoxInUVSpace(AABB box)

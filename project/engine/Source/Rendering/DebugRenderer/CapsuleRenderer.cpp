@@ -1,5 +1,5 @@
 #define NOMINMAX
-#include "Capsule.h"
+#include "CapsuleRenderer.h"
 #include "EntityComponentSystem.h"
 #include "DebugRenderer.h"
 #include "Collision.h"

@@ -23,8 +23,8 @@ struct ViewProjectionData final {
 	Matrix4x4 projection;	// 射影行列
 };
 
-/// @brief カメラデータ(GPU)
-struct CameraForGPU final {
+/// @brief カメラ座標
+struct CameraPosition final {
 	Vector3 worldPosition;	// ワールド座標
 };
 

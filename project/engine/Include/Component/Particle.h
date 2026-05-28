@@ -2,6 +2,7 @@
 #include "Vector4.h"
 #include "Transform.h"
 #include "Collision.h"
+#include "MeshType.h"
 #include <list>
 #include <unordered_map>
 #include <memory>
@@ -25,14 +26,15 @@ struct Particle final {
 
 /// @brief パーティクルグループ
 struct ParticleGroup final {
-	std::list<Particle> particles;	// パーティクルリスト
-	bool isBillboard = true;		// ビルボード有効フラグ
-	uint32_t meshHandle = 0;		// メッシュハンドル
-	uint32_t textureHandle = 0;		// テクスチャハンドル
-	uint32_t instanceHandle = 0;	// インスタンスハンドル
-	uint32_t numInstance = 0;		// インスタンス数
-	std::string textureFileName;	// テクスチャファイル名
-	std::string particleDataName;	// パーティクルデータ名
+	std::list<Particle> particles;			// パーティクルリスト
+	MeshType meshType = MeshType::kPlane;	// メッシュタイプ
+	bool isBillboard = true;				// ビルボード有効フラグ
+	uint32_t meshHandle = 0;				// メッシュハンドル
+	uint32_t textureHandle = 0;				// テクスチャハンドル
+	uint32_t instanceHandle = 0;			// インスタンスハンドル
+	uint32_t numInstance = 0;				// インスタンス数
+	std::string textureFileName;			// テクスチャファイル名
+	std::string particleDataName;			// パーティクルデータ名
 };
 
 template<typename T>
@@ -84,8 +86,9 @@ public:
 
 	/// @brief パーティクルグループの生成
 	/// @param name パーティクルグループ名
+	/// @param meshType メッシュタイプ
 	/// @param textureFileName テクスチャファイル名
-	void CreateParticleGroup(const std::string &name, const std::string &textureFileName);
+	void CreateParticleGroup(const std::string &name, MeshType meshType, const std::string &textureFileName);
 
 	/// @brief パーティクルグループの検索
 	/// @param name パーティクルグループ名

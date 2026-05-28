@@ -21,6 +21,29 @@
 #include "ImGuiManager.h"
 #include "Logger.h"
 #include "StringConverter.h"
+#include <pix3.h>
+
+using namespace StringConverter;
+
+namespace {
+	std::array<std::string, static_cast<uint32_t>(MeshType::kCountOfMeshType)> meshTypeNames = {
+		"Model",
+		"Plane",
+		"Box",
+		"Ring",
+		"Cylinder"
+	};
+
+	// ブレンドモード名リスト
+	std::array<std::string, static_cast<uint32_t>(BlendMode::kCountOfBlendMode)> blendModeNames = {
+		"None",
+		"Normal",
+		"Additive",
+		"Subtractive",
+		"Multiplicative",
+		"Screen"
+	};
+}
 
 Renderer::Renderer(Device *device)
 	: device_(device)
@@ -28,7 +51,9 @@ Renderer::Renderer(Device *device)
 	, cpuCbvSrvUavDescriptorHeap_(device->GetCpuCbvSrvUavDescriptorHeap())
 	, commandList_(device->GetCommandList())
 	, object3dRootSignature_(device->GetObject3dRootSignature())
+	, ringObject3dRootSignature_(device->GetRingObject3dRootSignature())
 	, instance3dRootSignature_(device->GetInstance3dRootSignature())
+	, ringInstance3dRootSignature_(device->GetRingInstance3dRootSignature())
 	, lineRootSignature_(device->GetLineRootSignature())
 	, skyboxRootSignature_(device->GetSkyboxRootSignature())
 	, fullscreenRootSignature_(device->GetFullscreenRootSignature())
@@ -201,33 +226,46 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> footprintMapCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/FootprintMap.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(footprintMapCSBlob);
 
-	// ブレンドモード名リスト
-	std::array<std::string, static_cast<uint32_t>(BlendMode::kCountOfBlendMode)> blendModeNames = {
-		"None",
-		"Normal",
-		"Additive",
-		"Subtractive",
-		"Multiplicative",
-		"Screen"
-	};
+	// Mesh用パイプラインステートの生成
+	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
+		for (size_t j = 0; j < static_cast<size_t>(BlendMode::kCountOfBlendMode); j++) {
+			meshPipelineState_[i][j] = PipelineState()
+				.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+				.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)		// テクスチャ座標
+				.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+				.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)									// RTVのフォーマット
+				.SetBlendState(blendDescList[j])														// BlendState
+				.SetRasterizer(backCullingRasterizerDesc)												// RasterizerState
+				.SetDepthState(writeLessEqualDepthStencilDesc)											// DepthStencilState
+				.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())	// 頂点シェーダー
+				.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())	// ピクセルシェーダー
+				.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)						// プリミティブトポロジー
+				.Create(device_->GetDevice(), static_cast<MeshType>(i) == MeshType::kRing ? ringObject3dRootSignature_ : object3dRootSignature_);
+			const std::string logMessage = "Create MeshPipelineState : " + blendModeNames[j] + " " + meshTypeNames[i] + "\n";
+			Logger::Log(logStream, logMessage);
+			meshPipelineState_[i][j]->SetName(ConvertString(blendModeNames[j] + "Blend" + meshTypeNames[i] + "PipelineState").c_str());
+		}
+	}
 
-	// 各ブレンドモードのModel用パイプラインステートの生成
-	for (uint32_t i = 0; i < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); i++) {
-		modelPipelineState_[i] = PipelineState()
-			.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
-			.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)		// テクスチャ座標
-			.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-			.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)									// RTVのフォーマット
-			.SetBlendState(blendDescList[i])														// BlendState
-			.SetRasterizer(backCullingRasterizerDesc)												// RasterizerState
-			.SetDepthState(writeLessEqualDepthStencilDesc)											// DepthStencilState
-			.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())	// 頂点シェーダー
-			.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())	// ピクセルシェーダー
-			.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)						// プリミティブトポロジー
-			.Create(device_->GetDevice(), object3dRootSignature_);
-		const std::string logMessage = "Create ModelPipelineState : " + blendModeNames[i] + "\n";
-		Logger::Log(logStream, logMessage);
-		modelPipelineState_[i]->SetName(StringConverter::ConvertString(blendModeNames[i] + "BlendModelPipelineState").c_str());
+	// MeshParticle用パイプラインステートの生成
+	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
+		for (size_t j = 0; j < static_cast<size_t>(BlendMode::kCountOfBlendMode); j++) {
+			meshParticlePipelineState_[i][j] = PipelineState()
+				.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)		// 頂点座標
+				.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
+				.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)			// 法線ベクトル
+				.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+				.SetBlendState(blendDescList[j])															// BlendState
+				.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
+				.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
+				.SetVertexShader(instance3dVSBlob->GetBufferPointer(), instance3dVSBlob->GetBufferSize())	// 頂点シェーダー
+				.SetPixelShader(instance3dPSBlob->GetBufferPointer(), instance3dPSBlob->GetBufferSize())	// ピクセルシェーダー
+				.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+				.Create(device_->GetDevice(), static_cast<MeshType>(i) == MeshType::kRing ? ringInstance3dRootSignature_ : instance3dRootSignature_);
+			const std::string logMessage = "Create ParticlePipelineState : " + blendModeNames[j] + " " + meshTypeNames[i] + "\n";
+			Logger::Log(logStream, logMessage);
+			meshParticlePipelineState_[i][j]->SetName(ConvertString(blendModeNames[j] + "Blend" + meshTypeNames[i] + "ParticlePipelineState").c_str());
+		}
 	}
 
 	// 各ブレンドモードのSprite用パイプラインステートの生成
@@ -246,26 +284,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 			.Create(device_->GetDevice(), object3dRootSignature_);
 		const std::string logMessage = "Create SpritePipelineState : " + blendModeNames[i] + "\n";
 		Logger::Log(logStream, logMessage);
-		spritePipelineState_[i]->SetName(StringConverter::ConvertString(blendModeNames[i] + "BlendSpritePipelineState").c_str());
-	}
-
-	// 各ブレンドモードのParticle用パイプラインステートの生成
-	for (uint32_t i = 0; i < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); i++) {
-		particlePipelineState_[i] = PipelineState()
-			.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)		// 頂点座標
-			.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
-			.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)			// 法線ベクトル
-			.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-			.SetBlendState(blendDescList[i])															// BlendState
-			.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
-			.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
-			.SetVertexShader(instance3dVSBlob->GetBufferPointer(), instance3dVSBlob->GetBufferSize())	// 頂点シェーダー
-			.SetPixelShader(instance3dPSBlob->GetBufferPointer(), instance3dPSBlob->GetBufferSize())	// ピクセルシェーダー
-			.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-			.Create(device_->GetDevice(), instance3dRootSignature_);
-		const std::string logMessage = "Create ParticlePipelineState : " + blendModeNames[i] + "\n";
-		Logger::Log(logStream, logMessage);
-		particlePipelineState_[i]->SetName(StringConverter::ConvertString(blendModeNames[i] + "BlendParticlePipelineState").c_str());
+		spritePipelineState_[i]->SetName(ConvertString(blendModeNames[i] + "BlendSpritePipelineState").c_str());
 	}
 
 	// Line用パイプラインステートの生成
@@ -404,8 +423,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	commandSignatureDesc.ByteStride = sizeof(IndirectCommand);
 
 	// コマンドシグネチャの生成
-	hr = device_->GetDevice()->CreateCommandSignature(&commandSignatureDesc, object3dRootSignature_, IID_PPV_ARGS(&commandSignature_));
-	assert(SUCCEEDED(hr));
+	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
+		hr = device_->GetDevice()->CreateCommandSignature(&commandSignatureDesc, static_cast<MeshType>(i) == MeshType::kRing ? ringObject3dRootSignature_ : object3dRootSignature_, IID_PPV_ARGS(&meshCommandSignature_[i]));
+		assert(SUCCEEDED(hr));
+	}
 }
 
 void Renderer::Render() {
@@ -432,9 +453,7 @@ void Renderer::Render() {
 	// 各オブジェクトの描画
 	PreDrawSkybox();
 	DrawSkybox();
-	PreDrawModel();
-	DrawModel();
-	PreDrawParticle();
+	DrawMesh();
 	DrawParticle();
 	PreDrawSprite();
 	DrawSprite();
@@ -620,7 +639,7 @@ void Renderer::OcclusionCulling() {
 		viewProjCB->BindToCompute(1, 1);
 	}
 
-	ConstantBuffer *cameraCB = world_->GetConstantBuffer(ConstantBufferType::kCamera);
+	ConstantBuffer *cameraCB = world_->GetConstantBuffer(ConstantBufferType::kCameraPosition);
 	if (IsDebugCamera()) {
 		cameraCB->BindToCompute(2, 1);
 	} else {
@@ -628,17 +647,19 @@ void Renderer::OcclusionCulling() {
 	}
 
 	// メッシュ数の設定
-	uint32_t meshCount = indirectCommandManager_->GetMeshCounter();
-	commandList_->SetComputeRoot32BitConstant(3, meshCount, 0);
+	CullingConstantsData cullingConstantsData = {
+		.meshCount = indirectCommandManager_->GetMeshCounter(),
+		.queueOffsets = world_->GetQueueOffsets()
+	};
+	commandList_->SetComputeRoot32BitConstants(3, sizeof(CullingConstantsData) / sizeof(uint32_t), &cullingConstantsData, 0);
 
 	// 各種バッファのSRV/UAVを設定
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetCullingObjectHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetCullingMeshHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetMeshLODHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetHiZTextureHandle());
-	for (uint32_t i = 0; i < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); i++) {
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(8 + i, world_->GetBlendProcessedIndirectCommandHandle(static_cast<BlendMode>(i)));
-	}
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetProcessedCommandHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetCommandCounterHandle());
 
 	// コマンドバッファの転送
 	Resource *indirectCommandStructuredBuffer = world_->GetStructuredBuffer(StructuredBufferType::kMeshLOD);
@@ -646,19 +667,28 @@ void Renderer::OcclusionCulling() {
 	indirectCommandStructuredBuffer->CopyFrom(world_->GetCommandBufferUpload()->GetResource(), 0, 0, sizeof(MeshLOD) * world_->GetMaxAABB());
 	indirectCommandStructuredBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-	// 処理済みコマンドバッファカウンターのリセット
-	for (size_t i = 0; i < static_cast<size_t>(BlendMode::kCountOfBlendMode); i++) {
-		Resource *blendProcessedCommandBuffer = world_->GetBlendProcessedCommandBuffer(static_cast<BlendMode>(i));
-		blendProcessedCommandBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_COPY_DEST);
-		blendProcessedCommandBuffer->CopyFrom(world_->GetProcessedCommandBufferCounterReset()->GetResource(), World::kCommandBufferCounterOffset, 0, sizeof(UINT));
-		blendProcessedCommandBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	}
+	// オクルージョンカリングの実行前にUAVを遷移する
+	world_->GetProcessedCommandBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	world_->GetCommandCounterBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+	// オクルージョンカリングの実行前にUAVをクリアする
+	UINT clearValues[4] = { 0, 0, 0, 0 };
+	commandList_->ClearUnorderedAccessViewUint(
+		gpuCbvSrvUavDescriptorHeap_->GetGPUDescriptorHandle(world_->GetCommandCounterHandle()),
+		cpuCbvSrvUavDescriptorHeap_->GetCPUDescriptorHandle(world_->GetCommandCounterHandle()),
+		world_->GetCommandCounterBuffer()->GetResource(),
+		clearValues,
+		0,
+		nullptr
+	);
 
 	// オクルージョンカリングの実行
-	uint32_t dispatchCount = (meshCount + 63) / 64;
+	uint32_t dispatchCount = (cullingConstantsData.meshCount + 63) / 64;
 	if (dispatchCount > 0) {
 		commandList_->Dispatch(dispatchCount, 1, 1);
 		world_->GetHiZTexture()->UAVBarrier();
+		world_->GetProcessedCommandBuffer()->UAVBarrier();
+		world_->GetCommandCounterBuffer()->UAVBarrier();
 	}
 
 	// 指定した深度で画面全体をクリアする
@@ -737,86 +767,124 @@ void Renderer::LoadResultMap() {
 		}, exclude<Disabled>());
 }
 
-void Renderer::PreDrawModel() {
-	// Object3d用ルートシグネチャの設定
-	commandList_->SetGraphicsRootSignature(object3dRootSignature_);
-
+void Renderer::DrawMesh() {
 	// 三角形のトポロジの設定
 	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// モデルのビュープロジェクションのCBVを設定
-	ConstantBuffer *viewProjCB = world_->GetConstantBuffer(ConstantBufferType::kViewProjection);
-	if (IsDebugCamera()) {
-		viewProjCB->BindToGraphics(1, 2);
-	} else {
-		viewProjCB->BindToGraphics(1, 1);
-	}
+	// コマンドバッファとコマンドカウンターバッファをIndirectArgumentに遷移
+	world_->GetProcessedCommandBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
+	world_->GetCommandCounterBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
 
-	// Object3dの共通のCBVを設定
-	world_->GetConstantBuffer(ConstantBufferType::kCamera)->BindToGraphics(3, 0);
-	world_->GetConstantBuffer(ConstantBufferType::kDirectionalLight)->BindToGraphics(4, 0);
-	LightCount lightCount = {
-		.pointLightCount = static_cast<uint32_t>(registry_->GetComponentCount<PointLight>()),
-		.spotLightCount = static_cast<uint32_t>(registry_->GetComponentCount<SpotLight>())
+	// PIXイベントの色の設定
+	UINT32 pixColor[static_cast<uint32_t>(MeshType::kCountOfMeshType)] = {
+		PIX_COLOR(255, 0, 0),	// MeshType::kModel
+		PIX_COLOR(255, 255, 0),	// MeshType::kPlane
+		PIX_COLOR(255, 0, 255),	// MeshType::kBox
+		PIX_COLOR(0, 255, 0),	// MeshType::kRing
+		PIX_COLOR(0, 255, 255)	// MeshType::kCylinder
 	};
-	commandList_->SetGraphicsRoot32BitConstants(6, 2, &lightCount, 0);
 
-	// Object3dの共通のSRVを設定
-	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetPointLightHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetSpotLightHandle());
-	registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, skybox->textureHandle);
-		}, exclude<Disabled>());
-	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, 0);
-}
+	// メッシュタイプごとに描画
+	for (uint32_t i = 0; i < static_cast<uint32_t>(MeshType::kCountOfMeshType); i++) {
+		std::string label = "Draw" + meshTypeNames[i];
+		PIXBeginEvent(commandList_, pixColor[i], ConvertString(label).c_str());
+		commandList_->SetGraphicsRootSignature(static_cast<MeshType>(i) == MeshType::kRing ? ringObject3dRootSignature_ : object3dRootSignature_);
 
-void Renderer::DrawModel() {
-	for (uint32_t i = 0; i < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); i++) {
-		// Model用パイプラインステートの設定
-		commandList_->SetPipelineState(modelPipelineState_[i].Get());
+		// メッシュのビュープロジェクションのCBVを設定
+		ConstantBuffer *viewProjCB = world_->GetConstantBuffer(ConstantBufferType::kViewProjection);
+		if (IsDebugCamera()) {
+			viewProjCB->BindToGraphics(1, 2);
+		} else {
+			viewProjCB->BindToGraphics(1, 1);
+		}
 
-		world_->GetBlendProcessedCommandBuffer(static_cast<BlendMode>(i))->TransitionBarrier(D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
+		// メッシュの共通のCBVを設定
+		world_->GetConstantBuffer(ConstantBufferType::kCameraPosition)->BindToGraphics(3, 0);
+		world_->GetConstantBuffer(ConstantBufferType::kDirectionalLight)->BindToGraphics(4, 0);
+		LightCount lightCount = {
+			.pointLightCount = static_cast<uint32_t>(registry_->GetComponentCount<PointLight>()),
+			.spotLightCount = static_cast<uint32_t>(registry_->GetComponentCount<SpotLight>())
+		};
+		commandList_->SetGraphicsRoot32BitConstants(6, 2, &lightCount, 0);
 
-		commandList_->ExecuteIndirect(
-			commandSignature_.Get(),
-			world_->GetMaxAABB(),
-			world_->GetBlendProcessedCommandBuffer(static_cast<BlendMode>(i))->GetResource(),
-			0,
-			world_->GetBlendProcessedCommandBuffer(static_cast<BlendMode>(i))->GetResource(),
-			World::kCommandBufferCounterOffset);
+		// メッシュの共通のSRVを設定
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetPointLightHandle());
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetSpotLightHandle());
+		registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, skybox->textureHandle);
+			}, exclude<Disabled>());
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, 0);
+
+		// ブレンドモードごとに描画
+		for (uint32_t j = 0; j < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); j++) {
+			label = blendModeNames[j] + "Blend";
+			PIXBeginEvent(commandList_, PIX_COLOR(255, 255, 255), ConvertString(label).c_str());
+			commandList_->SetPipelineState(meshPipelineState_[i][j].Get());
+
+			// メッシュの描画
+			uint32_t queueIndex = i * static_cast<uint32_t>(BlendMode::kCountOfBlendMode) + j;
+			commandList_->ExecuteIndirect(
+				meshCommandSignature_[i].Get(),
+				world_->GetMaxCommandPerQueue(),
+				world_->GetProcessedCommandBuffer()->GetResource(),
+				sizeof(IndirectCommand) * queueIndex * world_->GetMaxCommandPerQueue(),
+				world_->GetCommandCounterBuffer()->GetResource(),
+				sizeof(uint32_t) * queueIndex);
+			PIXEndEvent(commandList_);
+		}
+		PIXEndEvent(commandList_);
 	}
-}
-
-void Renderer::PreDrawParticle() {
-	// Instance3d用ルートシグネチャの設定
-	commandList_->SetGraphicsRootSignature(instance3dRootSignature_);
-
-	// パーティクルのビュープロジェクションのCBVを設定
-	ConstantBuffer *viewProjCB = world_->GetConstantBuffer(ConstantBufferType::kViewProjection);
-	if (IsDebugCamera()) {
-		viewProjCB->BindToGraphics(0, 2);
-	} else {
-		viewProjCB->BindToGraphics(0, 1);
-	}
-
-	// Instance3dのテクスチャのSRVを設定
-	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, 0);
 }
 
 void Renderer::DrawParticle() {
-	// 各ブレンドモードのパーティクルの描画
-	for (uint32_t i = 0; i < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); i++) {
-		// Particle用パイプラインステートの設定
-		commandList_->SetPipelineState(particlePipelineState_[i].Get());
+	// PIXイベントの色の設定
+	UINT32 pixColor[static_cast<uint32_t>(MeshType::kCountOfMeshType)] = {
+		PIX_COLOR(255, 0, 0),	// MeshType::kModel
+		PIX_COLOR(255, 255, 0),	// MeshType::kPlane
+		PIX_COLOR(255, 0, 255),	// MeshType::kBox
+		PIX_COLOR(0, 255, 0),	// MeshType::kRing
+		PIX_COLOR(0, 255, 255)	// MeshType::kCylinder
+	};
 
-		// パーティクルの描画
-		registry_->ForEach<BlendMode, ParticleGroup>([&](uint32_t entity, BlendMode *blendMode, ParticleGroup *particleGroup) {
-			if (*blendMode == static_cast<BlendMode>(i)) {
-				commandList_->SetGraphicsRoot32BitConstant(1, particleGroup->textureHandle, 0);
-				gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, particleGroup->instanceHandle);
-				meshManager_->Draw(particleGroup->meshHandle, particleGroup->numInstance);
-			}
-			}, exclude<Disabled>());
+	// メッシュタイプごとに描画
+	for (size_t i = 0; i < static_cast<uint32_t>(MeshType::kCountOfMeshType); i++) {
+		std::string label = "Draw" + meshTypeNames[i] + "Particle";
+		PIXBeginEvent(commandList_, pixColor[i], ConvertString(label).c_str());
+
+		// Instance3d用ルートシグネチャの設定
+		commandList_->SetGraphicsRootSignature(static_cast<MeshType>(i) == MeshType::kRing ? ringInstance3dRootSignature_ : instance3dRootSignature_);
+
+		// パーティクルのビュープロジェクションのCBVを設定
+		ConstantBuffer *viewProjCB = world_->GetConstantBuffer(ConstantBufferType::kViewProjection);
+		if (IsDebugCamera()) {
+			viewProjCB->BindToGraphics(0, 2);
+		} else {
+			viewProjCB->BindToGraphics(0, 1);
+		}
+
+		// パーティクルのテクスチャのSRVを設定
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, 0);
+
+		// ブレンドモードごとに描画
+		for (size_t j = 0; j < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); j++) {
+			label = blendModeNames[j] + "Blend";
+			PIXBeginEvent(commandList_, PIX_COLOR(255, 255, 255), ConvertString(label).c_str());
+			// MeshParticle用パイプラインステートの設定
+			commandList_->SetPipelineState(meshParticlePipelineState_[i][j].Get());
+
+			// MeshParticleの描画
+			registry_->ForEach<BlendMode, ParticleGroup>([&](uint32_t entity, BlendMode *blendMode, ParticleGroup *particleGroup) {
+				if (particleGroup->meshType == static_cast<MeshType>(i)) {
+					if (*blendMode == static_cast<BlendMode>(j)) {
+						commandList_->SetGraphicsRoot32BitConstant(1, particleGroup->textureHandle, 0);
+						gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, particleGroup->instanceHandle);
+						meshManager_->Draw(particleGroup->meshHandle, particleGroup->numInstance);
+					}
+				}
+				}, exclude<Disabled>());
+			PIXEndEvent(commandList_);
+		}
+		PIXEndEvent(commandList_);
 	}
 }
 

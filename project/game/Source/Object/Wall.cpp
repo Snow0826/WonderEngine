@@ -5,7 +5,7 @@
 #include "Object.h"
 #include "Transform.h"
 #include "Material.h"
-#include "AABB.h"
+#include "AABBRenderer.h"
 
 void Wall::Create(const Vector3 &rotate, const Vector3 &translate) {
 	uint32_t entity = registry_->GenerateEntity();

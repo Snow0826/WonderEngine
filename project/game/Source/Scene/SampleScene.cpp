@@ -5,8 +5,10 @@
 #include "SkyboxEntity.h"
 #include "Cylinder.h"
 #include "TreeGenerator.h"
-#include "HitEffectParticle.h"
-#include "SlashEffectParticle.h"
+#include "HitEffect.h"
+#include "SlashEffect.h"
+#include "HitRingEffect.h"
+#include "SlashRingEffect.h"
 #include "AnimatedCube.h"
 
 #ifdef USE_IMGUI
@@ -39,13 +41,21 @@ void SampleScene::OnInitialize() {
 	// スカイボックスエンティティの作成
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator, objectManager_.get());
 
-	// ヒットエフェクトのパーティクルの初期化
-	hitEffectParticle_ = std::make_unique<HitEffectParticle>(registry_.get(), particleManager);
-	hitEffectParticle_->Initialize();
+	// ヒットエフェクトの初期化
+	hitEffect_ = std::make_unique<HitEffect>(registry_.get(), particleManager);
+	hitEffect_->Initialize();
 
-	// スラッシュエフェクトのパーティクルの初期化
-	slashEffectParticle_ = std::make_unique<SlashEffectParticle>(registry_.get(), particleManager);
-	slashEffectParticle_->Initialize();
+	// スラッシュエフェクトの初期化
+	slashEffect_ = std::make_unique<SlashEffect>(registry_.get(), particleManager);
+	slashEffect_->Initialize();
+
+	// ヒットリングエフェクトの初期化
+	hitRingEffect_ = std::make_unique<HitRingEffect>(registry_.get(), particleManager);
+	hitRingEffect_->Initialize();
+
+	// スラッシュリングエフェクトの初期化
+	slashRingEffect_ = std::make_unique<SlashRingEffect>(registry_.get(), particleManager);
+	slashRingEffect_->Initialize();
 
 	// アニメーションキューブの作成
 	AnimatedCube animatedCube{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
@@ -76,9 +86,15 @@ void SampleScene::OnUpdate() {
 	}
 #endif // USE_IMGUI
 
-	// ヒットエフェクトのパーティクルの更新
-	hitEffectParticle_->Update();
+	// ヒットエフェクトの更新
+	hitEffect_->Update();
 
-	// スラッシュエフェクトのパーティクルの更新
-	slashEffectParticle_->Update();
+	// スラッシュエフェクトの更新
+	slashEffect_->Update();
+
+	// ヒットリングエフェクトの更新
+	hitRingEffect_->Update();
+
+	// スラッシュリングエフェクトの更新
+	slashRingEffect_->Update();
 }

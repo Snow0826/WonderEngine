@@ -1,4 +1,5 @@
 #pragma once
+#include "MeshType.h"
 #include "BlendMode.h"
 #include "Vector2.h"
 #include "Vector3.h"
@@ -7,6 +8,24 @@
 #include <vector>
 #include <memory>
 #include <d3d12.h>
+
+/// @brief uint型4要素ベクトル
+struct Uint4 final {
+	uint32_t x = 0;
+	uint32_t y = 0;
+	uint32_t z = 0;
+	uint32_t w = 0;
+};
+
+/// @brief キューオフセットリスト
+using QueueOffsets = std::array<Uint4, (static_cast<uint32_t>(MeshType::kCountOfMeshType) *static_cast<uint32_t>(BlendMode::kCountOfBlendMode) + 3) / 4>;
+
+/// @brief カリング定数データ
+struct CullingConstantsData final {
+	uint32_t meshCount = 0;		// メッシュの数
+	uint32_t padding[3] = {};	// パディング
+	QueueOffsets queueOffsets;	// キューオフセットリスト
+};
 
 /// @brief ライトの数
 struct LightCount final {
@@ -53,7 +72,7 @@ enum class ConstantBufferType {
 	kTransform,					// ワールド変換データ
 	kViewProjection,			// ビュープロジェクション
 	kMaterial,					// マテリアル
-	kCamera,					// カメラ
+	kCameraPosition,			// カメラ座標
 	kDirectionalLight,			// 平行光源
 	kFrustum,					// 視錐台
 	kGrayscaleColor,			// グレースケールカラー
@@ -97,9 +116,6 @@ struct SpotLight;
 /// @brief ワールド
 class World final {
 public:
-	static const UINT kCommandSizePerFrame;			// フレームあたりのコマンドサイズ
-	static const UINT kCommandBufferCounterOffset;	// コマンドバッファカウンターオフセット
-
 	/// @brief コンストラクタ
 	/// @param device デバイス
 	/// @param logStream ログストリーム
@@ -130,55 +146,46 @@ public:
 	/// @return 最大AABB数
 	constexpr uint32_t GetMaxAABB() const { return kMaxAABB; }
 
+	/// @brief キューあたりの最大コマンド数を取得
+	/// @return キューあたりの最大コマンド数
+	constexpr uint32_t GetMaxCommandPerQueue() const { return kMaxCommandPerQueue; }
+
 	/// @brief 定数バッファを取得
 	/// @param type 定数バッファの種類
-	ConstantBuffer *GetConstantBuffer(ConstantBufferType type) {
-		return constantBuffers_[static_cast<size_t>(type)].get();
-	}
+	ConstantBuffer *GetConstantBuffer(ConstantBufferType type) { return constantBuffers_[static_cast<size_t>(type)].get(); }
 
 	/// @brief 構造化バッファを取得
 	/// @param type 構造化バッファの種類
 	/// @return 構造化バッファ
-	Resource *GetStructuredBuffer(StructuredBufferType type) {
-		return structuredBuffers_[static_cast<size_t>(type)].get();
-	}
+	Resource *GetStructuredBuffer(StructuredBufferType type) { return structuredBuffers_[static_cast<size_t>(type)].get(); }
 
 	/// @brief レンダーテクスチャを取得
 	/// @return レンダーテクスチャ
-	Resource *GetRenderTexture() {
-		return renderTexture_.get();
-	}
+	Resource *GetRenderTexture() { return renderTexture_.get(); }
 
 	/// @brief Hi-Zテクスチャを取得
 	/// @return Hi-Zテクスチャ
-	Resource *GetHiZTexture() {
-		return hiZTexture_.get();
-	}
-
-	/// @brief ブレンド別処理済みコマンドバッファを取得
-	/// @param blendMode ブレンドモード
-	/// @return ブレンド別処理済みコマンドバッファ
-	Resource *GetBlendProcessedCommandBuffer(BlendMode blendMode) {
-		return blendProcessedCommandBuffers_[static_cast<size_t>(blendMode)].get();
-	}
+	Resource *GetHiZTexture() { return hiZTexture_.get(); }
 
 	/// @brief コマンドバッファアップロードを取得
 	/// @return コマンドバッファアップロード
-	Resource *GetCommandBufferUpload() {
-		return commandBufferUpload_.get();
-	}
+	Resource *GetCommandBufferUpload() { return commandBufferUpload_.get(); }
 
-	/// @brief 処理済みコマンドバッファカウンターリセットを取得
-	/// @return 処理済みコマンドバッファカウンターリセット
-	Resource *GetProcessedCommandBufferCounterReset() {
-		return processedCommandBufferCounterReset_.get();
-	}
+	/// @brief カリング済みコマンドバッファを取得
+	/// @return カリング済みコマンドバッファ
+	Resource *GetProcessedCommandBuffer() { return processedCommandBuffer_.get(); }
+
+	/// @brief コマンドカウンターバッファを取得
+	/// @return コマンドカウンターバッファ
+	Resource *GetCommandCounterBuffer() { return commandCounterBuffer_.get(); }
 
 	/// @brief フットプリントマップバッファを取得
 	/// @return フットプリントマップバッファ
-	Resource *GetFootprintMapBuffer() {
-		return footprintMapBuffer_.get();
-	}
+	Resource *GetFootprintMapBuffer() { return footprintMapBuffer_.get(); }
+
+	/// @brief キューオフセットリストを取得
+	/// @return キューオフセットリスト
+	QueueOffsets GetQueueOffsets() const { return queueOffsets_; }
 
 	/// @brief フットプリントマップデータを取得
 	/// @return フットプリントマップデータ
@@ -250,12 +257,13 @@ public:
 	/// @return メッシュLODハンドル
 	uint32_t GetMeshLODHandle() const { return meshLODHandle_; }
 
-	/// @brief ブレンド別処理済み間接コマンドハンドルを取得
-	/// @param blendMode ブレンドモード
-	/// @return ブレンド別処理済み間接コマンドハンドル
-	uint32_t GetBlendProcessedIndirectCommandHandle(BlendMode blendMode) const {
-		return blendProcessedIndirectCommandHandle_[static_cast<size_t>(blendMode)];
-	}
+	/// @brief カリング済みコマンドハンドルを取得
+	/// @return カリング済みコマンドハンドル
+	uint32_t GetProcessedCommandHandle() const { return processedCommandHandle_; }
+
+	/// @brief コマンドカウンターハンドルを取得
+	/// @return コマンドカウンターハンドル
+	uint32_t GetCommandCounterHandle() const { return commandCounterHandle_; }
 
 	/// @brief 結果表示フラグを取得
 	/// @return 結果表示フラグ
@@ -272,24 +280,24 @@ public:
 private:
 	using ConstantBuffers = std::array<std::unique_ptr<ConstantBuffer>, static_cast<size_t>(ConstantBufferType::kCountOfConstantBufferType)>;
 	using StructuredBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
-	using BlendBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
-	using BlendHandle = std::array<uint32_t, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
 	static inline constexpr uint32_t kMaxObject = 1048576;									// 最大オブジェクト数
 	static inline constexpr uint32_t kMaxLine = 65536;										// 最大ライン数
 	static inline constexpr uint32_t kMaxPointLight = 32;									// 最大点光源数
 	static inline constexpr uint32_t kMaxSpotLight = 32;									// 最大スポットライト数
 	static inline constexpr uint32_t kMaxAABB = 1048576;									// 最大AABB数
 	static inline constexpr uint32_t kMaxFootprint = 64;									// 最大フットプリント数
+	static inline constexpr uint32_t kMaxCommandPerQueue = 1024;							// コマンドキューあたりの最大コマンド数
 	Registry *registry_ = nullptr;															// レジストリ
 	ConstantBuffers constantBuffers_;														// 定数バッファリスト
 	StructuredBuffers structuredBuffers_;													// 構造化バッファリスト
-	BlendBuffers blendProcessedCommandBuffers_;												// ブレンド別処理済みコマンドバッファリスト
 	std::unique_ptr<Resource> renderTexture_ = nullptr;										// レンダーテクスチャ
 	std::unique_ptr<Resource> hiZTexture_ = nullptr;										// Hi-Zテクスチャ
 	std::unique_ptr<Resource> commandBufferUpload_ = nullptr;								// コマンドバッファアップロード用
-	std::unique_ptr<Resource> processedCommandBufferCounterReset_ = nullptr;				// 処理済みコマンドバッファカウンターリセット用
+	std::unique_ptr<Resource> processedCommandBuffer_ = nullptr;							// カリング済みコマンドバッファ
+	std::unique_ptr<Resource> commandCounterBuffer_ = nullptr;								// コマンドカウンターバッファ
 	std::unique_ptr<Resource> footprintMapBuffer_ = nullptr;								// フットプリントマップバッファ
 	std::unique_ptr<Resource> footprintMapReadbackBuffer_ = nullptr;						// フットプリントマップ読み戻しバッファ
+	QueueOffsets queueOffsets_;																// キューオフセットリスト
 	GrayscaleColor grayscaleColor_ = { .r = 1.0f, .g = 1.0f, .b = 1.0f };					// グレースケールカラー
 	VignetteParam vignetteParam_ = { .scale = 16.0f, .intensity = 0.8f };					// ビネットパラメータ
 	BoxFilterParam boxFilterParam_ = { .kernelRadius = 1, .texelSize = { 0.0f, 0.0f } };	// ボックスフィルターパラメータ
@@ -306,6 +314,8 @@ private:
 	uint32_t hiZTextureHandle_ = 0;															// Hi-Zテクスチャハンドル
 	uint32_t depthStencilCopySourceHandle_ = 0;												// 深度ステンシルコピー元ハンドル
 	uint32_t depthStencilCopyDestHandle_ = 0;												// 深度ステンシルコピー先ハンドル
+	uint32_t processedCommandHandle_ = 0;													// カリング済みコマンドハンドル
+	uint32_t commandCounterHandle_ = 0;														// コマンドカウンターハンドル
 	uint32_t footprintHandle_ = 0;															// フットプリントハンドル
 	uint32_t footprintMapHandle_ = 0;														// フットプリントマップハンドル
 	uint32_t lineHandle_ = 0;																// ラインハンドル
@@ -314,18 +324,9 @@ private:
 	uint32_t cullingObjectHandle_ = 0;														// カリングオブジェクトハンドル
 	uint32_t cullingMeshHandle_ = 0;														// カリングメッシュハンドル
 	uint32_t meshLODHandle_ = 0;															// メッシュLODハンドル
-	BlendHandle blendProcessedIndirectCommandHandle_;										// ブレンド別処理済み間接コマンドハンドル
 	PostEffect postEffect_ = PostEffect::kNone;												// ポストエフェクト
 	bool isCulling_ = false;																// カリング有効フラグ
 	bool isResult_ = false;																	// 結果表示フラグ
-
-	/// @brief UAVカウンター用にアライメントを調整する
-	/// @param bufferSize バッファサイズ
-	/// @return アライメント調整後のバッファサイズ
-	static inline UINT AlignForUavCounter(UINT bufferSize) {
-		const UINT alignment = D3D12_UAV_COUNTER_PLACEMENT_ALIGNMENT;
-		return (bufferSize + (alignment - 1)) & ~(alignment - 1);
-	}
 
 	/// @brief 平行光源の転送
 	void TransferDirectionalLight();

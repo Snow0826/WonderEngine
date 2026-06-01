@@ -10,6 +10,8 @@
 #include "HitRingEffect.h"
 #include "SlashRingEffect.h"
 #include "AnimatedCube.h"
+#include "SimpleSkin.h"
+#include "Human.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -60,6 +62,15 @@ void SampleScene::OnInitialize() {
 	// アニメーションキューブの作成
 	AnimatedCube animatedCube{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
 	animatedCube.Create();
+
+	// シンプルスキンの作成
+	SimpleSkin simpleSkin{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
+	simpleSkin.Create();
+
+	// ヒューマンの作成
+	Human human{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
+	human.Create("walk.gltf", { 0.0f, 0.0f, 5.0f });
+	human.Create("sneakWalk.gltf", { 5.0f, 0.0f, 5.0f });
 }
 
 void SampleScene::OnUpdate() {

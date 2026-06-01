@@ -2,6 +2,10 @@
 #include "UVTransform.h"
 #include "EntityComponentSystem.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void UVTransformInspector::Draw([[maybe_unused]] uint32_t entity) {
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode("UVTransform")) {

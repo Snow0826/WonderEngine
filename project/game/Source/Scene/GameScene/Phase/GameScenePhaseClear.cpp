@@ -13,6 +13,10 @@
 #include "Object.h"
 #include "Sprite.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void GameScenePhaseClear::Initialize() {
 	GameScene *gameScene = GetGameScene();
 	Registry *registry = gameScene->GetRegistry();

@@ -7,7 +7,7 @@
 void SlashRingEffect::Initialize() {
 	// エミッターの設定
 	Emitter emitter{
-		.transform{.translate = { 0.0f, 3.0f, 0.0f } },
+		.transform{},
 		.area = {},
 		.scale = {
 			.min = { 1.0f, 1.0f, 1.0f },

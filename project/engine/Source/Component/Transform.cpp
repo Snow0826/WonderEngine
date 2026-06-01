@@ -1,8 +1,10 @@
 #define NOMINMAX
 #include "Transform.h"
 #include "EntityComponentSystem.h"
-#include "Vector2.h"
-#include "Model.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 void TransformSystem::MarkDirty(uint32_t entity) {
 	registry_->AddComponent<DirtyTransform>(entity, DirtyTransform{});

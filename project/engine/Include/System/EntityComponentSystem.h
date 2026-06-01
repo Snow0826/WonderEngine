@@ -1,9 +1,6 @@
 #pragma once
-#include "ImGuiManager.h"
 #include <vector>
 #include <memory>
-#include <string>
-#include <functional>
 
 template<typename... Ts>
 struct exclude final {};
@@ -311,100 +308,5 @@ private:
 	static size_t GenerateTypeId() {
 		static size_t counter = 0;
 		return counter++;
-	}
-};
-
-/// @brief インスペクターレジストリ
-class InspectorRegistry final {
-public:
-	using DrawFunc = std::function<void(uint32_t)>;	// インスペクター描画関数の型
-
-	/// @brief コンストラクタ
-	/// @param registry レジストリ
-	InspectorRegistry(Registry *registry) : registry_(registry) {}
-
-	/// @brief インスペクターの登録
-	/// @tparam T コンポーネントの型
-	/// @param func インスペクター描画関数
-	template<typename T>
-	void RegisterInspector(DrawFunc func) {
-		size_t typeId = Registry::GetTypeId<T>();
-		if (typeId >= inspectors_.size()) {
-			inspectors_.resize(typeId + 1);
-		}
-		inspectors_[typeId] = func;
-	}
-
-	/// @brief タグインスペクターの登録
-	/// @tparam T コンポーネントの型
-	/// @param tagName タグ名
-	template<typename T>
-	void RegisterTagInspector(const std::string &tagName) {
-		size_t typeId = Registry::GetTypeId<T>();
-		if (typeId >= tagInspectors_.size()) {
-			tagInspectors_.resize(typeId + 1);
-		}
-		registry_->RegisterComponent<T>();
-		tagInspectors_[typeId] = tagName;
-	}
-
-	/// @brief 全てのエンティティのインスペクターの描画
-	void DrawEntities() {
-#ifdef USE_IMGUI
-		if (ImGui::TreeNode(("Entities " + std::to_string(registry_->GetEntityCount())).c_str())) {
-			for (uint32_t e = 0; e < registry_->GetEntityCount(); ++e) {
-				ImGui::PushID(e);
-				if (ImGui::TreeNode(("Entity " + std::to_string(e)).c_str())) {
-					DrawInspectors(e);
-					DrawTagInspectors(e);
-					ImGui::TreePop();
-				}
-				ImGui::PopID();
-			}
-			ImGui::TreePop();
-		}
-#endif // USE_IMGUI
-	}
-
-private:
-	Registry *registry_ = nullptr;				// レジストリ
-	std::vector<DrawFunc> inspectors_;			// インスペクターの配列
-	std::vector<std::string> tagInspectors_;	// タグインスペクターの配列
-
-	/// @brief インスペクターの描画
-	/// @param entity エンティティ
-	void DrawInspectors(uint32_t entity) {
-		for (size_t i = 0; i < inspectors_.size(); ++i) {
-			if (!inspectors_[i]) {
-				continue;
-			}
-
-			if (!registry_->HasComponentById(i, entity)) {
-				continue;
-			}
-
-			inspectors_[i](entity);
-		}
-	}
-
-	/// @brief タグインスペクターの描画
-	/// @param entity エンティティ
-	void DrawTagInspectors(uint32_t entity) {
-#ifdef USE_IMGUI
-		for (size_t i = 0; i < tagInspectors_.size(); i++) {
-			if (tagInspectors_[i].empty()) {
-				continue;
-			}
-
-			bool visible = registry_->HasComponentById(i, entity);
-			if (ImGui::Checkbox(tagInspectors_[i].c_str(), &visible)) {
-				if (visible) {
-					registry_->AddComponentById(i, entity);
-				} else {
-					registry_->RemoveComponentById(i, entity);
-				}
-			}
-		}
-#endif // USE_IMGUI
 	}
 };

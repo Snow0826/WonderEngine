@@ -6,6 +6,10 @@
 #include "Transform.h"
 #include <numbers>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void GameScenePhaseClearFadeIn::Initialize() {
 	// ゲームシーンの取得
 	GameScene *gameScene = GetGameScene();

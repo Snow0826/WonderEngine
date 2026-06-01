@@ -2,9 +2,13 @@
 #include "PlayerAttackBehaviorStart.h"
 #include "Player.h"
 #include "EntityComponentSystem.h"
-#include "Sphere.h"
+#include "SphereRenderer.h"
 #include "Transform.h"
 #include "RigidBody.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 PlayerBehaviorAttack::PlayerBehaviorAttack() = default;
 PlayerBehaviorAttack::~PlayerBehaviorAttack() = default;

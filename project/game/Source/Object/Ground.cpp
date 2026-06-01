@@ -4,12 +4,11 @@
 #include "BlendMode.h"
 #include "Object.h"
 #include "Model.h"
-#include "Transform.h"
 #include "Material.h"
 #include "PlaneRenderer.h"
+#include "SphereRenderer.h"
 #include "FootprintMap.h"
 #include "Footprint.h"
-#include "SphereRenderer.h"
 #include <cassert>
 
 void Ground::Create(Registry *registry, IndirectCommandManager *indirectCommandManager, ModelManager *modelManager, ObjectManager *objectManager, FootprintManager *footprintManager) {

@@ -6,6 +6,10 @@
 #include "Input.h"
 #include <algorithm>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void DebugCamera::Initialize(uint32_t cameraEntity) {
 	cameraEntity_ = cameraEntity;
 	Transform *transform = registry_->GetComponent<Transform>(cameraEntity_);

@@ -10,7 +10,10 @@
 #include "Cylinder.h"
 #include "Ring.h"
 #include "Object.h"
-#include "Transform.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 IndirectCommandManager::IndirectCommandManager(Registry *registry, World *world, MeshManager *meshManager) : registry_(registry), world_(world), meshManager_(meshManager) {
 	world_->GetStructuredBuffer(StructuredBufferType::kObject)->Map(reinterpret_cast<void **>(&cullingObjectData_));

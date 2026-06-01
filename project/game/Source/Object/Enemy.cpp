@@ -4,7 +4,6 @@
 #include "BlendMode.h"
 #include "Object.h"
 #include "Model.h"
-#include "Transform.h"
 #include "Material.h"
 #include "AABBRenderer.h"
 #include "SphereRenderer.h"

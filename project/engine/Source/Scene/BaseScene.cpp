@@ -1,7 +1,10 @@
 #include "BaseScene.h"
 #include "SceneManager.h"
 #include "Input.h"
-#include "EntityComponentSystem.h"
+#include "ComponentDrawerRegistry.h"
+#include "HierarchyWindow.h"
+#include "InspectorWindow.h"
+#include "SelectionContext.h"
 #include "Renderer.h"
 #include "World.h"
 #include "Resource.h"
@@ -26,11 +29,16 @@
 #include "OBBRenderer.h"
 #include "CapsuleRenderer.h"
 #include "FrustumRenderer.h"
+#include "SkeletonRenderer.h"
 #include "Text.h"
 #include "BitmapFont.h"
 #include "Fade.h"
 #include "Grid.h"
 #include "DebugCamera.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 BaseScene::BaseScene() = default;
 BaseScene::~BaseScene() = default;
@@ -85,9 +93,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	obbRenderSystem_ = std::make_unique<OBBRenderSystem>(registry_.get(), debugRenderer_.get());
 	capsuleRenderSystem_ = std::make_unique<CapsuleRenderSystem>(registry_.get(), debugRenderer_.get());
 	frustumRenderSystem_ = std::make_unique<FrustumRenderSystem>(registry_.get(), debugRenderer_.get());
-
-	// インスペクターレジストリの生成
-	inspectorRegistry_ = std::make_unique<InspectorRegistry>(registry_.get());
+	skeletonRenderSystem_ = std::make_unique<SkeletonRenderSystem>(registry_.get(), debugRenderer_.get());
 
 	// インスペクターの生成
 	blendModeInspector_ = std::make_unique<BlendModeInspector>(registry_.get(), indirectCommandManager_.get());
@@ -112,38 +118,49 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	capsuleInspector_ = std::make_unique<CapsuleInspector>(registry_.get());
 
 	// インスペクターの登録
-	inspectorRegistry_->RegisterInspector<BlendMode>([this](uint32_t entity) { blendModeInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Model>([this](uint32_t entity) { modelInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Sprite>([this](uint32_t entity) { spriteInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<ParticleGroup>([this](uint32_t entity) { particleGroupInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Emitter>([this](uint32_t entity) { emitterInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Field>([this](uint32_t entity) { fieldInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Transform>([this](uint32_t entity) { transformInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<UVTransform>([this](uint32_t entity) { uvTransformInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Material>([this](uint32_t entity) { materialInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Camera>([this](uint32_t entity) { cameraInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<DirectionalLight>([this](uint32_t entity) { directionalLightInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<PointLight>([this](uint32_t entity) { pointLightInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<SpotLight>([this](uint32_t entity) { spotLightInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<RigidBody>([this](uint32_t entity) { rigidBodyInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Footprint>([this](uint32_t entity) { footprintInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Collision::AABB>([this](uint32_t entity) { aabbInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Collision::Sphere>([this](uint32_t entity) { sphereInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Collision::Plane>([this](uint32_t entity) { planeInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Collision::OBB>([this](uint32_t entity) { obbInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterInspector<Collision::Capsule>([this](uint32_t entity) { capsuleInspector_->Draw(entity); });
-	inspectorRegistry_->RegisterTagInspector<CullingCamera>("CullingCamera");
-	inspectorRegistry_->RegisterTagInspector<RenderingCamera>("RenderingCamera");
-	inspectorRegistry_->RegisterTagInspector<UseCulling>("UseCulling");
-	inspectorRegistry_->RegisterTagInspector<HasParent>("HasParent");
-	inspectorRegistry_->RegisterTagInspector<DirtyTransform>("DirtyTransform");
-	inspectorRegistry_->RegisterTagInspector<DirtyMaterial>("DirtyMaterial");
-	inspectorRegistry_->RegisterTagInspector<AABBRenderer>("AABBRenderer");
-	inspectorRegistry_->RegisterTagInspector<SphereRenderer>("SphereRenderer");
-	inspectorRegistry_->RegisterTagInspector<PlaneRenderer>("PlaneRenderer");
-	inspectorRegistry_->RegisterTagInspector<OBBRenderer>("OBBRenderer");
-	inspectorRegistry_->RegisterTagInspector<CapsuleRenderer>("CapsuleRenderer");
-	inspectorRegistry_->RegisterTagInspector<FrustumRenderer>("FrustumRenderer");
+	componentDrawerRegistry_ = std::make_unique<ComponentDrawerRegistry>(registry_.get());
+	componentDrawerRegistry_->RegisterComponentDrawer<BlendMode>([this](uint32_t entity) { blendModeInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Model>([this](uint32_t entity) { modelInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Sprite>([this](uint32_t entity) { spriteInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<ParticleGroup>([this](uint32_t entity) { particleGroupInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Emitter>([this](uint32_t entity) { emitterInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Field>([this](uint32_t entity) { fieldInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Transform>([this](uint32_t entity) { transformInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<UVTransform>([this](uint32_t entity) { uvTransformInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Material>([this](uint32_t entity) { materialInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Camera>([this](uint32_t entity) { cameraInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<DirectionalLight>([this](uint32_t entity) { directionalLightInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<PointLight>([this](uint32_t entity) { pointLightInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<SpotLight>([this](uint32_t entity) { spotLightInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<RigidBody>([this](uint32_t entity) { rigidBodyInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Footprint>([this](uint32_t entity) { footprintInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Collision::AABB>([this](uint32_t entity) { aabbInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Collision::Sphere>([this](uint32_t entity) { sphereInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Collision::Plane>([this](uint32_t entity) { planeInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Collision::OBB>([this](uint32_t entity) { obbInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Collision::Capsule>([this](uint32_t entity) { capsuleInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterTagComponent<CullingCamera>("CullingCamera");
+	componentDrawerRegistry_->RegisterTagComponent<RenderingCamera>("RenderingCamera");
+	componentDrawerRegistry_->RegisterTagComponent<UseCulling>("UseCulling");
+	componentDrawerRegistry_->RegisterTagComponent<HasParent>("HasParent");
+	componentDrawerRegistry_->RegisterTagComponent<DirtyTransform>("DirtyTransform");
+	componentDrawerRegistry_->RegisterTagComponent<DirtyMaterial>("DirtyMaterial");
+	componentDrawerRegistry_->RegisterTagComponent<AABBRenderer>("AABBRenderer");
+	componentDrawerRegistry_->RegisterTagComponent<SphereRenderer>("SphereRenderer");
+	componentDrawerRegistry_->RegisterTagComponent<PlaneRenderer>("PlaneRenderer");
+	componentDrawerRegistry_->RegisterTagComponent<OBBRenderer>("OBBRenderer");
+	componentDrawerRegistry_->RegisterTagComponent<CapsuleRenderer>("CapsuleRenderer");
+	componentDrawerRegistry_->RegisterTagComponent<FrustumRenderer>("FrustumRenderer");
+	componentDrawerRegistry_->RegisterTagComponent<SkeletonRenderer>("SkeletonRenderer");
+
+	// 選択テキストの生成
+	selection_ = std::make_unique<SelectionContext>();
+
+	// 階層ウィンドウの生成
+	hierarchyWindow_ = std::make_unique<HierarchyWindow>(registry_.get(), selection_.get());
+
+	// インスペクタウィンドウの生成
+	inspectorWindow_ = std::make_unique<InspectorWindow>(registry_.get(), componentDrawerRegistry_.get(), selection_.get());
 
 	// メインカメラの生成と初期化
 	cameraEntities_[mainCameraType_] = registry_->GenerateEntity();
@@ -222,8 +239,11 @@ void BaseScene::Update() {
 	// ライン数のデバッグ表示
 	debugRenderer_->Debug();
 
-	// インスペクターレジストリによるエンティティの描画
-	inspectorRegistry_->DrawEntities();
+	// 階層ウィンドウの描画
+	hierarchyWindow_->Draw();
+
+	// インスペクタウィンドウの描画
+	inspectorWindow_->Draw();
 #endif // USE_IMGUI
 
 	// デバッグレンダラーのフレーム開始
@@ -279,6 +299,9 @@ void BaseScene::Update() {
 
 	// 視錐台のデバッグ描画の更新
 	frustumRenderSystem_->Update();
+
+	// スケルトンのデバッグ描画の更新
+	skeletonRenderSystem_->Update();
 
 	// ワールドの更新
 	world->Update();

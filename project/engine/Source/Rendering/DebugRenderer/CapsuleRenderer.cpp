@@ -4,6 +4,10 @@
 #include "DebugRenderer.h"
 #include "Collision.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void CapsuleRenderSystem::Update() {
 #ifdef DRAW_LINE
 	registry_->ForEach<Collision::Capsule, CapsuleRenderer>([&](uint32_t entity, Collision::Capsule *capsule, CapsuleRenderer *capsuleRenderer) {

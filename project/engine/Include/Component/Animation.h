@@ -3,6 +3,7 @@
 #include "Quaternion.h"
 #include <string>
 #include <vector>
+#include <map>
 
 /// @brief キーフレーム
 /// @tparam tValue キーフレームの値の型
@@ -27,7 +28,6 @@ struct AnimationCurve final {
 
 /// @brief ノードアニメーション
 struct NodeAnimation final {
-	std::string name;					// ノード名
 	AnimationCurve<Vector3> translate;	// 位置のキーフレームリスト
 	AnimationCurve<Quaternion> rotate;	// 回転のキーフレームリスト
 	AnimationCurve<Vector3> scale;		// スケーリングのキーフレームリスト
@@ -35,9 +35,9 @@ struct NodeAnimation final {
 
 /// @brief アニメーションクリップ
 struct AnimationClip final {
-	std::string name;							// アニメーション名
-	float duration = 0.0f;						// アニメーションの長さ
-	std::vector<NodeAnimation> nodeAnimations;	// ノードアニメーションリスト
+	std::string name;		// アニメーション名
+	float duration = 0.0f;	// アニメーションの長さ
+	std::map<std::string, NodeAnimation> nodeAnimations;	// ノード名からノードアニメーションへのマップ
 };
 
 /// @brief アニメーション補間モード
@@ -69,6 +69,12 @@ public:
 
 private:
 	Registry *registry_ = nullptr;	// レジストリ
+
+	/// @brief アニメーションをルートノードに適用
+	void ApplyAnimationToRootNode();
+
+	/// @brief アニメーションをスケルトンに適用
+	void ApplyAnimationToSkeleton();
 
 	/// @brief 線形補完による3次元ベクトルのサンプリング
 	/// @param keyframes キーフレームリスト

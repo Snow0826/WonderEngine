@@ -17,6 +17,10 @@
 #include "PlayerBehaviorRoot.h"
 #include "Easing.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 Player::Player(Registry *registry, IndirectCommandManager *indirectCommandManager, ModelManager *modelManager, ObjectManager *objectManager, FootprintManager *footprintManager, ParticleManager *particleManager, Input *input, Audio *audio)
 	: registry_(registry)
 	, indirectCommandManager_(indirectCommandManager)

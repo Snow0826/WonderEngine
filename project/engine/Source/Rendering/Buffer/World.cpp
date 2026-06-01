@@ -9,7 +9,6 @@
 #include "Resource.h"
 #include "IndirectCommand.h"
 #include "Object.h"
-#include "Transform.h"
 #include "Material.h"
 #include "Model.h"
 #include "Sprite.h"
@@ -23,6 +22,10 @@
 #include "FootprintMap.h"
 #include "Logger.h"
 #include <d3dx12.h>
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 namespace {
 	std::vector<std::string> postEffectNames = {
@@ -469,7 +472,7 @@ void World::TransferCamera() {
 void World::TransferTransform() {
 	registry_->ForEach<Transform, Object, DirtyTransform>([&](uint32_t entity, Transform *transform, Object *object, DirtyTransform *dirtyTransform) {
 		TransformationMatrix transformationMatrix;
-		if (registry_->HasComponent<Model>(entity)) {
+		if (registry_->HasComponent<Model>(entity) && !registry_->HasComponent<Skeleton>(entity)) {
 			Model *model = registry_->GetComponent<Model>(entity);
 			Matrix4x4 localMatrix = ModelManager::MakeLocalMatrix(model->modelData.rootNode);
 			transformationMatrix.worldMatrix = localMatrix * transform->worldMatrix;

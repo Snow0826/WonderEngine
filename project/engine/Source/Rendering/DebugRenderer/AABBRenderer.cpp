@@ -2,8 +2,11 @@
 #include "AABBRenderer.h"
 #include "EntityComponentSystem.h"
 #include "DebugRenderer.h"
-#include "Collision.h"
 #include "Model.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 void AABBRenderSystem::Update() {
 #ifdef DRAW_LINE

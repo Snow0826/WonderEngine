@@ -108,6 +108,11 @@
     <ClCompile Include="engine\Source\Component\Primitive\Plane.cpp" />
     <ClCompile Include="game\Source\Object\SlashRingEffect.cpp" />
     <ClCompile Include="game\Source\Object\HitRingEffect.cpp" />
+    <ClCompile Include="engine\Source\System\HierarchyWindow.cpp" />
+    <ClCompile Include="engine\Source\System\InspectorWindow.cpp" />
+    <ClCompile Include="game\Source\Object\SimpleSkin.cpp" />
+    <ClCompile Include="game\Source\Object\Human.cpp" />
+    <ClCompile Include="engine\Source\Rendering\DebugRenderer\SkeletonRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -229,6 +234,13 @@
     <ClInclude Include="engine\Include\Component\Primitive\Box.h" />
     <ClInclude Include="game\Include\Object\SlashRingEffect.h" />
     <ClInclude Include="game\Include\Object\HitRingEffect.h" />
+    <ClInclude Include="engine\Include\System\ComponentDrawerRegistry.h" />
+    <ClInclude Include="engine\Include\System\HierarchyWindow.h" />
+    <ClInclude Include="engine\Include\System\InspectorWindow.h" />
+    <ClInclude Include="engine\Include\System\SelectionContext.h" />
+    <ClInclude Include="game\Include\Object\SimpleSkin.h" />
+    <ClInclude Include="game\Include\Object\Human.h" />
+    <ClInclude Include="engine\Include\Rendering\DebugRenderer\SkeletonRenderer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

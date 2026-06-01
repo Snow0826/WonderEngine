@@ -4,6 +4,10 @@
 #include "Transform.h"
 #include "Collision.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void PhysicalSystem::Update(float deltaTime) {
 	TransformSystem transformSystem{ registry_ };
 	registry_->ForEach<RigidBody, Transform>([&](uint32_t entity, RigidBody *rigidBody, Transform *transform) {

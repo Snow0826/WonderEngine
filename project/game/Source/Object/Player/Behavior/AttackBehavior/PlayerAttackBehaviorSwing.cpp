@@ -7,6 +7,10 @@
 #include "Transform.h"
 #include "Easing.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void PlayerAttackBehaviorSwing::Update() {
 #ifdef USE_IMGUI
 	ImGui::Text("AttackBehavior: Swing");

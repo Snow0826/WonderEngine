@@ -2,8 +2,11 @@
 #include "SphereRenderer.h"
 #include "EntityComponentSystem.h"
 #include "DebugRenderer.h"
-#include "Collision.h"
 #include "Model.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 void SphereRenderSystem::Update() {
 #ifdef DRAW_LINE

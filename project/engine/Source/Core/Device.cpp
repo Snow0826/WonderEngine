@@ -347,7 +347,7 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "DepthStencilTexture DSVDescriptorIndex: " + std::to_string(dsvHandle_) + "\n");
 
 	// ImGuiの初期化
-	ImGuiManager::Initialize(hwnd, device_, swapChainDesc, rtvDesc, gpuCbvSrvUavDescriptorHeap_, logStream);
+	ImGuiManager::Initialize(hwnd, device_, commandQueue_, swapChainDesc, rtvDesc, dsvDesc, gpuCbvSrvUavDescriptorHeap_, logStream);
 }
 
 void Device::NewFrame() {

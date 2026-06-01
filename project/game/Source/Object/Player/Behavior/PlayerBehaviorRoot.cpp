@@ -6,7 +6,11 @@
 #include "Input.h"
 #include "Audio.h"
 #include "EntityComponentSystem.h"
-#include "Sphere.h"
+#include "SphereRenderer.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 void PlayerBehaviorRoot::Initialize() {
 	Player *player = GetPlayer();

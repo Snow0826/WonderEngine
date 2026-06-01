@@ -2,6 +2,10 @@
 #include "EntityComponentSystem.h"
 #include "Transform.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 ViewProjectionData MakeViewProjection(const Camera &camera, const Transform &transform) {
 	ViewProjectionData viewProjection;
 	viewProjection.view = transform.worldMatrix.inverse();

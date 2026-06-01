@@ -2,9 +2,11 @@
 #include "OBBRenderer.h"
 #include "EntityComponentSystem.h"
 #include "DebugRenderer.h"
-#include "Collision.h"
 #include "Model.h"
-#include "Matrix4x4.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 void OBBRenderSystem::UpdateOrientations() {
 	registry_->ForEach<Collision::OBB, OBBRotate>([&](uint32_t entity, Collision::OBB *obb, OBBRotate *obbRotate) {

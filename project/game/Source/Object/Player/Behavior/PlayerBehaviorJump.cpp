@@ -9,6 +9,10 @@
 #include "Transform.h"
 #include "RigidBody.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void PlayerBehaviorJump::Initialize() {
 	// プレイヤーの取得
 	Player *player = GetPlayer();

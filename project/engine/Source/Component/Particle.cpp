@@ -10,6 +10,10 @@
 #include "Random.h"
 #include "RigidBody.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 ParticleManager::ParticleManager(Device *device, TextureManager *textureManager, MeshManager *meshManager, std::ofstream *logStream)
 	: device_(device)
 	, textureManager_(textureManager)

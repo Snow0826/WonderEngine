@@ -19,7 +19,9 @@ class SpriteManager;
 class World;
 class DebugRenderer;
 class Registry;
-class InspectorRegistry;
+class ComponentDrawerRegistry;
+class HierarchyWindow;
+class InspectorWindow;
 class BlendModeInspector;
 class ModelInspector;
 class SpriteInspector;
@@ -50,10 +52,12 @@ class PlaneRenderSystem;
 class OBBRenderSystem;
 class CapsuleRenderSystem;
 class FrustumRenderSystem;
+class SkeletonRenderSystem;
 class BitmapFont;
 class Fade;
 class Grid;
 class DebugCamera;
+struct SelectionContext;
 
 /// @brief 基底シーン
 class BaseScene {
@@ -97,7 +101,10 @@ protected:
 	std::unique_ptr<SpriteManager> spriteManager_ = nullptr;								// スプライトマネージャー
 	std::unique_ptr<DebugRenderer> debugRenderer_ = nullptr;								// デバッグレンダラー
 	std::unique_ptr<Registry> registry_ = nullptr;											// レジストリ
-	std::unique_ptr<InspectorRegistry> inspectorRegistry_ = nullptr;						// インスペクターレジストリ
+	std::unique_ptr<ComponentDrawerRegistry> componentDrawerRegistry_ = nullptr;			// コンポーネント描画関数レジストリ
+	std::unique_ptr<HierarchyWindow> hierarchyWindow_ = nullptr;							// 階層ウィンドウ
+	std::unique_ptr<InspectorWindow> inspectorWindow_ = nullptr;							// インスペクタウィンドウ
+	std::unique_ptr<SelectionContext> selection_ = nullptr;									// 選択コンテキスト
 	std::unique_ptr<BlendModeInspector> blendModeInspector_ = nullptr;						// ブレンドモードインスペクター
 	std::unique_ptr<ModelInspector> modelInspector_ = nullptr;								// モデルインスペクター
 	std::unique_ptr<SpriteInspector> spriteInspector_ = nullptr;							// スプライトインスペクター
@@ -128,6 +135,7 @@ protected:
 	std::unique_ptr<OBBRenderSystem> obbRenderSystem_ = nullptr;							// OBBの描画システム
 	std::unique_ptr<CapsuleRenderSystem> capsuleRenderSystem_ = nullptr;					// カプセルの描画システム
 	std::unique_ptr<FrustumRenderSystem> frustumRenderSystem_ = nullptr;					// 視錐台の描画システム
+	std::unique_ptr<SkeletonRenderSystem> skeletonRenderSystem_ = nullptr;					// スケルトンの描画システム
 	std::unique_ptr<BitmapFont> bitmapFont_ = nullptr;										// ビットマップフォント
 	std::unique_ptr<Fade> fade_ = nullptr;													// フェード
 	std::unique_ptr<Grid> grid_ = nullptr;													// グリッド

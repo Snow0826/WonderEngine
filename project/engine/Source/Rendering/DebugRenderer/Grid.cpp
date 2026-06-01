@@ -2,6 +2,10 @@
 #include "EntityComponentSystem.h"
 #include "DebugRenderer.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void Grid::Initialize() {
 #ifdef DRAW_LINE
 	Rendering::Line line;

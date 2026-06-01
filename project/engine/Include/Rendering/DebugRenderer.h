@@ -56,7 +56,7 @@ public:
 	void AddOBB(const Collision::OBB &obb);
 
 	/// @brief カプセルの追加
-	/// @param capsule
+	/// @param capsule カプセル
 	void AddCapsule(const Collision::Capsule &capsule);
 
 	/// @brief ライン数のデバッグ表示

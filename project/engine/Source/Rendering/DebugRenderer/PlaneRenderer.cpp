@@ -4,6 +4,10 @@
 #include "DebugRenderer.h"
 #include "Collision.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void PlaneRenderSystem::Update() {
 #ifdef DRAW_LINE
 	registry_->ForEach<Collision::Plane, PlaneRenderer>([&](uint32_t entity, Collision::Plane *plane, PlaneRenderer *planeRenderer) {

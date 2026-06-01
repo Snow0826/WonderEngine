@@ -7,7 +7,7 @@
 void SlashEffect::Initialize() {
 	// エミッターの設定
 	Emitter emitter{
-		.transform{.translate = { 0.0f, 3.0f, 0.0f } },
+		.transform{},
 		.area = {},
 		.scale = {
 			.min = { 0.05f, 0.4f, 1.0f },

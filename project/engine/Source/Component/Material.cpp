@@ -1,6 +1,11 @@
 #define NOMINMAX
 #include "Material.h"
 #include "EntityComponentSystem.h"
+#include <string>
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 void MaterialInspector::Draw([[maybe_unused]] uint32_t entity) {
 #ifdef USE_IMGUI

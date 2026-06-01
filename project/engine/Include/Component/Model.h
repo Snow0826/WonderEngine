@@ -1,17 +1,33 @@
 #pragma once
 #include "Animation.h"
-#include "Matrix4x4.h"
 #include "Mesh.h"
+#include "Transform.h"
 #include <map>
 #include <assimp/scene.h>
+#include <optional>
 
 /// @brief ノード
 struct Node final {
+	Transform transform;		// 変換
 	std::string name;			// ノード名
-	Vector3 translate;			// 平行移動
-	Quaternion rotate;			// 回転（クォータニオン）
-	Vector3 scale;				// スケーリング
 	std::vector<Node> children;	// 子ノードリスト
+};
+
+/// @brief ジョイント
+struct Joint final {
+	Transform transform;			// 変換
+	std::string name;				// ジョイント名
+	Matrix4x4 skeletonSpaceMatrix;	// スケルトンスペース行列
+	std::vector<int32_t> children;	// 子ジョイントインデックスリスト
+	int32_t index = 0;				// ジョイントインデックス
+	std::optional<int32_t> parent;	// 親ジョイントインデックス
+};
+
+/// @brief スケルトン
+struct Skeleton final {
+	int32_t root = 0;	// ルートジョイントインデックス
+	std::map<std::string, int32_t> jointIndexByName;	// ジョイント名からジョイントインデックスへのマップ
+	std::vector<Joint> joints;	// ジョイントリスト
 };
 
 /// @brief マテリアルデータ
@@ -68,6 +84,15 @@ public:
 	/// @return 選択されたかどうか
 	bool Combo(const std::string &label, Model *model);
 
+	/// @brief スケルトンの作成
+	/// @param rootNode ルートノード
+	/// @return スケルトン
+	static Skeleton CreateSkeleton(const Node &rootNode);
+
+	/// @brief スケルトンの更新
+	/// @param skeleton スケルトン
+	static void UpdateSkeleton(Skeleton &skeleton);
+
 	/// @brief ローカル行列の作成
 	/// @param node ノード
 	/// @return ローカル行列
@@ -88,6 +113,13 @@ private:
 	/// @param node Assimpのノード
 	/// @return ノード
 	static Node ReadNode(const aiNode *node);
+
+	/// @brief ジョイントの作成
+	/// @param node ノード
+	/// @param parent 親ジョイントインデックス
+	/// @param joints ジョイントリスト
+	/// @return ジョイントインデックス
+	static int32_t CreateJoint(const Node &node, const std::optional<int32_t> &parent, std::vector<Joint> &joints);
 };
 
 class Registry;

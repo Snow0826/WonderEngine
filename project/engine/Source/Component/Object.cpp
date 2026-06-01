@@ -1,6 +1,10 @@
 #include "Object.h"
 #include "EntityComponentSystem.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 Object ObjectManager::CreateObject(uint32_t entity) {
 	Object object{ static_cast<uint32_t>(entities_.size()) };
 	entities_.emplace_back(entity);

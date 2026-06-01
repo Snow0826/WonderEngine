@@ -5,6 +5,10 @@
 #include "Transform.h"
 #include "RigidBody.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void PlayerBehaviorDash::Initialize() { dashParameter_ = 0; }
 
 void PlayerBehaviorDash::Update() {

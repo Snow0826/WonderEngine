@@ -2,6 +2,10 @@
 #include "Footprint.h"
 #include "EntityComponentSystem.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 Footprint FootprintManager::CreateFootprint(uint32_t entity, const Vector4 &color) {
 	Footprint footprint{ .id = static_cast<uint32_t>(entities_.size()), .color = color };
 	entities_.emplace_back(entity);

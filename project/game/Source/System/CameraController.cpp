@@ -7,6 +7,10 @@
 #include <algorithm>
 #include <numbers>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 void CameraController::Initialize(uint32_t cameraEntity, uint32_t targetEntity) {
 	cameraEntity_ = cameraEntity;
 	targetEntity_ = targetEntity;

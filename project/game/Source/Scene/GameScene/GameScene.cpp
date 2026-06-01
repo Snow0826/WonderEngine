@@ -32,6 +32,10 @@
 #include "Fade.h"
 #include "Random.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 GameScene::GameScene() = default;
 GameScene::~GameScene() {
 	Audio *audio = sceneManager_->GetAudio();

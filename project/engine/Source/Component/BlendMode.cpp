@@ -1,6 +1,11 @@
 #include "BlendMode.h"
 #include "EntityComponentSystem.h"
 #include "IndirectCommand.h"
+#include <string>
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 namespace {
 	std::vector<std::string> blendModeNames = {

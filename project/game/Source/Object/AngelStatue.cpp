@@ -3,7 +3,6 @@
 #include "IndirectCommand.h"
 #include "Model.h"
 #include "Object.h"
-#include "Transform.h"
 #include "Material.h"
 #include "AABBRenderer.h"
 

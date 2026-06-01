@@ -3,7 +3,6 @@
 #include "IndirectCommand.h"
 #include "Model.h"
 #include "Object.h"
-#include "Transform.h"
 #include "Material.h"
 
 void Title::Create(const std::string &fileName, const Vector3 &rotate, const Vector3 &translate, const Vector4 &color) {

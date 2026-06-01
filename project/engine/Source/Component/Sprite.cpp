@@ -6,6 +6,10 @@
 #include "Transform.h"
 #include "Material.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 SpriteManager::SpriteManager(TextureManager *textureManager, MeshManager *meshManager, Registry *registry)
 	: textureManager_(textureManager)
 	, meshManager_(meshManager)

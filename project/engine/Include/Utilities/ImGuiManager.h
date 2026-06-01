@@ -20,14 +20,17 @@ struct ImGuiManager final {
 	/// @param swapChainDesc スワップチェーンのオプション
 	/// @param rtvDesc RTVのオプション
 	/// @param cbvSrvUavDescriptorHeap CBV/SRV/UAV用のディスクリプタヒープ
-	static void Initialize(HWND hwnd, const Microsoft::WRL::ComPtr<ID3D12Device> &device, const DXGI_SWAP_CHAIN_DESC1 &swapChainDesc, const D3D12_RENDER_TARGET_VIEW_DESC &rtvDesc, DescriptorHeap &cbvSrvUavDescriptorHeap, std::ofstream &logStream);
+	static void Initialize(HWND hwnd, const Microsoft::WRL::ComPtr<ID3D12Device> &device, const Microsoft::WRL::ComPtr<ID3D12CommandQueue> &commandQueue, const DXGI_SWAP_CHAIN_DESC1 &swapChainDesc, const D3D12_RENDER_TARGET_VIEW_DESC &rtvDesc, const D3D12_DEPTH_STENCIL_VIEW_DESC &dsvDesc, DescriptorHeap &cbvSrvUavDescriptorHeap, std::ofstream &logStream);
 
 	/// @brief ImGuiの開始
 	static void Begin();
 	
 	/// @brief ImGuiの終了
+	static void End();
+
+	/// @brief ImGuiの描画
 	/// @param commandList コマンドリスト
-	static void Render(const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> &commandList);
+	static void Draw(const Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> &commandList);
 
 	/// @brief ImGuiの終了
 	static void Finalize();
@@ -38,4 +41,11 @@ struct ImGuiManager final {
 	/// @param items アイテム名リスト
 	/// @return 選択されたらtrueを返す
 	static bool Combo(const std::string &label, uint32_t &current_item, const std::vector<std::string> &items);
+
+private:
+	/// @brief ImGuiのコンテキスト
+	struct ImGuiDescriptorContext {
+		DescriptorHeap *cbvSrvUavDescriptorHeap = nullptr;	// CBV/SRV/UAV用のディスクリプタヒープ
+		std::ofstream *logStream = nullptr;					// ログストリーム
+	};
 };

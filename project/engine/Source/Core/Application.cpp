@@ -84,21 +84,23 @@ void Application::Run() {
 
 		sceneManager_->Update();	// 更新処理
 
-		device_->NewFrame();	// 描画開始処理
-
-		renderer_->Render();	// 描画処理
-
 		cpuTimer.End();	// CPUタイマーの終了
 
 #ifdef USE_IMGUI
 		ImGui::Text("CPU Time: %.2f ms", cpuTimer.GetMs());	// CPUタイマーの結果をImGuiに表示
 #endif // USE_IMGUI
 
+		ImGuiManager::End();	// ImGuiの終了処理
+
+		device_->NewFrame();	// 描画開始処理
+
+		renderer_->Render();	// 描画処理
+
 		device_->SetupSwapChain();	// スワップチェーンの設定
 
 		renderer_->CopyImage();	// 画像のコピー
 
-		ImGuiManager::Render(device_->GetCommandList());	// ImGuiの描画
+		ImGuiManager::Draw(device_->GetCommandList());	// ImGuiの描画
 
 		device_->EndFrame();	// 描画終了処理
 	}

@@ -33,6 +33,7 @@ namespace {
 		"GrayScale",
 		"Vignette",
 		"BoxFilter",
+		"GaussianFilter"
 	};
 }
 
@@ -63,6 +64,8 @@ World::World(Device *device, std::ofstream &logStream) {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kVignetteParam)]->SetName("VignetteParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kBoxFilterParam)]->Initialize(device, sizeof(BoxFilterParam), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kBoxFilterParam)]->SetName("BoxFilterParam");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGaussianFilterParam)]->Initialize(device, sizeof(GaussianFilterParam), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGaussianFilterParam)]->SetName("GaussianFilterParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->Initialize(device, sizeof(FootprintMap), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->SetName("FootprintMap");
 
@@ -74,6 +77,9 @@ World::World(Device *device, std::ofstream &logStream) {
 
 	// BoxFilter用のパラメータの初期データ設定
 	boxFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
+
+	// GaussianFilter用のパラメータの初期データ設定
+	gaussianFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
 
 	// 構造化バッファの初期化
 	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kLine)] = Resource::CreateUploadBuffer(device, sizeof(Rendering::Line) * kMaxLine);
@@ -341,6 +347,7 @@ void World::Update() {
 	TransferGrayscaleColor();
 	TransferVignetteParam();
 	TransferBoxFilterParam();
+	TransferGaussianFilterParam();
 	TransferFootprint();
 	TransferFootprintMap();
 }
@@ -399,6 +406,16 @@ void World::Edit() {
 		ImGui::DragInt("KernelRadius", &boxFilterParam_.kernelRadius, 1.0f, 1, 16);
 		if (ImGui::Button("Reset")) {
 			boxFilterParam_.kernelRadius = 1;
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("GaussianFilter")) {
+		ImGui::DragInt("KernelRadius", &gaussianFilterParam_.kernelRadius, 1.0f, 1, 16);
+		ImGui::DragFloat("Sigma", &gaussianFilterParam_.sigma, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		if (ImGui::Button("Reset")) {
+			gaussianFilterParam_.kernelRadius = 1;
+			gaussianFilterParam_.sigma = 2.0f;
 		}
 		ImGui::TreePop();
 	}
@@ -502,6 +519,10 @@ void World::TransferVignetteParam() {
 
 void World::TransferBoxFilterParam() {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kBoxFilterParam)]->CopyData(&boxFilterParam_, sizeof(BoxFilterParam), 0);
+}
+
+void World::TransferGaussianFilterParam() {
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGaussianFilterParam)]->CopyData(&gaussianFilterParam_, sizeof(GaussianFilterParam), 0);
 }
 
 void World::TransferFootprint() {

@@ -35,21 +35,28 @@ struct LightCount final {
 
 /// @brief グレースケールカラー
 struct GrayscaleColor final {
-	float r = 0.0f;	// 赤
-	float g = 0.0f;	// 緑
-	float b = 0.0f;	// 青
+	float r = 1.0f;	// 赤
+	float g = 1.0f;	// 緑
+	float b = 1.0f;	// 青
 };
 
 /// @brief ビネットパラメータ
 struct VignetteParam final {
-	float scale = 0.0f;		// 倍率
-	float intensity = 0.0f;	// 強さ
+	float scale = 16.0f;	// 倍率
+	float intensity = 0.8f;	// 強さ
 };
 
 /// @brief ボックスフィルターパラメータ
 struct BoxFilterParam final {
-	int32_t kernelRadius = 0;	// カーネル半径
+	int32_t kernelRadius = 1;	// カーネル半径
 	Vector2 texelSize;			// テクセルサイズ
+};
+
+/// @brief ガウシアンフィルターパラメータ
+struct GaussianFilterParam final {
+	int32_t kernelRadius = 1;	// カーネル半径
+	Vector2 texelSize;			// テクセルサイズ
+	float sigma = 2.0f;			// 標準偏差
 };
 
 /// @brief int型4要素ベクトル
@@ -78,6 +85,7 @@ enum class ConstantBufferType {
 	kGrayscaleColor,			// グレースケールカラー
 	kVignetteParam,				// ビネットパラメータ
 	kBoxFilterParam,			// ボックスフィルターパラメータ
+	kGaussianFilterParam,		// ガウシアンフィルターパラメータ
 	kFootprintMap,				// フットプリントマップ
 	kCountOfConstantBufferType	// 定数バッファの種類の数
 };
@@ -100,6 +108,7 @@ enum class PostEffect {
 	kGrayscale,			// グレースケール
 	kVignette,			// ビネット
 	kBoxFilter,			// ボックスフィルター
+	kGaussianFilter,	// ガウシアンフィルター
 	kCountOfPostEffect	// ポストエフェクトの数
 };
 
@@ -280,53 +289,54 @@ public:
 private:
 	using ConstantBuffers = std::array<std::unique_ptr<ConstantBuffer>, static_cast<size_t>(ConstantBufferType::kCountOfConstantBufferType)>;
 	using StructuredBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
-	static inline constexpr uint32_t kMaxObject = 1048576;									// 最大オブジェクト数
-	static inline constexpr uint32_t kMaxLine = 65536;										// 最大ライン数
-	static inline constexpr uint32_t kMaxPointLight = 32;									// 最大点光源数
-	static inline constexpr uint32_t kMaxSpotLight = 32;									// 最大スポットライト数
-	static inline constexpr uint32_t kMaxAABB = 1048576;									// 最大AABB数
-	static inline constexpr uint32_t kMaxFootprint = 64;									// 最大フットプリント数
-	static inline constexpr uint32_t kMaxCommandPerQueue = 1024;							// コマンドキューあたりの最大コマンド数
-	Registry *registry_ = nullptr;															// レジストリ
-	ConstantBuffers constantBuffers_;														// 定数バッファリスト
-	StructuredBuffers structuredBuffers_;													// 構造化バッファリスト
-	std::unique_ptr<Resource> renderTexture_ = nullptr;										// レンダーテクスチャ
-	std::unique_ptr<Resource> hiZTexture_ = nullptr;										// Hi-Zテクスチャ
-	std::unique_ptr<Resource> commandBufferUpload_ = nullptr;								// コマンドバッファアップロード用
-	std::unique_ptr<Resource> processedCommandBuffer_ = nullptr;							// カリング済みコマンドバッファ
-	std::unique_ptr<Resource> commandCounterBuffer_ = nullptr;								// コマンドカウンターバッファ
-	std::unique_ptr<Resource> footprintMapBuffer_ = nullptr;								// フットプリントマップバッファ
-	std::unique_ptr<Resource> footprintMapReadbackBuffer_ = nullptr;						// フットプリントマップ読み戻しバッファ
-	QueueOffsets queueOffsets_;																// キューオフセットリスト
-	GrayscaleColor grayscaleColor_ = { .r = 1.0f, .g = 1.0f, .b = 1.0f };					// グレースケールカラー
-	VignetteParam vignetteParam_ = { .scale = 16.0f, .intensity = 0.8f };					// ビネットパラメータ
-	BoxFilterParam boxFilterParam_ = { .kernelRadius = 1, .texelSize = { 0.0f, 0.0f } };	// ボックスフィルターパラメータ
-	FootprintForGPU *footprintData_ = nullptr;												// フットプリントデータ
-	Int4 *colorData_ = nullptr;																// 色データ
-	Rendering::Line *lineData_ = nullptr;													// ラインデータ
-	PointLight *pointLightData_ = nullptr;													// 点光源データ
-	SpotLight *spotLightData_ = nullptr;													// スポットライトデータ
-	uint32_t mipLevels_ = 0;																// ミップレベル数
-	uint32_t renderTextureRTVHandle_ = 0;													// レンダーテクスチャRTVハンドル
-	uint32_t renderTextureSRVHandle_ = 0;													// レンダーテクスチャSRVハンドル
-	std::vector<uint32_t> hiZMipMapReadHandles_;											// Hi-Zミップマップ読み取りハンドル
-	std::vector<uint32_t> hiZMipMapWriteHandles_;											// Hi-Zミップマップ書き込みハンドル
-	uint32_t hiZTextureHandle_ = 0;															// Hi-Zテクスチャハンドル
-	uint32_t depthStencilCopySourceHandle_ = 0;												// 深度ステンシルコピー元ハンドル
-	uint32_t depthStencilCopyDestHandle_ = 0;												// 深度ステンシルコピー先ハンドル
-	uint32_t processedCommandHandle_ = 0;													// カリング済みコマンドハンドル
-	uint32_t commandCounterHandle_ = 0;														// コマンドカウンターハンドル
-	uint32_t footprintHandle_ = 0;															// フットプリントハンドル
-	uint32_t footprintMapHandle_ = 0;														// フットプリントマップハンドル
-	uint32_t lineHandle_ = 0;																// ラインハンドル
-	uint32_t pointLightHandle_ = 0;															// 点光源ハンドル
-	uint32_t spotLightHandle_ = 0;															// スポットライトハンドル
-	uint32_t cullingObjectHandle_ = 0;														// カリングオブジェクトハンドル
-	uint32_t cullingMeshHandle_ = 0;														// カリングメッシュハンドル
-	uint32_t meshLODHandle_ = 0;															// メッシュLODハンドル
-	PostEffect postEffect_ = PostEffect::kNone;												// ポストエフェクト
-	bool isCulling_ = false;																// カリング有効フラグ
-	bool isResult_ = false;																	// 結果表示フラグ
+	static inline constexpr uint32_t kMaxObject = 1048576;				// 最大オブジェクト数
+	static inline constexpr uint32_t kMaxLine = 65536;					// 最大ライン数
+	static inline constexpr uint32_t kMaxPointLight = 32;				// 最大点光源数
+	static inline constexpr uint32_t kMaxSpotLight = 32;				// 最大スポットライト数
+	static inline constexpr uint32_t kMaxAABB = 1048576;				// 最大AABB数
+	static inline constexpr uint32_t kMaxFootprint = 64;				// 最大フットプリント数
+	static inline constexpr uint32_t kMaxCommandPerQueue = 1024;		// コマンドキューあたりの最大コマンド数
+	Registry *registry_ = nullptr;										// レジストリ
+	ConstantBuffers constantBuffers_;									// 定数バッファリスト
+	StructuredBuffers structuredBuffers_;								// 構造化バッファリスト
+	std::unique_ptr<Resource> renderTexture_ = nullptr;					// レンダーテクスチャ
+	std::unique_ptr<Resource> hiZTexture_ = nullptr;					// Hi-Zテクスチャ
+	std::unique_ptr<Resource> commandBufferUpload_ = nullptr;			// コマンドバッファアップロード用
+	std::unique_ptr<Resource> processedCommandBuffer_ = nullptr;		// カリング済みコマンドバッファ
+	std::unique_ptr<Resource> commandCounterBuffer_ = nullptr;			// コマンドカウンターバッファ
+	std::unique_ptr<Resource> footprintMapBuffer_ = nullptr;			// フットプリントマップバッファ
+	std::unique_ptr<Resource> footprintMapReadbackBuffer_ = nullptr;	// フットプリントマップ読み戻しバッファ
+	QueueOffsets queueOffsets_;											// キューオフセットリスト
+	GrayscaleColor grayscaleColor_;										// グレースケールカラー
+	VignetteParam vignetteParam_;										// ビネットパラメータ
+	BoxFilterParam boxFilterParam_;										// ボックスフィルターパラメータ
+	GaussianFilterParam gaussianFilterParam_;							// ガウシアンフィルターパラメータ
+	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
+	Int4 *colorData_ = nullptr;											// 色データ
+	Rendering::Line *lineData_ = nullptr;								// ラインデータ
+	PointLight *pointLightData_ = nullptr;								// 点光源データ
+	SpotLight *spotLightData_ = nullptr;								// スポットライトデータ
+	uint32_t mipLevels_ = 0;											// ミップレベル数
+	uint32_t renderTextureRTVHandle_ = 0;								// レンダーテクスチャRTVハンドル
+	uint32_t renderTextureSRVHandle_ = 0;								// レンダーテクスチャSRVハンドル
+	std::vector<uint32_t> hiZMipMapReadHandles_;						// Hi-Zミップマップ読み取りハンドル
+	std::vector<uint32_t> hiZMipMapWriteHandles_;						// Hi-Zミップマップ書き込みハンドル
+	uint32_t hiZTextureHandle_ = 0;										// Hi-Zテクスチャハンドル
+	uint32_t depthStencilCopySourceHandle_ = 0;							// 深度ステンシルコピー元ハンドル
+	uint32_t depthStencilCopyDestHandle_ = 0;							// 深度ステンシルコピー先ハンドル
+	uint32_t processedCommandHandle_ = 0;								// カリング済みコマンドハンドル
+	uint32_t commandCounterHandle_ = 0;									// コマンドカウンターハンドル
+	uint32_t footprintHandle_ = 0;										// フットプリントハンドル
+	uint32_t footprintMapHandle_ = 0;									// フットプリントマップハンドル
+	uint32_t lineHandle_ = 0;											// ラインハンドル
+	uint32_t pointLightHandle_ = 0;										// 点光源ハンドル
+	uint32_t spotLightHandle_ = 0;										// スポットライトハンドル
+	uint32_t cullingObjectHandle_ = 0;									// カリングオブジェクトハンドル
+	uint32_t cullingMeshHandle_ = 0;									// カリングメッシュハンドル
+	uint32_t meshLODHandle_ = 0;										// メッシュLODハンドル
+	PostEffect postEffect_ = PostEffect::kNone;							// ポストエフェクト
+	bool isCulling_ = false;											// カリング有効フラグ
+	bool isResult_ = false;												// 結果表示フラグ
 
 	/// @brief 平行光源の転送
 	void TransferDirectionalLight();
@@ -354,6 +364,9 @@ private:
 
 	/// @brief ボックスフィルターパラメータの転送
 	void TransferBoxFilterParam();
+	
+	/// @brief ガウシアンフィルターパラメータの転送
+	void TransferGaussianFilterParam();
 
 	/// @brief フットプリントの転送
 	void TransferFootprint();

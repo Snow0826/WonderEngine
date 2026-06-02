@@ -114,6 +114,10 @@ public:
 	/// @return BoxFilter用ルートシグネチャ
 	ID3D12RootSignature *GetBoxFilterRootSignature() const { return boxFilterRootSignature_.Get(); }
 
+	/// @brief GaussianFilter用ルートシグネチャを取得
+	/// @return GaussianFilter用ルートシグネチャ
+	ID3D12RootSignature *GetGaussianFilterRootSignature() const { return gaussianFilterRootSignature_.Get(); }
+
 	/// @brief 深度ステンシルテクスチャコピー用ルートシグネチャを取得
 	/// @return 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *GetDepthStencilCopyRootSignature() const { return depthStencilCopyRootSignature_.Get(); }
@@ -166,6 +170,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> grayscaleRootSignature_ = nullptr;			// Grayscale用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> vignetteRootSignature_ = nullptr;			// Vignette用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> boxFilterRootSignature_ = nullptr;			// BoxFilter用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> gaussianFilterRootSignature_ = nullptr;		// GaussianFilter用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthStencilCopyRootSignature_ = nullptr;	// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> generateHiZMipMapRootSignature_ = nullptr;	// HiZミップマップ生成用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> occlusionCullingRootSignature_ = nullptr;	// オクルージョンカリング用ルートシグネチャ

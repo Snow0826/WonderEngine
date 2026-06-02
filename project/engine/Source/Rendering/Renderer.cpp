@@ -60,6 +60,7 @@ Renderer::Renderer(Device *device)
 	, grayscaleRootSignature_(device->GetGrayscaleRootSignature())
 	, vignetteRootSignature_(device->GetVignetteRootSignature())
 	, boxFilterRootSignature_(device->GetBoxFilterRootSignature())
+	, gaussianFilterRootSignature_(device->GetGaussianFilterRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
@@ -205,6 +206,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// BoxFilterのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> boxFilterPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/BoxFilter.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(boxFilterPSBlob);
+	
+	// GaussianFilterのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> gaussianFilterPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/GaussianFilter.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(gaussianFilterPSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -365,6 +370,19 @@ void Renderer::Initialize(std::ofstream &logStream) {
 		.Create(device_->GetDevice(), boxFilterRootSignature_);
 	Logger::Log(logStream, "Create BoxFilterPipelineState\n");
 	boxFilterPipelineState_->SetName(L"BoxFilterPipelineState");
+	
+	// GaussianFilter用パイプラインステートの生成
+	gaussianFilterPipelineState_ = PipelineState()
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)												// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])						// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)																// RasterizerState
+		.SetDepthState({ .DepthEnable = false })															// DepthStencilState
+		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())			// 頂点シェーダー
+		.SetPixelShader(gaussianFilterPSBlob->GetBufferPointer(), gaussianFilterPSBlob->GetBufferSize())	// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)									// プリミティブトポロジー
+		.Create(device_->GetDevice(), gaussianFilterRootSignature_);
+	Logger::Log(logStream, "Create GaussianFilterPipelineState\n");
+	gaussianFilterPipelineState_->SetName(L"GaussianFilterPipelineState");
 
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
@@ -552,6 +570,12 @@ void Renderer::CopyImage() {
 			commandList_->SetGraphicsRootSignature(boxFilterRootSignature_);
 			commandList_->SetPipelineState(boxFilterPipelineState_.Get());
 			world_->GetConstantBuffer(ConstantBufferType::kBoxFilterParam)->BindToGraphics(0, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetRenderTextureSRVHandle());
+			break;
+		case PostEffect::kGaussianFilter:
+			commandList_->SetGraphicsRootSignature(gaussianFilterRootSignature_);
+			commandList_->SetPipelineState(gaussianFilterPipelineState_.Get());
+			world_->GetConstantBuffer(ConstantBufferType::kGaussianFilterParam)->BindToGraphics(0, 0);
 			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetRenderTextureSRVHandle());
 			break;
 		case PostEffect::kCountOfPostEffect:

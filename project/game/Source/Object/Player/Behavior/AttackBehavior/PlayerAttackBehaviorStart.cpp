@@ -26,14 +26,14 @@ void PlayerAttackBehaviorStart::Update() {
 	Registry *registry = player->GetRegistry();
 
 	// 左腕の更新
-	Transform *leftArmTransform = registry->GetComponent<Transform>(player->GetPartsEntity(Player::PartsType::kLeftArm));
+	EulerTransform *leftArmTransform = registry->GetComponent<EulerTransform>(player->GetPartsEntity(Player::PartsType::kLeftArm));
 	if (leftArmTransform) {
 		leftArmTransform->rotate = Easing<Vector3>::InCirc(playerBehaviorAttack->GetLeftArmRotate(), kLeftArmAttackRotate, startAttackTimer_, kStartAttackDuration);
 		leftArmTransform->translate = Easing<Vector3>::InCirc(playerBehaviorAttack->GetLeftArmTranslate(), kLeftArmAttackTranslate, startAttackTimer_, kStartAttackDuration);
 	}
 
 	// 右腕の更新
-	Transform *rightArmTransform = registry->GetComponent<Transform>(player->GetPartsEntity(Player::PartsType::kRightArm));
+	EulerTransform *rightArmTransform = registry->GetComponent<EulerTransform>(player->GetPartsEntity(Player::PartsType::kRightArm));
 	if (rightArmTransform) {
 		rightArmTransform->rotate = Easing<Vector3>::InCirc(playerBehaviorAttack->GetRightArmRotate(), kRightArmAttackRotate, startAttackTimer_, kStartAttackDuration);
 		rightArmTransform->translate = Easing<Vector3>::InCirc(playerBehaviorAttack->GetRightArmTranslate(), kRightArmAttackTranslate, startAttackTimer_, kStartAttackDuration);

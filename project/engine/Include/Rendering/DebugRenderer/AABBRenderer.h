@@ -4,9 +4,6 @@
 /// @brief AABBレンダラー
 struct AABBRenderer final {};
 
-/// @brief AABBコライダー
-struct AABBCollider final {};
-
 class Registry;
 class DebugRenderer;
 

@@ -23,6 +23,7 @@
 #include "SpotLight.h"
 #include "RigidBody.h"
 #include "Footprint.h"
+#include "CollisionSystem.h"
 #include "AABBRenderer.h"
 #include "SphereRenderer.h"
 #include "PlaneRenderer.h"
@@ -86,6 +87,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	transformSystem_ = std::make_unique<TransformSystem>(registry_.get());
 	cameraSystem_ = std::make_unique<CameraSystem>(registry_.get());
 	physicalSystem_ = std::make_unique<PhysicalSystem>(registry_.get());
+	collisionSystem_ = std::make_unique<CollisionSystem>(registry_.get());
 	animationSystem_ = std::make_unique<AnimationSystem>(registry_.get());
 	aabbRenderSystem_ = std::make_unique<AABBRenderSystem>(registry_.get(), debugRenderer_.get());
 	sphereRenderSystem_ = std::make_unique<SphereRenderSystem>(registry_.get(), debugRenderer_.get());
@@ -125,7 +127,8 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	componentDrawerRegistry_->RegisterComponentDrawer<ParticleGroup>([this](uint32_t entity) { particleGroupInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Emitter>([this](uint32_t entity) { emitterInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Field>([this](uint32_t entity) { fieldInspector_->Draw(entity); });
-	componentDrawerRegistry_->RegisterComponentDrawer<Transform>([this](uint32_t entity) { transformInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<EulerTransform>([this](uint32_t entity) { transformInspector_->DrawEulerTransform(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<QuaternionTransform>([this](uint32_t entity) { transformInspector_->DrawQuaternionTransform(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<UVTransform>([this](uint32_t entity) { uvTransformInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Material>([this](uint32_t entity) { materialInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Camera>([this](uint32_t entity) { cameraInspector_->Draw(entity); });
@@ -145,6 +148,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	componentDrawerRegistry_->RegisterTagComponent<HasParent>("HasParent");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyTransform>("DirtyTransform");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyMaterial>("DirtyMaterial");
+	componentDrawerRegistry_->RegisterTagComponent<NoCollision>("SkeletonRenderer");
 	componentDrawerRegistry_->RegisterTagComponent<AABBRenderer>("AABBRenderer");
 	componentDrawerRegistry_->RegisterTagComponent<SphereRenderer>("SphereRenderer");
 	componentDrawerRegistry_->RegisterTagComponent<PlaneRenderer>("PlaneRenderer");
@@ -165,7 +169,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	// メインカメラの生成と初期化
 	cameraEntities_[mainCameraType_] = registry_->GenerateEntity();
 	registry_->AddComponent(cameraEntities_[mainCameraType_], Camera{});
-	registry_->AddComponent(cameraEntities_[mainCameraType_], Transform{ .translate = { .y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({ .y = 5.0f, .z = -10.0f }, {}, { .y = 1.0f }) });
+	registry_->AddComponent(cameraEntities_[mainCameraType_], QuaternionTransform{ .translate = { .y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({ .y = 5.0f, .z = -10.0f }, {}, { .y = 1.0f }) });
 	registry_->AddComponent(cameraEntities_[mainCameraType_], RenderingCamera{});
 	registry_->AddComponent(cameraEntities_[mainCameraType_], CullingCamera{});
 	registry_->AddComponent(cameraEntities_[mainCameraType_], FrustumRenderer{});
@@ -174,7 +178,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	// セカンダリカメラの生成と初期化
 	cameraEntities_[secondaryCameraType_] = registry_->GenerateEntity();
 	registry_->AddComponent(cameraEntities_[secondaryCameraType_], Camera{});
-	registry_->AddComponent(cameraEntities_[secondaryCameraType_], Transform{ .translate = { .y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({ .y = 5.0f, .z = -10.0f }, {}, { .y = 1.0f }) });
+	registry_->AddComponent(cameraEntities_[secondaryCameraType_], QuaternionTransform{ .translate = { .y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({ .y = 5.0f, .z = -10.0f }, {}, { .y = 1.0f }) });
 	transformSystem_->MarkDirty(cameraEntities_[secondaryCameraType_]);
 
 	// 平行光源の生成と初期化
@@ -271,6 +275,9 @@ void BaseScene::Update() {
 
 	// ワールド行列の更新
 	transformSystem_->UpdateWorldMatrix();
+
+	// コリジョンシステムの更新
+	collisionSystem_->Update();
 
 	// カリングデータの更新
 	indirectCommandManager_->UpdateCullingData();

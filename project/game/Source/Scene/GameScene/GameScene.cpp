@@ -139,7 +139,7 @@ void GameScene::OnInitialize() {
 	registry_->AddComponent(uiEntity_, BlendMode::kBlendModeNormal);
 	registry_->AddComponent(uiEntity_, objectManager_->CreateObject(uiEntity_));
 	registry_->AddComponent(uiEntity_, spriteManager_->CreateSprite("UI.png"));
-	registry_->AddComponent(uiEntity_, Transform{});
+	registry_->AddComponent(uiEntity_, EulerTransform{});
 	registry_->AddComponent(uiEntity_, Material{ .enableLighting = false });
 
 	// Xスプライトの初期化
@@ -152,7 +152,7 @@ void GameScene::OnInitialize() {
 	registry_->AddComponent(xEntity_, BlendMode::kBlendModeNormal);
 	registry_->AddComponent(xEntity_, objectManager_->CreateObject(xEntity_));
 	registry_->AddComponent(xEntity_, sprite);
-	registry_->AddComponent(xEntity_, Transform{});
+	registry_->AddComponent(xEntity_, EulerTransform{});
 	registry_->AddComponent(xEntity_, Material{ .enableLighting = false });
 
 	// Aスプライトの初期化
@@ -165,7 +165,7 @@ void GameScene::OnInitialize() {
 	registry_->AddComponent(aEntity_, BlendMode::kBlendModeNormal);
 	registry_->AddComponent(aEntity_, objectManager_->CreateObject(aEntity_));
 	registry_->AddComponent(aEntity_, sprite);
-	registry_->AddComponent(aEntity_, Transform{});
+	registry_->AddComponent(aEntity_, EulerTransform{});
 	registry_->AddComponent(aEntity_, Material{ .enableLighting = false });
 
 	// RBスプライトの初期化
@@ -178,31 +178,27 @@ void GameScene::OnInitialize() {
 	registry_->AddComponent(rbEntity_, BlendMode::kBlendModeNormal);
 	registry_->AddComponent(rbEntity_, objectManager_->CreateObject(rbEntity_));
 	registry_->AddComponent(rbEntity_, sprite);
-	registry_->AddComponent(rbEntity_, Transform{});
+	registry_->AddComponent(rbEntity_, EulerTransform{});
 	registry_->AddComponent(rbEntity_, Material{ .enableLighting = false });
 
 	// 左壁の当たり判定の作成
 	uint32_t wallEntity = registry_->GenerateEntity();
 	registry_->AddComponent(wallEntity, Collision::Plane{ .normal = {1.0f, 0.0f, 0.0f}, .distance = -256.0f });
-	registry_->AddComponent(wallEntity, PlaneCollider{});
 	registry_->AddComponent(wallEntity, PlaneRenderer{});
 
 	// 右壁の当たり判定の作成
 	wallEntity = registry_->GenerateEntity();
 	registry_->AddComponent(wallEntity, Collision::Plane{ .normal = {-1.0f, 0.0f, 0.0f}, .distance = -256.0f });
-	registry_->AddComponent(wallEntity, PlaneCollider{});
 	registry_->AddComponent(wallEntity, PlaneRenderer{});
 
 	// 前壁の当たり判定の作成
 	wallEntity = registry_->GenerateEntity();
 	registry_->AddComponent(wallEntity, Collision::Plane{ .normal = {0.0f, 0.0f, 1.0f}, .distance = -256.0f });
-	registry_->AddComponent(wallEntity, PlaneCollider{});
 	registry_->AddComponent(wallEntity, PlaneRenderer{});
 
 	// 後壁の当たり判定の作成
 	wallEntity = registry_->GenerateEntity();
 	registry_->AddComponent(wallEntity, Collision::Plane{ .normal = {0.0f, 0.0f, -1.0f}, .distance = -256.0f });
-	registry_->AddComponent(wallEntity, PlaneCollider{});
 	registry_->AddComponent(wallEntity, PlaneRenderer{});
 
 	// 平行光源の設定
@@ -251,92 +247,77 @@ void GameScene::OnAfterTransform() {
 }
 
 void GameScene::CheckAllCollisions() const {
-	Model *playerBodyModel = registry_->GetComponent<Model>(player_->GetPartsEntity(Player::PartsType::kBody));
-	Model *playerLeftArmModel = registry_->GetComponent<Model>(player_->GetPartsEntity(Player::PartsType::kLeftArm));
-	Model *playerRightArmModel = registry_->GetComponent<Model>(player_->GetPartsEntity(Player::PartsType::kRightArm));
+	Collision::Sphere *playerBodySphere = registry_->GetComponent<Collision::Sphere>(player_->GetPartsEntity(Player::PartsType::kBody));
+	Collision::Sphere *playerLeftArmSphere = registry_->GetComponent<Collision::Sphere>(player_->GetPartsEntity(Player::PartsType::kLeftArm));
+	Collision::Sphere *playerRightArmSphere = registry_->GetComponent<Collision::Sphere>(player_->GetPartsEntity(Player::PartsType::kRightArm));
 	Collision::Sphere *playerAttackParticleSphere = registry_->GetComponent<Collision::Sphere>(player_->GetAttackParticleEntity());
 
 #pragma region プレイヤーと地面の衝突判定
-	if (playerBodyModel &&
-		!registry_->HasComponent<Disabled>(player_->GetPartsEntity(Player::PartsType::kBody)) &&
-		registry_->HasComponent<SphereCollider>(player_->GetPartsEntity(Player::PartsType::kBody))) {
-		for (const MeshData &playerMesh : playerBodyModel->modelData.meshes) {
-			registry_->ForEach<Collision::Plane, PlaneCollider>([&](uint32_t entity, Collision::Plane *plane, PlaneCollider *planeCollider) {
-				if (IsCollision(playerMesh.sphere, *plane)) {
-					player_->OnCollision(*plane);
-				}
-				}, exclude<Disabled>());
-		}
+	if (playerBodySphere && !registry_->HasComponent<Disabled>(player_->GetPartsEntity(Player::PartsType::kBody))) {
+		registry_->ForEach<Collision::Plane>([&](uint32_t entity, Collision::Plane *plane) {
+			if (IsCollision(*playerBodySphere, *plane)) {
+				player_->OnCollision(*plane);
+			}
+			}, exclude<Disabled>());
 	}
 #pragma endregion
 
 #pragma region プレイヤーと建物の衝突判定
-	if (playerBodyModel &&
-		!registry_->HasComponent<Disabled>(player_->GetPartsEntity(Player::PartsType::kBody)) &&
-		registry_->HasComponent<SphereCollider>(player_->GetPartsEntity(Player::PartsType::kBody))) {
-		for (const MeshData &playerMesh : playerBodyModel->modelData.meshes) {
-			registry_->ForEach<Model, AABBCollider>([&](uint32_t entity, Model *model, AABBCollider *aabbCollider) {
-				for (const MeshData &mesh : model->modelData.meshes) {
-					if (IsCollision(playerMesh.sphere, mesh.aabb)) {
-						player_->OnCollision(mesh.aabb);
-					}
-				}
-				}, exclude<Disabled>());
-		}
+	if (playerBodySphere && !registry_->HasComponent<Disabled>(player_->GetPartsEntity(Player::PartsType::kBody))) {
+		registry_->ForEach<Collision::AABB>([&](uint32_t entity, Collision::AABB *aabb) {
+			if (IsCollision(*playerBodySphere, *aabb)) {
+				player_->OnCollision(*aabb);
+			}
+			}, exclude<Disabled>());
 	}
 #pragma endregion
 
 #pragma region 敵と地面の衝突判定
 	for (auto &enemy : enemies_) {
-		Model *enemyModel = registry_->GetComponent<Model>(enemy->GetEnemyEntity());
-		if (enemyModel &&
-			!registry_->HasComponent<Disabled>(enemy->GetEnemyEntity()) &&
-			registry_->HasComponent<SphereCollider>(enemy->GetEnemyEntity())) {
-			for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
-				registry_->ForEach<Collision::Plane, PlaneCollider>([&](uint32_t entity, Collision::Plane *plane, PlaneCollider *planeCollider) {
-					if (IsCollision(enemyMesh.sphere, *plane)) {
-						enemy->OnCollision(*plane);
-					}
-					}, exclude<Disabled>());
-			}
+		Collision::Sphere *enemySphere = registry_->GetComponent<Collision::Sphere>(enemy->GetEnemyEntity());
+		if (enemySphere && !registry_->HasComponent<Disabled>(enemy->GetEnemyEntity())) {
+			registry_->ForEach<Collision::Plane>([&](uint32_t entity, Collision::Plane *plane) {
+				if (IsCollision(*enemySphere, *plane)) {
+					enemy->OnCollision(*plane);
+				}
+				}, exclude<Disabled>());
 		}
 	}
 #pragma endregion
 
 #pragma region 敵と建物の衝突判定
 	for (auto &enemy : enemies_) {
-		Model *enemyModel = registry_->GetComponent<Model>(enemy->GetEnemyEntity());
-		if (enemyModel &&
-			!registry_->HasComponent<Disabled>(enemy->GetEnemyEntity()) &&
-			registry_->HasComponent<SphereCollider>(enemy->GetEnemyEntity())) {
-			for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
-				registry_->ForEach<Model, AABBCollider>([&](uint32_t entity, Model *model, AABBCollider *aabbCollider) {
-					for (const MeshData &mesh : model->modelData.meshes) {
-						if (IsCollision(enemyMesh.sphere, mesh.aabb)) {
-							enemy->OnCollision(mesh.aabb);
-						}
-					}
-					}, exclude<Disabled>());
+		Collision::Sphere *enemySphere = registry_->GetComponent<Collision::Sphere>(enemy->GetEnemyEntity());
+		if (enemySphere && !registry_->HasComponent<Disabled>(enemy->GetEnemyEntity())) {
+			registry_->ForEach<Collision::AABB>([&](uint32_t entity, Collision::AABB *aabb) {
+				if (IsCollision(*enemySphere, *aabb)) {
+					enemy->OnCollision(*aabb);
+				}
+				}, exclude<Disabled>());
+		}
+	}
+#pragma endregion
+
+#pragma region プレイヤーと敵の衝突判定
+	if (playerBodySphere && !registry_->HasComponent<Disabled>(player_->GetPartsEntity(Player::PartsType::kBody))) {
+		for (auto &enemy : enemies_) {
+			Collision::Sphere *enemySphere = registry_->GetComponent<Collision::Sphere>(enemy->GetEnemyEntity());
+			if (enemySphere && !registry_->HasComponent<Disabled>(enemy->GetEnemyEntity())) {
+				if (IsCollision(*playerBodySphere, *enemySphere)) {
+					player_->OnCollision();
+				}
 			}
 		}
 	}
 #pragma endregion
 
 #pragma region プレイヤーと敵の衝突判定
-	if (playerBodyModel &&
-		!registry_->HasComponent<Disabled>(player_->GetPartsEntity(Player::PartsType::kBody)) &&
-		registry_->HasComponent<SphereCollider>(player_->GetPartsEntity(Player::PartsType::kBody))) {
-		for (const MeshData &playerBodyMesh : playerBodyModel->modelData.meshes) {
-			for (auto &enemy : enemies_) {
-				Model *enemyModel = registry_->GetComponent<Model>(enemy->GetEnemyEntity());
-				if (enemyModel &&
-					!registry_->HasComponent<Disabled>(enemy->GetEnemyEntity()) &&
-					registry_->HasComponent<SphereCollider>(enemy->GetEnemyEntity())) {
-					for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
-						if (IsCollision(playerBodyMesh.sphere, enemyMesh.sphere)) {
-							player_->OnCollision();
-						}
-					}
+	if (playerBodySphere && !registry_->HasComponent<Disabled>(player_->GetPartsEntity(Player::PartsType::kBody))) {
+		for (auto &enemy : enemies_) {
+			Collision::Sphere *enemySphere = registry_->GetComponent<Collision::Sphere>(enemy->GetEnemyEntity());
+			if (enemySphere && !registry_->HasComponent<Disabled>(enemy->GetEnemyEntity())) {
+				if (IsCollision(*playerBodySphere, *enemySphere)) {
+					player_->OnCollision();
 				}
 			}
 		}
@@ -344,20 +325,12 @@ void GameScene::CheckAllCollisions() const {
 #pragma endregion
 
 #pragma region 敵とプレイヤーの左腕の攻撃の衝突判定
-	if (playerLeftArmModel &&
-		!registry_->HasComponent<Disabled>(player_->GetPartsEntity(Player::PartsType::kLeftArm)) &&
-		registry_->HasComponent<SphereCollider>(player_->GetPartsEntity(Player::PartsType::kLeftArm))) {
-		for (const MeshData &playerLeftArmMesh : playerLeftArmModel->modelData.meshes) {
-			for (auto &enemy : enemies_) {
-				Model *enemyModel = registry_->GetComponent<Model>(enemy->GetEnemyEntity());
-				if (enemyModel &&
-					!registry_->HasComponent<Disabled>(enemy->GetEnemyEntity()) &&
-					registry_->HasComponent<SphereCollider>(enemy->GetEnemyEntity())) {
-					for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
-						if (IsCollision(enemyMesh.sphere, playerLeftArmMesh.sphere)) {
-							enemy->OnCollision();
-						}
-					}
+	if (playerLeftArmSphere && !registry_->HasComponent<Disabled>(player_->GetPartsEntity(Player::PartsType::kLeftArm))) {
+		for (auto &enemy : enemies_) {
+			Collision::Sphere *enemySphere = registry_->GetComponent<Collision::Sphere>(enemy->GetEnemyEntity());
+			if (enemySphere && !registry_->HasComponent<Disabled>(enemy->GetEnemyEntity())) {
+				if (IsCollision(*enemySphere, *playerLeftArmSphere)) {
+					enemy->OnCollision();
 				}
 			}
 		}
@@ -365,20 +338,12 @@ void GameScene::CheckAllCollisions() const {
 #pragma endregion
 
 #pragma region 敵とプレイヤーの右腕の攻撃の衝突判定
-	if (playerRightArmModel &&
-		!registry_->HasComponent<Disabled>(player_->GetPartsEntity(Player::PartsType::kRightArm)) &&
-		registry_->HasComponent<SphereCollider>(player_->GetPartsEntity(Player::PartsType::kRightArm))) {
-		for (const MeshData &playerRightArmMesh : playerRightArmModel->modelData.meshes) {
-			for (auto &enemy : enemies_) {
-				Model *enemyModel = registry_->GetComponent<Model>(enemy->GetEnemyEntity());
-				if (enemyModel &&
-					!registry_->HasComponent<Disabled>(enemy->GetEnemyEntity()) &&
-					registry_->HasComponent<SphereCollider>(enemy->GetEnemyEntity())) {
-					for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
-						if (IsCollision(enemyMesh.sphere, playerRightArmMesh.sphere)) {
-							enemy->OnCollision();
-						}
-					}
+	if (playerRightArmSphere && !registry_->HasComponent<Disabled>(player_->GetPartsEntity(Player::PartsType::kRightArm))) {
+		for (auto &enemy : enemies_) {
+			Collision::Sphere *enemySphere = registry_->GetComponent<Collision::Sphere>(enemy->GetEnemyEntity());
+			if (enemySphere && !registry_->HasComponent<Disabled>(enemy->GetEnemyEntity())) {
+				if (IsCollision(*enemySphere, *playerRightArmSphere)) {
+					enemy->OnCollision();
 				}
 			}
 		}
@@ -386,18 +351,12 @@ void GameScene::CheckAllCollisions() const {
 #pragma endregion
 
 #pragma region プレイヤーの攻撃パーティクルと敵の衝突判定
-	if (playerAttackParticleSphere &&
-		!registry_->HasComponent<Disabled>(player_->GetAttackParticleEntity()) &&
-		registry_->HasComponent<SphereCollider>(player_->GetAttackParticleEntity())) {
+	if (playerAttackParticleSphere && !registry_->HasComponent<Disabled>(player_->GetAttackParticleEntity())) {
 		for (auto &enemy : enemies_) {
-			Model *enemyModel = registry_->GetComponent<Model>(enemy->GetEnemyEntity());
-			if (enemyModel &&
-				!registry_->HasComponent<Disabled>(enemy->GetEnemyEntity()) &&
-				registry_->HasComponent<SphereCollider>(enemy->GetEnemyEntity())) {
-				for (const MeshData &enemyMesh : enemyModel->modelData.meshes) {
-					if (IsCollision(enemyMesh.sphere, *playerAttackParticleSphere)) {
-						enemy->OnCollision();
-					}
+			Collision::Sphere *enemySphere = registry_->GetComponent<Collision::Sphere>(enemy->GetEnemyEntity());
+			if (enemySphere && !registry_->HasComponent<Disabled>(enemy->GetEnemyEntity())) {
+				if (IsCollision(*enemySphere, *playerAttackParticleSphere)) {
+					enemy->OnCollision();
 				}
 			}
 		}
@@ -449,13 +408,6 @@ void GameScene::PopEnemy() {
 	spawnPosition += worldPosition + worldPosition.normalized(spawnPosition) * 100.0f;
 	spawnPosition.x = Wrap(spawnPosition.x, -256.0f, 256.0f);
 	spawnPosition.z = Wrap(spawnPosition.z, -256.0f, 256.0f);
-	registry_->ForEach<Model, AABBCollider>([&](uint32_t entity, Model *model, AABBCollider *aabbCollider) {
-		for (const MeshData &mesh : model->modelData.meshes) {
-			if (IsCollision(mesh.aabb, spawnPosition)) {
-				spawnPosition.y = mesh.aabb.max.y;
-			}
-		}
-		}, exclude<Disabled>());
 	enemy->Initialize(spawnPosition);
 	enemy->SetPlayerEntity(player_->GetPartsEntity(Player::PartsType::kBody));
 	enemies_.emplace_back(std::move(enemy));

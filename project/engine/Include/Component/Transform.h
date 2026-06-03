@@ -10,16 +10,26 @@ struct HasParent final {};
 /// @brief 変換データが変更されたフラグ
 struct DirtyTransform final {};
 
-/// @brief 変換データ
-struct Transform final {
-	Vector3 scale = { 1.0f, 1.0f, 1.0f };				// スケール
-	Vector3 rotate = { 0.0f, 0.0f, 0.0f };				// 回転
-	Vector3 translate = { 0.0f, 0.0f, 0.0f };			// 平行移動
-	Vector3 pivot = { 0.0f, 0.0f, 0.0f };				// ピボット（回転中心）
-	Quaternion quaternion = { 0.0f, 0.0f, 0.0f, 1.0f };	// 回転クォータニオン
-	Matrix4x4 rotateMatrix = MakeIdentity4x4();			// 回転行列
-	Matrix4x4 worldMatrix = MakeIdentity4x4();			// ワールド行列
-	uint32_t parentEntity = 0;							// 親エンティティ
+/// @brief オイラー角変換データ
+struct EulerTransform final {
+	Vector3 scale = { 1.0f, 1.0f, 1.0f };		// スケール
+	Vector3 rotate = { 0.0f, 0.0f, 0.0f };		// 回転
+	Vector3 translate = { 0.0f, 0.0f, 0.0f };	// 平行移動
+	Vector3 pivot = { 0.0f, 0.0f, 0.0f };		// ピボット（回転中心）
+	Matrix4x4 rotateMatrix = MakeIdentity4x4();	// 回転行列
+	Matrix4x4 worldMatrix = MakeIdentity4x4();	// ワールド行列
+	uint32_t parentEntity = 0;					// 親エンティティ
+};
+
+/// @brief クォータニオン変換データ
+struct QuaternionTransform final {
+	Vector3 scale = { 1.0f, 1.0f, 1.0f };			// スケール
+	Quaternion rotate = { 0.0f, 0.0f, 0.0f, 1.0f };	// 回転
+	Vector3 translate = { 0.0f, 0.0f, 0.0f };		// 平行移動
+	Vector3 pivot = { 0.0f, 0.0f, 0.0f };			// ピボット（回転中心）
+	Matrix4x4 rotateMatrix = MakeIdentity4x4();		// 回転行列
+	Matrix4x4 worldMatrix = MakeIdentity4x4();		// ワールド行列
+	uint32_t parentEntity = 0;						// 親エンティティ
 };
 
 /// @brief 変換行列データ
@@ -75,9 +85,13 @@ public:
 	/// @param registry レジストリ
 	TransformInspector(Registry *registry) : registry_(registry) {}
 
-	/// @brief 変換データインスペクターの描画
+	/// @brief オイラー角変換データインスペクターの描画
 	/// @param entity エンティティ
-	void Draw(uint32_t entity);
+	void DrawEulerTransform(uint32_t entity);
+
+	/// @brief クォータニオン変換データインスペクターの描画
+	/// @param entity エンティティ
+	void DrawQuaternionTransform(uint32_t entity);
 
 private:
 	Registry *registry_ = nullptr;

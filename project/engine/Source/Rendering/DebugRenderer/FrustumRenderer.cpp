@@ -40,7 +40,7 @@ Frustum MakeFrustum(const ViewProjectionData &viewProjection) {
 
 void FrustumRenderSystem::Update() {
 #ifdef DRAW_LINE
-	registry_->ForEach<Camera, Transform, CullingCamera, FrustumRenderer>([&](uint32_t entity, Camera *camera, Transform *transform, CullingCamera *cullingCamera, FrustumRenderer *frustumRenderer) {
+	registry_->ForEach<Camera, QuaternionTransform, CullingCamera, FrustumRenderer>([&](uint32_t entity, Camera *camera, QuaternionTransform *transform, CullingCamera *cullingCamera, FrustumRenderer *frustumRenderer) {
 		// ビュー行列とプロジェクション行列の計算
 		ViewProjectionData viewProjection = MakeViewProjection(*camera, *transform);
 

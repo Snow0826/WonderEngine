@@ -21,9 +21,9 @@ void GameScenePhaseClearFadeIn::Initialize() {
 	fade->Start(Fade::Status::FadeIn, 1.0f);
 
 	// カメラの位置調整
-	Transform *cameraTransform = gameScene->GetRegistry()->GetComponent<Transform>(gameScene->GetMainCameraEntity());
+	QuaternionTransform *cameraTransform = gameScene->GetRegistry()->GetComponent<QuaternionTransform>(gameScene->GetMainCameraEntity());
 	if (cameraTransform) {
-		cameraTransform->rotate = { std::numbers::pi_v<float> / 2.0f, 0.0f, 0.0f };
+		cameraTransform->rotate = Quaternion::MakeRotateAxisAngleQuaternion({ 1.0f, 0.0f, 0.0f }, std::numbers::pi_v<float> * 89.0f / 180.0f);
 		cameraTransform->translate = { 0.0f, 700.0f, 0.0f };
 	}
 }

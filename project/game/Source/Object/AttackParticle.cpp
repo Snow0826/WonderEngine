@@ -1,7 +1,7 @@
 #include "AttackParticle.h"
 #include "BlendMode.h"
-#include "EntityComponentSystem.h"
 #include "Particle.h"
+#include "CollisionSystem.h"
 #include "SphereRenderer.h"
 #include "Footprint.h"
 #include <numbers>
@@ -84,12 +84,12 @@ void AttackParticle::Update() {
 
 void AttackParticle::Start() {
 	registry_->AddComponent(particleEntity_, SphereRenderer{});
-	registry_->AddComponent(particleEntity_, SphereCollider{});
+	registry_->RemoveComponent<NoCollision>(particleEntity_);
 	registry_->AddComponent(particleEntity_, footprintManager_->CreateFootprint(particleEntity_, { 1.0f, 0.0f, 0.0f, 1.0f }));
 }
 
 void AttackParticle::Stop() {
 	registry_->RemoveComponent<SphereRenderer>(particleEntity_);
-	registry_->RemoveComponent<SphereCollider>(particleEntity_);
+	registry_->AddComponent(particleEntity_, NoCollision{});
 	footprintManager_->RemoveFootprint(particleEntity_);
 }

@@ -10,7 +10,7 @@ void Human::Create(const std::string &fileName, const Vector3 &position) {
 	Model model = modelManager_->FindModel(fileName);
 	uint32_t entity = registry_->GenerateEntity();
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
-	registry_->AddComponent(entity, Transform{ .translate = position });
+	registry_->AddComponent(entity, EulerTransform{ .translate = position });
 	registry_->AddComponent(entity, Material{});
 	registry_->AddComponent(entity, DirtyTransform{});
 	registry_->AddComponent(entity, DirtyMaterial{});

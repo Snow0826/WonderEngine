@@ -29,7 +29,7 @@ void GameScenePhaseClear::Initialize() {
 		registry->AddComponent(entity_, BlendMode::kBlendModeNormal);
 		registry->AddComponent(entity_, spriteManager->CreateSprite("win.png"));
 		registry->AddComponent(entity_, objectManager->CreateObject(entity_));
-		registry->AddComponent(entity_, Transform{});
+		registry->AddComponent(entity_, EulerTransform{});
 		registry->AddComponent(entity_, Material{ .enableLighting = false });
 	} else {
 		// LOSEエンティティの生成
@@ -37,7 +37,7 @@ void GameScenePhaseClear::Initialize() {
 		registry->AddComponent(entity_, BlendMode::kBlendModeNormal);
 		registry->AddComponent(entity_, spriteManager->CreateSprite("lose.png"));
 		registry->AddComponent(entity_, objectManager->CreateObject(entity_));
-		registry->AddComponent(entity_, Transform{});
+		registry->AddComponent(entity_, EulerTransform{});
 		registry->AddComponent(entity_, Material{ .enableLighting = false });
 	}
 }

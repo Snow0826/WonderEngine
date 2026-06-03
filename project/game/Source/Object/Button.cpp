@@ -19,7 +19,7 @@ void Button::Initialize() {
 	registry_->AddComponent(entity_, BlendMode::kBlendModeNormal);
 	registry_->AddComponent(entity_, sprite);
 	registry_->AddComponent(entity_, objectManager_->CreateObject(entity_));
-	registry_->AddComponent(entity_, Transform{});
+	registry_->AddComponent(entity_, EulerTransform{});
 	registry_->AddComponent(entity_, Material{ .enableLighting = false });
 }
 

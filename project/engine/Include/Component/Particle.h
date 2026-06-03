@@ -15,7 +15,7 @@ struct ParticleForGPU final {
 
 /// @brief パーティクル
 struct Particle final {
-	Transform transform;		// SRTデータ
+	EulerTransform transform;	// SRTデータ
 	Vector3 velocity;			// 速度
 	Vector4 color;				// 色
 	float lifeTime = 0.0f;		// 寿命
@@ -45,7 +45,7 @@ struct Range final {
 
 /// @brief エミッター
 struct Emitter final {
-	Transform transform;		// SRTデータ
+	EulerTransform transform;	// SRTデータ
 	Collision::AABB area;		// 発生範囲
 	Range<Vector3> scale;		// 大きさ
 	Range<Vector3> rotate;		// 回転

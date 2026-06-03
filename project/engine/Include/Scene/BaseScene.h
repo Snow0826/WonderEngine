@@ -45,6 +45,7 @@ class CapsuleInspector;
 class TransformSystem;
 class CameraSystem;
 class PhysicalSystem;
+class CollisionSystem;
 class AnimationSystem;
 class AABBRenderSystem;
 class SphereRenderSystem;
@@ -128,6 +129,7 @@ protected:
 	std::unique_ptr<TransformSystem> transformSystem_ = nullptr;							// 変換システム
 	std::unique_ptr<CameraSystem> cameraSystem_ = nullptr;									// カメラシステム
 	std::unique_ptr<PhysicalSystem> physicalSystem_ = nullptr;								// 物理システム
+	std::unique_ptr<CollisionSystem> collisionSystem_ = nullptr;							// 衝突システム
 	std::unique_ptr<AnimationSystem> animationSystem_ = nullptr;							// アニメーションシステム
 	std::unique_ptr<AABBRenderSystem> aabbRenderSystem_ = nullptr;							// AABBの描画システム
 	std::unique_ptr<SphereRenderSystem> sphereRenderSystem_ = nullptr;						// 球の描画システム

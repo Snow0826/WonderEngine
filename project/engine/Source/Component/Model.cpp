@@ -81,7 +81,7 @@ Skeleton ModelManager::CreateSkeleton(const Node &rootNode) {
 
 void ModelManager::UpdateSkeleton(Skeleton &skeleton) {
 	for (Joint &joint : skeleton.joints) {
-		Matrix4x4 localMatrix = MakeAffineMatrix(joint.transform.scale, joint.transform.quaternion, joint.transform.translate);
+		Matrix4x4 localMatrix = MakeAffineMatrix(joint.transform.scale, joint.transform.rotate, joint.transform.translate);
 		if (joint.parent) {
 			joint.skeletonSpaceMatrix = localMatrix * skeleton.joints[*joint.parent].skeletonSpaceMatrix;
 		} else {
@@ -91,7 +91,7 @@ void ModelManager::UpdateSkeleton(Skeleton &skeleton) {
 }
 
 Matrix4x4 ModelManager::MakeLocalMatrix(const Node &node) {
-	Matrix4x4 result = MakeAffineMatrix(node.transform.scale, node.transform.quaternion, node.transform.translate);
+	Matrix4x4 result = MakeAffineMatrix(node.transform.scale, node.transform.rotate, node.transform.translate);
 	for (const Node &child : node.children) {
 		result *= MakeLocalMatrix(child);
 	}
@@ -239,7 +239,7 @@ Node ModelManager::ReadNode(const aiNode *node) {
 	resultNode.transform.translate = { -translate.x, translate.y, translate.z };
 
 	// 回転の設定
-	resultNode.transform.quaternion = { rotate.x, -rotate.y, -rotate.z, rotate.w };
+	resultNode.transform.rotate = { rotate.x, -rotate.y, -rotate.z, rotate.w };
 
 	// スケーリングの設定
 	resultNode.transform.scale = { scale.x, scale.y, scale.z };

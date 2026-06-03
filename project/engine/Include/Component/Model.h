@@ -8,14 +8,14 @@
 
 /// @brief ノード
 struct Node final {
-	Transform transform;		// 変換
-	std::string name;			// ノード名
-	std::vector<Node> children;	// 子ノードリスト
+	QuaternionTransform transform;	// 変換
+	std::string name;				// ノード名
+	std::vector<Node> children;		// 子ノードリスト
 };
 
 /// @brief ジョイント
 struct Joint final {
-	Transform transform;			// 変換
+	QuaternionTransform transform;	// 変換
 	std::string name;				// ジョイント名
 	Matrix4x4 skeletonSpaceMatrix;	// スケルトンスペース行列
 	std::vector<int32_t> children;	// 子ジョイントインデックスリスト

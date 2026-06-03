@@ -7,16 +7,21 @@
 #include "AABBRenderer.h"
 
 void Building::Create(const Vector3 &rotate, const Vector3 &translate) {
+	Model model = modelManager_->FindModel("historic_european_brick_building_roebuck.gltf");
 	uint32_t entity = registry_->GenerateEntity();
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
-	registry_->AddComponent(entity, Transform{ .scale = {4.0f, 4.0f, 4.0f}, .rotate = rotate, .translate = translate });
+	registry_->AddComponent(entity, EulerTransform{ .scale = {4.0f, 4.0f, 4.0f}, .rotate = rotate, .translate = translate });
 	registry_->AddComponent(entity, Material{ .environmentCoefficient = 0.0f });
 	registry_->AddComponent(entity, DirtyTransform{});
 	registry_->AddComponent(entity, DirtyMaterial{});
 	registry_->AddComponent(entity, objectManager_->CreateObject(entity));
-	registry_->AddComponent(entity, modelManager_->FindModel("historic_european_brick_building_roebuck.gltf"));
+	registry_->AddComponent(entity, model);
 	registry_->AddComponent(entity, UseCulling{});
 	registry_->AddComponent(entity, indirectCommandManager_->AddIndirectCommand(entity));
-	registry_->AddComponent(entity, AABBRenderer{});
-	registry_->AddComponent(entity, AABBCollider{});
+
+	for (const MeshData &mesh : model.modelData.meshes) {
+		uint32_t entity = registry_->GenerateEntity();
+		registry_->AddComponent(entity, mesh.aabb);
+		registry_->AddComponent(entity, AABBRenderer{});
+	}
 }

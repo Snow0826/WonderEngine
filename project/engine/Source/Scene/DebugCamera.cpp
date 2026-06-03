@@ -12,7 +12,7 @@
 
 void DebugCamera::Initialize(uint32_t cameraEntity) {
 	cameraEntity_ = cameraEntity;
-	Transform *transform = registry_->GetComponent<Transform>(cameraEntity_);
+	QuaternionTransform *transform = registry_->GetComponent<QuaternionTransform>(cameraEntity_);
 	if (transform) {
 		resetPosition_ = transform->translate;
 	}
@@ -20,7 +20,7 @@ void DebugCamera::Initialize(uint32_t cameraEntity) {
 }
 
 void DebugCamera::Update() {
-	Transform *transform = registry_->GetComponent<Transform>(cameraEntity_);
+	QuaternionTransform *transform = registry_->GetComponent<QuaternionTransform>(cameraEntity_);
 	if (!transform) {
 		return;
 	}
@@ -62,7 +62,7 @@ void DebugCamera::Update() {
 
 void DebugCamera::Reset() {
 	targetPosition_ = { 0.0f, 0.0f, 0.0f };
-	Transform *transform = registry_->GetComponent<Transform>(cameraEntity_);
+	QuaternionTransform *transform = registry_->GetComponent<QuaternionTransform>(cameraEntity_);
 	if (transform) {
 		transform->translate = resetPosition_;
 		transform->rotateMatrix = LookAt(transform->translate, targetPosition_, { .y = 1.0f });

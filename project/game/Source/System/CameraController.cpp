@@ -14,8 +14,8 @@
 void CameraController::Initialize(uint32_t cameraEntity, uint32_t targetEntity) {
 	cameraEntity_ = cameraEntity;
 	targetEntity_ = targetEntity;
-	Transform *cameraTransform = registry_->GetComponent<Transform>(cameraEntity_);
-	Transform *targetTransform = registry_->GetComponent<Transform>(targetEntity_);
+	QuaternionTransform *cameraTransform = registry_->GetComponent<QuaternionTransform>(cameraEntity_);
+	EulerTransform *targetTransform = registry_->GetComponent<EulerTransform>(targetEntity_);
 
 	// カメラの球面座標を取得
 	if (cameraTransform && targetTransform) {
@@ -25,8 +25,8 @@ void CameraController::Initialize(uint32_t cameraEntity, uint32_t targetEntity) 
 }
 
 void CameraController::Update() {
-	Transform *cameraTransform = registry_->GetComponent<Transform>(cameraEntity_);
-	Transform *targetTransform = registry_->GetComponent<Transform>(targetEntity_);
+	QuaternionTransform *cameraTransform = registry_->GetComponent<QuaternionTransform>(cameraEntity_);
+	EulerTransform *targetTransform = registry_->GetComponent<EulerTransform>(targetEntity_);
 	if (!cameraTransform || !targetTransform) {
 		return;
 	}
@@ -58,7 +58,7 @@ void CameraController::Update() {
 
 	// カメラの向きを更新
 	Quaternion quaternion = Quaternion::LookRotation(targetPosition_ - cameraTransform->translate, { .y = 1.0f });
-	cameraTransform->quaternion = Quaternion::Slerp(cameraTransform->quaternion, quaternion, 0.1f);
+	cameraTransform->rotate = Quaternion::Slerp(cameraTransform->rotate, quaternion, 0.1f);
 
 	// 変換フラグを立てる
 	TransformSystem transformSystem{ registry_ };

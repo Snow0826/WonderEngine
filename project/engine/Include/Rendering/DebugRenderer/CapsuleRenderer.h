@@ -4,9 +4,6 @@
 /// @brief カプセルレンダラー
 struct CapsuleRenderer final {};
 
-/// @brief カプセルコライダー
-struct CapsuleCollider final {};
-
 class Registry;
 class DebugRenderer;
 

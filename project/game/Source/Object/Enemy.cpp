@@ -9,31 +9,35 @@
 #include "SphereRenderer.h"
 #include "RigidBody.h"
 #include "Footprint.h"
+#include "CollisionSystem.h"
 
 void Enemy::Initialize(const Vector3 &position) {
+	// モデルの取得
+	Model model = modelManager_->FindModel("enemy.obj");
+
 	// エンティティの生成
 	enemyEntity_ = registry_->GenerateEntity();
 
 	// コンポーネントの追加
 	registry_->AddComponent(enemyEntity_, BlendMode::kBlendModeNone);
-	registry_->AddComponent(enemyEntity_, Transform{ .translate = position });
+	registry_->AddComponent(enemyEntity_, EulerTransform{ .translate = position });
 	registry_->AddComponent(enemyEntity_, Material{});
 	registry_->AddComponent(enemyEntity_, DirtyTransform{});
 	registry_->AddComponent(enemyEntity_, DirtyMaterial{});
 	registry_->AddComponent(enemyEntity_, objectManager_->CreateObject(enemyEntity_));
-	registry_->AddComponent(enemyEntity_, modelManager_->FindModel("enemy.obj"));
+	registry_->AddComponent(enemyEntity_, model);
+	registry_->AddComponent(enemyEntity_, model.modelData.meshes.back().sphere);
 	registry_->AddComponent(enemyEntity_, UseCulling{});
 	registry_->AddComponent(enemyEntity_, RigidBody{});
 	registry_->AddComponent(enemyEntity_, footprintManager_->CreateFootprint(enemyEntity_, { 0.0f, 0.0f, 1.0f, 1.0f }));
-	registry_->AddComponent(enemyEntity_, SphereCollider{});
 	registry_->AddComponent(enemyEntity_, SphereRenderer{});
 	registry_->AddComponent(enemyEntity_, AABBRenderer{});
 	registry_->AddComponent(enemyEntity_, indirectCommandManager_->AddIndirectCommand(enemyEntity_));
 }
 
 void Enemy::Update() {
-	Transform *targetTransform = registry_->GetComponent<Transform>(playerEntity_);
-	Transform *enemyTransform = registry_->GetComponent<Transform>(enemyEntity_);
+	EulerTransform *targetTransform = registry_->GetComponent<EulerTransform>(playerEntity_);
+	EulerTransform *enemyTransform = registry_->GetComponent<EulerTransform>(enemyEntity_);
 	if (!targetTransform || !enemyTransform) {
 		return;
 	}
@@ -73,7 +77,7 @@ void Enemy::OnCollision(const Collision::Plane &plane) {
 	}
 
 	// SRTデータの取得
-	Transform *transform = registry_->GetComponent<Transform>(enemyEntity_);
+	EulerTransform *transform = registry_->GetComponent<EulerTransform>(enemyEntity_);
 	if (!transform) {
 		return;
 	}
@@ -104,7 +108,7 @@ void Enemy::OnCollision(const Collision::AABB &aabb) {
 	}
 
 	// SRTデータの取得
-	Transform *transform = registry_->GetComponent<Transform>(enemyEntity_);
+	EulerTransform *transform = registry_->GetComponent<EulerTransform>(enemyEntity_);
 	if (!transform) {
 		return;
 	}

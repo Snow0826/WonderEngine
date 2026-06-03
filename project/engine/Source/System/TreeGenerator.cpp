@@ -14,7 +14,7 @@ void TreeGenerator::Generate(const Vector3 &start, const Vector3 &direction, uin
 
 	uint32_t entity = registry_->GenerateEntity();
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
-	registry_->AddComponent(entity, Transform{ .translate = start, .quaternion = Quaternion::DirectionToDirection({ 0.0f, 1.0f, 0.0f }, direction) });
+	registry_->AddComponent(entity, QuaternionTransform{ .rotate = Quaternion::DirectionToDirection({ 0.0f, 1.0f, 0.0f }, direction), .translate = start });
 	registry_->AddComponent(entity, Material{});
 	registry_->AddComponent(entity, DirtyTransform{});
 	registry_->AddComponent(entity, DirtyMaterial{});

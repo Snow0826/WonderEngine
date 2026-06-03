@@ -157,8 +157,16 @@ void IndirectCommandManager::RemoveIndirectCommand(uint32_t entity) {
 void IndirectCommandManager::UpdateCullingData() {
 	uint32_t cullingMeshDataOffset = 0;
 	uint32_t meshLODDataOffset = 0;
-	registry_->ForEach<Model, Transform, BlendMode, Object>([&](uint32_t entity, Model *model, Transform *transform, BlendMode *blendMode, Object *object) {
-		cullingObjectData_[object->handle].worldMatrix = transform->worldMatrix;
+	registry_->ForEach<Model, BlendMode, Object>([&](uint32_t entity, Model *model, BlendMode *blendMode, Object *object) {
+		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
+		QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
+		if (eulerTransform) {
+			cullingObjectData_[object->handle].worldMatrix = eulerTransform->worldMatrix;
+		} else if (quaternionTransform) {
+			cullingObjectData_[object->handle].worldMatrix = quaternionTransform->worldMatrix;
+		} else {
+			cullingObjectData_[object->handle].worldMatrix = MakeIdentity4x4();
+		}
 		cullingObjectData_[object->handle].meshType = MeshType::kModel;
 		cullingObjectData_[object->handle].blendMode = *blendMode;
 		for (const MeshData &mesh : model->modelData.meshes) {
@@ -177,8 +185,16 @@ void IndirectCommandManager::UpdateCullingData() {
 		}
 		});
 
-	registry_->ForEach<Plane, Transform, BlendMode, Object>([&](uint32_t entity, Plane *plane, Transform *transform, BlendMode *blendMode, Object *object) {
-		cullingObjectData_[object->handle].worldMatrix = transform->worldMatrix;
+	registry_->ForEach<Plane, BlendMode, Object>([&](uint32_t entity, Plane *plane, BlendMode *blendMode, Object *object) {
+		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
+		QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
+		if (eulerTransform) {
+			cullingObjectData_[object->handle].worldMatrix = eulerTransform->worldMatrix;
+		} else if (quaternionTransform) {
+			cullingObjectData_[object->handle].worldMatrix = quaternionTransform->worldMatrix;
+		} else {
+			cullingObjectData_[object->handle].worldMatrix = MakeIdentity4x4();
+		}
 		cullingObjectData_[object->handle].meshType = MeshType::kPlane;
 		cullingObjectData_[object->handle].blendMode = *blendMode;
 		cullingMeshData_[cullingMeshDataOffset] = {
@@ -195,8 +211,16 @@ void IndirectCommandManager::UpdateCullingData() {
 		cullingMeshDataOffset++;
 		});
 
-	registry_->ForEach<Box, Transform, BlendMode, Object>([&](uint32_t entity, Box *box, Transform *transform, BlendMode *blendMode, Object *object) {
-		cullingObjectData_[object->handle].worldMatrix = transform->worldMatrix;
+	registry_->ForEach<Box, BlendMode, Object>([&](uint32_t entity, Box *box, BlendMode *blendMode, Object *object) {
+		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
+		QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
+		if (eulerTransform) {
+			cullingObjectData_[object->handle].worldMatrix = eulerTransform->worldMatrix;
+		} else if (quaternionTransform) {
+			cullingObjectData_[object->handle].worldMatrix = quaternionTransform->worldMatrix;
+		} else {
+			cullingObjectData_[object->handle].worldMatrix = MakeIdentity4x4();
+		}
 		cullingObjectData_[object->handle].meshType = MeshType::kBox;
 		cullingObjectData_[object->handle].blendMode = *blendMode;
 		cullingMeshData_[cullingMeshDataOffset] = {
@@ -213,8 +237,16 @@ void IndirectCommandManager::UpdateCullingData() {
 		cullingMeshDataOffset++;
 		});
 
-	registry_->ForEach<Ring, Transform, BlendMode, Object>([&](uint32_t entity, Ring *ring, Transform *transform, BlendMode *blendMode, Object *object) {
-		cullingObjectData_[object->handle].worldMatrix = transform->worldMatrix;
+	registry_->ForEach<Ring, BlendMode, Object>([&](uint32_t entity, Ring *ring, BlendMode *blendMode, Object *object) {
+		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
+		QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
+		if (eulerTransform) {
+			cullingObjectData_[object->handle].worldMatrix = eulerTransform->worldMatrix;
+		} else if (quaternionTransform) {
+			cullingObjectData_[object->handle].worldMatrix = quaternionTransform->worldMatrix;
+		} else {
+			cullingObjectData_[object->handle].worldMatrix = MakeIdentity4x4();
+		}
 		cullingObjectData_[object->handle].meshType = MeshType::kRing;
 		cullingObjectData_[object->handle].blendMode = *blendMode;
 		cullingMeshData_[cullingMeshDataOffset] = {
@@ -231,8 +263,16 @@ void IndirectCommandManager::UpdateCullingData() {
 		cullingMeshDataOffset++;
 		});
 
-	registry_->ForEach<Cylinder, Transform, BlendMode, Object>([&](uint32_t entity, Cylinder *cylinder, Transform *transform, BlendMode *blendMode, Object *object) {
-		cullingObjectData_[object->handle].worldMatrix = transform->worldMatrix;
+	registry_->ForEach<Cylinder, BlendMode, Object>([&](uint32_t entity, Cylinder *cylinder, BlendMode *blendMode, Object *object) {
+		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
+		QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
+		if (eulerTransform) {
+			cullingObjectData_[object->handle].worldMatrix = eulerTransform->worldMatrix;
+		} else if (quaternionTransform) {
+			cullingObjectData_[object->handle].worldMatrix = quaternionTransform->worldMatrix;
+		} else {
+			cullingObjectData_[object->handle].worldMatrix = MakeIdentity4x4();
+		}
 		cullingObjectData_[object->handle].meshType = MeshType::kCylinder;
 		cullingObjectData_[object->handle].blendMode = *blendMode;
 		cullingMeshData_[cullingMeshDataOffset] = {

@@ -1,7 +1,7 @@
 #include "PlayerBehaviorAttack.h"
 #include "PlayerAttackBehaviorStart.h"
 #include "Player.h"
-#include "EntityComponentSystem.h"
+#include "CollisionSystem.h"
 #include "SphereRenderer.h"
 #include "Transform.h"
 #include "RigidBody.h"
@@ -21,11 +21,11 @@ void PlayerBehaviorAttack::Initialize() {
 	Registry *registry = player->GetRegistry();
 
 	// コライダーの追加
-	registry->AddComponent(player->GetPartsEntity(Player::PartsType::kLeftArm), SphereCollider{});
-	registry->AddComponent(player->GetPartsEntity(Player::PartsType::kRightArm), SphereCollider{});
+	registry->RemoveComponent<NoCollision>(player->GetPartsEntity(Player::PartsType::kLeftArm));
+	registry->RemoveComponent<NoCollision>(player->GetPartsEntity(Player::PartsType::kRightArm));
 
 	// 左腕の初期パラメーターの保存
-	Transform *leftArmTransform = registry->GetComponent<Transform>(player->GetPartsEntity(Player::PartsType::kLeftArm));
+	EulerTransform *leftArmTransform = registry->GetComponent<EulerTransform>(player->GetPartsEntity(Player::PartsType::kLeftArm));
 	if (leftArmTransform) {
 		leftArmTransform->rotate.x = 0.0f;
 		leftArmRotate_ = leftArmTransform->rotate;
@@ -33,7 +33,7 @@ void PlayerBehaviorAttack::Initialize() {
 	}
 
 	// 右腕の初期パラメーターの保存
-	Transform *rightArmTransform = registry->GetComponent<Transform>(player->GetPartsEntity(Player::PartsType::kRightArm));
+	EulerTransform *rightArmTransform = registry->GetComponent<EulerTransform>(player->GetPartsEntity(Player::PartsType::kRightArm));
 	if (rightArmTransform) {
 		rightArmTransform->rotate.x = 0.0f;
 		rightArmRotate_ = rightArmTransform->rotate;

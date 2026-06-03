@@ -4,9 +4,6 @@
 /// @brief 球レンダラー
 struct SphereRenderer final {};
 
-/// @brief 球コライダー
-struct SphereCollider final {};
-
 class Registry;
 class DebugRenderer;
 

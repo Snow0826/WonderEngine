@@ -1,5 +1,5 @@
 #include "Ground.h"
-#include "EntityComponentSystem.h"
+#include "CollisionSystem.h"
 #include "IndirectCommand.h"
 #include "BlendMode.h"
 #include "Object.h"
@@ -31,14 +31,13 @@ void Ground::Create(Registry *registry, IndirectCommandManager *indirectCommandM
 	// 地面の追加
 	uint32_t entity = registry->GenerateEntity();
 	registry->AddComponent(entity, BlendMode::kBlendModeNormal);
-	registry->AddComponent(entity, Transform{});
+	registry->AddComponent(entity, EulerTransform{});
 	registry->AddComponent(entity, Material{ .environmentCoefficient = 0.0f });
 	registry->AddComponent(entity, DirtyTransform{});
 	registry->AddComponent(entity, DirtyMaterial{});
 	registry->AddComponent(entity, objectManager->CreateObject(entity));
 	registry->AddComponent(entity, model);
 	registry->AddComponent(entity, Collision::Plane{ .normal = {0.0f, 1.0f, 0.0f}, .distance = 0.0f });
-	registry->AddComponent(entity, PlaneCollider{});
 	registry->AddComponent(entity, PlaneRenderer{});
 	registry->AddComponent(entity, FootprintMap{ .terrainOriginXZ = Vector2{ 0.0f, 0.0f }, .terrainSizeXZ = Vector2{ 512.0f, 512.0f }, });
 	registry->AddComponent(entity, indirectCommandManager->AddIndirectCommand(entity));
@@ -49,6 +48,7 @@ void Ground::Create(Registry *registry, IndirectCommandManager *indirectCommandM
 	registry->AddComponent(entity, OnceFootprint{});
 	registry->AddComponent(entity, Collision::Sphere{ .radius = 10.0f });
 	registry->AddComponent(entity, SphereRenderer{});
+	registry->AddComponent(entity, NoCollision{});
 
 	// デフォルトフットプリントの追加
 	entity = registry->GenerateEntity();
@@ -56,6 +56,7 @@ void Ground::Create(Registry *registry, IndirectCommandManager *indirectCommandM
 	registry->AddComponent(entity, OnceFootprint{});
 	registry->AddComponent(entity, Collision::Sphere{ .center = {.x = -128.0f, .z = -128.0f}, .radius = 10.0f });
 	registry->AddComponent(entity, SphereRenderer{});
+	registry->AddComponent(entity, NoCollision{});
 
 	// デフォルトフットプリントの追加
 	entity = registry->GenerateEntity();
@@ -63,6 +64,7 @@ void Ground::Create(Registry *registry, IndirectCommandManager *indirectCommandM
 	registry->AddComponent(entity, OnceFootprint{});
 	registry->AddComponent(entity, Collision::Sphere{ .center = {.x = -128.0f, .z = 128.0f}, .radius = 10.0f });
 	registry->AddComponent(entity, SphereRenderer{});
+	registry->AddComponent(entity, NoCollision{});
 
 	// デフォルトフットプリントの追加
 	entity = registry->GenerateEntity();
@@ -70,6 +72,7 @@ void Ground::Create(Registry *registry, IndirectCommandManager *indirectCommandM
 	registry->AddComponent(entity, OnceFootprint{});
 	registry->AddComponent(entity, Collision::Sphere{ .center = {.x = 128.0f, .z = -128.0f}, .radius = 10.0f });
 	registry->AddComponent(entity, SphereRenderer{});
+	registry->AddComponent(entity, NoCollision{});
 
 	// デフォルトフットプリントの追加
 	entity = registry->GenerateEntity();
@@ -77,4 +80,5 @@ void Ground::Create(Registry *registry, IndirectCommandManager *indirectCommandM
 	registry->AddComponent(entity, OnceFootprint{});
 	registry->AddComponent(entity, Collision::Sphere{ .center = {.x = 128.0f, .z = 128.0f}, .radius = 10.0f });
 	registry->AddComponent(entity, SphereRenderer{});
+	registry->AddComponent(entity, NoCollision{});
 }

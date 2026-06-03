@@ -5,7 +5,7 @@
 #include "Player.h"
 #include "Input.h"
 #include "Audio.h"
-#include "EntityComponentSystem.h"
+#include "CollisionSystem.h"
 #include "SphereRenderer.h"
 
 #ifdef USE_IMGUI
@@ -15,8 +15,8 @@
 void PlayerBehaviorRoot::Initialize() {
 	Player *player = GetPlayer();
 	Registry *registry = player->GetRegistry();
-	registry->RemoveComponent<SphereCollider>(player->GetPartsEntity(Player::PartsType::kLeftArm));
-	registry->RemoveComponent<SphereCollider>(player->GetPartsEntity(Player::PartsType::kRightArm));
+	registry->AddComponent(player->GetPartsEntity(Player::PartsType::kLeftArm), NoCollision{});
+	registry->AddComponent(player->GetPartsEntity(Player::PartsType::kRightArm), NoCollision{});
 }
 
 void PlayerBehaviorRoot::Update() {

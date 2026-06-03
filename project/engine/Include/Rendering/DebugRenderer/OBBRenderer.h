@@ -9,9 +9,6 @@ struct OBBRotate final {
 /// @brief OBBレンダラー
 struct OBBRenderer final {};
 
-/// @brief OBBコライダー
-struct OBBCollider final {};
-
 class Registry;
 class DebugRenderer;
 

@@ -113,6 +113,7 @@
     <ClCompile Include="game\Source\Object\SimpleSkin.cpp" />
     <ClCompile Include="game\Source\Object\Human.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\SkeletonRenderer.cpp" />
+    <ClCompile Include="engine\Source\System\CollisionSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -241,6 +242,7 @@
     <ClInclude Include="game\Include\Object\SimpleSkin.h" />
     <ClInclude Include="game\Include\Object\Human.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\SkeletonRenderer.h" />
+    <ClInclude Include="engine\Include\System\CollisionSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

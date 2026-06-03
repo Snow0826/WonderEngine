@@ -34,7 +34,7 @@ void AnimationSystem::ApplyAnimationToRootNode() {
 						model->modelData.rootNode.transform.translate = SampleLinearVector3(rootNodeAnimation.translate.keyframes, player->currentTime);
 					}
 					if (!rootNodeAnimation.rotate.keyframes.empty()) {
-						model->modelData.rootNode.transform.quaternion = SampleLinearQuaternion(rootNodeAnimation.rotate.keyframes, player->currentTime);
+						model->modelData.rootNode.transform.rotate = SampleLinearQuaternion(rootNodeAnimation.rotate.keyframes, player->currentTime);
 					}
 					if (!rootNodeAnimation.scale.keyframes.empty()) {
 						model->modelData.rootNode.transform.scale = SampleLinearVector3(rootNodeAnimation.scale.keyframes, player->currentTime);
@@ -45,7 +45,7 @@ void AnimationSystem::ApplyAnimationToRootNode() {
 						model->modelData.rootNode.transform.translate = SampleStepVector3(rootNodeAnimation.translate.keyframes, player->currentTime);
 					}
 					if (!rootNodeAnimation.rotate.keyframes.empty()) {
-						model->modelData.rootNode.transform.quaternion = SampleStepQuaternion(rootNodeAnimation.rotate.keyframes, player->currentTime);
+						model->modelData.rootNode.transform.rotate = SampleStepQuaternion(rootNodeAnimation.rotate.keyframes, player->currentTime);
 					}
 					if (!rootNodeAnimation.scale.keyframes.empty()) {
 						model->modelData.rootNode.transform.scale = SampleStepVector3(rootNodeAnimation.scale.keyframes, player->currentTime);
@@ -75,7 +75,7 @@ void AnimationSystem::ApplyAnimationToSkeleton() {
 							joint.transform.translate = SampleLinearVector3(nodeAnimation.translate.keyframes, player->currentTime);
 						}
 						if (!nodeAnimation.rotate.keyframes.empty()) {
-							joint.transform.quaternion = SampleLinearQuaternion(nodeAnimation.rotate.keyframes, player->currentTime);
+							joint.transform.rotate = SampleLinearQuaternion(nodeAnimation.rotate.keyframes, player->currentTime);
 						}
 						if (!nodeAnimation.scale.keyframes.empty()) {
 							joint.transform.scale = SampleLinearVector3(nodeAnimation.scale.keyframes, player->currentTime);
@@ -86,7 +86,7 @@ void AnimationSystem::ApplyAnimationToSkeleton() {
 							joint.transform.translate = SampleStepVector3(nodeAnimation.translate.keyframes, player->currentTime);
 						}
 						if (!nodeAnimation.rotate.keyframes.empty()) {
-							joint.transform.quaternion = SampleStepQuaternion(nodeAnimation.rotate.keyframes, player->currentTime);
+							joint.transform.rotate = SampleStepQuaternion(nodeAnimation.rotate.keyframes, player->currentTime);
 						}
 						if (!nodeAnimation.scale.keyframes.empty()) {
 							joint.transform.scale = SampleStepVector3(nodeAnimation.scale.keyframes, player->currentTime);

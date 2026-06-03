@@ -105,7 +105,7 @@ void TitleScene::OnInitialize() {
 	// カメラの設定
 	Camera *camera = registry_->GetComponent<Camera>(cameraEntities_[mainCameraType_]);
 	camera->farZ /= 2.0f;
-	Transform *transform = registry_->GetComponent<Transform>(cameraEntities_[mainCameraType_]);
+	QuaternionTransform *transform = registry_->GetComponent<QuaternionTransform>(cameraEntities_[mainCameraType_]);
 	transform->translate = { .y = 2.0f };
 	transform->rotateMatrix = LookAt(transform->translate, { .z = 256.0f }, { .y = 1.0f });
 

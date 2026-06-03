@@ -21,19 +21,19 @@ void PlayerBehaviorJump::Initialize() {
 	Registry *registry = player->GetRegistry();
 
 	// 体の位置を基準位置に設定
-	Transform *bodyTransform = registry->GetComponent<Transform>(player->GetPartsEntity(Player::PartsType::kBody));
+	EulerTransform *bodyTransform = registry->GetComponent<EulerTransform>(player->GetPartsEntity(Player::PartsType::kBody));
 	if (bodyTransform) {
 		bodyTransform->translate.y = player->GetBasePositionY();
 	}
 
 	// 左腕の回転をリセット
-	Transform *leftArmTransform = registry->GetComponent<Transform>(player->GetPartsEntity(Player::PartsType::kLeftArm));
+	EulerTransform *leftArmTransform = registry->GetComponent<EulerTransform>(player->GetPartsEntity(Player::PartsType::kLeftArm));
 	if (leftArmTransform) {
 		leftArmTransform->rotate.x = 0.0f;
 	}
 
 	// 右腕の回転をリセット
-	Transform *rightArmTransform = registry->GetComponent<Transform>(player->GetPartsEntity(Player::PartsType::kRightArm));
+	EulerTransform *rightArmTransform = registry->GetComponent<EulerTransform>(player->GetPartsEntity(Player::PartsType::kRightArm));
 	if (rightArmTransform) {
 		rightArmTransform->rotate.x = 0.0f;
 	}

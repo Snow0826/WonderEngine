@@ -4,9 +4,6 @@
 /// @brief 平面レンダラー
 struct PlaneRenderer final {};
 
-/// @brief 平面コライダー
-struct PlaneCollider final {};
-
 class Registry;
 class DebugRenderer;
 

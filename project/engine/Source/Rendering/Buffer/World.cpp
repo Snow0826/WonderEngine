@@ -461,7 +461,7 @@ void World::TransferCamera() {
 	TransformSystem transformSystem{ registry_ };
 
 	// カリングカメラ
-	registry_->ForEach<Camera, Transform, CullingCamera>([&](uint32_t entity, Camera *camera, Transform *transform, CullingCamera *cullingCamera) {
+	registry_->ForEach<Camera, QuaternionTransform, CullingCamera>([&](uint32_t entity, Camera *camera, QuaternionTransform *transform, CullingCamera *cullingCamera) {
 		ViewProjectionData viewProjection = MakeViewProjection(*camera, *transform);
 		Frustum frustum = MakeFrustum(viewProjection);
 		CameraPosition cameraPosition = {
@@ -473,7 +473,7 @@ void World::TransferCamera() {
 		}, exclude<Disabled>());
 
 	// デバッグカメラ
-	registry_->ForEach<Camera, Transform, RenderingCamera>([&](uint32_t entity, Camera *camera, Transform *transform, RenderingCamera *renderingCamera) {
+	registry_->ForEach<Camera, QuaternionTransform, RenderingCamera>([&](uint32_t entity, Camera *camera, QuaternionTransform *transform, RenderingCamera *renderingCamera) {
 		ViewProjectionData viewProjection = MakeViewProjection(*camera, *transform);
 		Frustum frustum = MakeFrustum(viewProjection);
 		CameraPosition cameraPosition = {
@@ -487,14 +487,18 @@ void World::TransferCamera() {
 }
 
 void World::TransferTransform() {
-	registry_->ForEach<Transform, Object, DirtyTransform>([&](uint32_t entity, Transform *transform, Object *object, DirtyTransform *dirtyTransform) {
+	registry_->ForEach<Object, DirtyTransform>([&](uint32_t entity, Object *object, DirtyTransform *dirtyTransform) {
 		TransformationMatrix transformationMatrix;
-		if (registry_->HasComponent<Model>(entity) && !registry_->HasComponent<Skeleton>(entity)) {
-			Model *model = registry_->GetComponent<Model>(entity);
-			Matrix4x4 localMatrix = ModelManager::MakeLocalMatrix(model->modelData.rootNode);
-			transformationMatrix.worldMatrix = localMatrix * transform->worldMatrix;
-		} else {
-			transformationMatrix.worldMatrix = transform->worldMatrix;
+		Model *model = registry_->GetComponent<Model>(entity);
+		if (model && !registry_->HasComponent<Skeleton>(entity)) {
+			transformationMatrix.worldMatrix = ModelManager::MakeLocalMatrix(model->modelData.rootNode);
+		}
+		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
+		QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
+		if (eulerTransform) {
+			transformationMatrix.worldMatrix *= eulerTransform->worldMatrix;
+		} else if (quaternionTransform) {
+			transformationMatrix.worldMatrix *= quaternionTransform->worldMatrix;
 		}
 		transformationMatrix.worldInverseTransposeMatrix = transformationMatrix.worldMatrix.inverse().transpose();
 		constantBuffers_[static_cast<size_t>(ConstantBufferType::kTransform)]->CopyData(&transformationMatrix, sizeof(TransformationMatrix), object->handle);

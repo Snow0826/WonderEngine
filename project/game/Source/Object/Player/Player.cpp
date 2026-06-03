@@ -29,7 +29,8 @@ Player::Player(Registry *registry, IndirectCommandManager *indirectCommandManage
 	, footprintManager_(footprintManager)
 	, particleManager_(particleManager)
 	, input_(input)
-	, audio_(audio) {}
+	, audio_(audio) {
+}
 
 Player::~Player() = default;
 
@@ -55,7 +56,7 @@ void Player::Initialize(const Vector3 &position) {
 			continue;
 		}
 
-		Transform *childTransform = registry_->GetComponent<Transform>(entities_[i]);
+		EulerTransform *childTransform = registry_->GetComponent<EulerTransform>(entities_[i]);
 		if (childTransform) {
 			registry_->AddComponent(entities_[i], HasParent{});
 			childTransform->parentEntity = bodyEntity;
@@ -63,7 +64,7 @@ void Player::Initialize(const Vector3 &position) {
 	}
 
 	// プレイヤーの初期位置の設定
-	Transform *bodyTransform = registry_->GetComponent<Transform>(bodyEntity);
+	EulerTransform *bodyTransform = registry_->GetComponent<EulerTransform>(bodyEntity);
 	if (bodyTransform) {
 		bodyTransform->translate = position;
 	}
@@ -167,7 +168,7 @@ void Player::OnCollision(const Collision::Plane &plane) {
 	}
 
 	// SRTデータの取得
-	Transform *transform = registry_->GetComponent<Transform>(entities_[static_cast<size_t>(PartsType::kBody)]);
+	EulerTransform *transform = registry_->GetComponent<EulerTransform>(entities_[static_cast<size_t>(PartsType::kBody)]);
 	if (!transform) {
 		return;
 	}
@@ -213,7 +214,7 @@ void Player::OnCollision(const Collision::AABB &aabb) {
 	}
 
 	// SRTデータの取得
-	Transform *transform = registry_->GetComponent<Transform>(entities_[static_cast<size_t>(PartsType::kBody)]);
+	EulerTransform *transform = registry_->GetComponent<EulerTransform>(entities_[static_cast<size_t>(PartsType::kBody)]);
 	if (!transform) {
 		return;
 	}
@@ -259,7 +260,7 @@ void Player::Revival() {
 	ReviveParts(PartsType::kRightArm);
 
 	// 位置リセット
-	Transform *transform = registry_->GetComponent<Transform>(entities_[static_cast<size_t>(PartsType::kBody)]);
+	EulerTransform *transform = registry_->GetComponent<EulerTransform>(entities_[static_cast<size_t>(PartsType::kBody)]);
 	if (transform) {
 		transform->translate = { 0.0f, 0.0f, 0.0f };
 	}
@@ -277,17 +278,19 @@ bool Player::IsDead() const {
 }
 
 void Player::AddParts(const std::string &partsName) {
+	Model model = modelManager_->FindModel(partsName + ".obj");
 	// エンティティの生成とコンポーネントの追加
 	uint32_t entity = registry_->GenerateEntity();
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
-	registry_->AddComponent(entity, Transform{});
+	registry_->AddComponent(entity, EulerTransform{});
 	registry_->AddComponent(entity, Material{});
 	registry_->AddComponent(entity, DirtyTransform{});
 	registry_->AddComponent(entity, DirtyMaterial{});
 	registry_->AddComponent(entity, objectManager_->CreateObject(entity));
-	registry_->AddComponent(entity, modelManager_->FindModel(partsName + ".obj"));
+	registry_->AddComponent(entity, model);
 	registry_->AddComponent(entity, UseCulling{});
-	registry_->AddComponent(entity, SphereCollider{});
+	registry_->AddComponent(entity, model.modelData.meshes.back().aabb);
+	registry_->AddComponent(entity, model.modelData.meshes.back().sphere);
 	registry_->AddComponent(entity, SphereRenderer{});
 	registry_->AddComponent(entity, AABBRenderer{});
 	registry_->AddComponent(entity, indirectCommandManager_->AddIndirectCommand(entity));
@@ -366,7 +369,7 @@ void Player::Move() {
 }
 
 void Player::Rotate() {
-	Transform *transform = registry_->GetComponent<Transform>(entities_[static_cast<size_t>(PartsType::kBody)]);
+	EulerTransform *transform = registry_->GetComponent<EulerTransform>(entities_[static_cast<size_t>(PartsType::kBody)]);
 	RigidBody *rigidBody = registry_->GetComponent<RigidBody>(entities_[static_cast<size_t>(PartsType::kBody)]);
 	if (!transform || !rigidBody) {
 		return;
@@ -389,17 +392,17 @@ void Player::Float() {
 
 	floatingParameter_ += kStep;
 	floatingParameter_ = std::fmodf(floatingParameter_, std::numbers::pi_v<float> *2.0f);
-	Transform *bodyTransform = registry_->GetComponent<Transform>(entities_[static_cast<size_t>(PartsType::kBody)]);
+	EulerTransform *bodyTransform = registry_->GetComponent<EulerTransform>(entities_[static_cast<size_t>(PartsType::kBody)]);
 	if (bodyTransform) {
 		bodyTransform->translate.y = std::sin(floatingParameter_) * kBodyAmplitude + basePositionY_ + kBodyAmplitude;
 	}
 
-	Transform *leftArmTransform = registry_->GetComponent<Transform>(entities_[static_cast<size_t>(PartsType::kLeftArm)]);
+	EulerTransform *leftArmTransform = registry_->GetComponent<EulerTransform>(entities_[static_cast<size_t>(PartsType::kLeftArm)]);
 	if (leftArmTransform) {
 		leftArmTransform->rotate.x = std::sin(floatingParameter_) * kArmAmplitude;
 	}
 
-	Transform *rightArmTransform = registry_->GetComponent<Transform>(entities_[static_cast<size_t>(PartsType::kRightArm)]);
+	EulerTransform *rightArmTransform = registry_->GetComponent<EulerTransform>(entities_[static_cast<size_t>(PartsType::kRightArm)]);
 	if (rightArmTransform) {
 		rightArmTransform->rotate.x = std::sin(floatingParameter_) * kArmAmplitude;
 	}

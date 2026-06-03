@@ -29,7 +29,7 @@ Sprite SpriteManager::CreateSprite(const std::string &textureFileName) {
 }
 
 void SpriteManager::UpdateSprite() {
-	registry_->ForEach<Sprite, Transform>([this](uint32_t entity, Sprite *sprite, Transform *transform) {
+	registry_->ForEach<Sprite, EulerTransform>([this](uint32_t entity, Sprite *sprite, EulerTransform *transform) {
 		VertexData *vertexData = meshManager_->GetVertexData(sprite->meshHandle);
 
 		// 頂点座標の計算

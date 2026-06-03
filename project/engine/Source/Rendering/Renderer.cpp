@@ -206,7 +206,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// BoxFilterのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> boxFilterPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/BoxFilter.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(boxFilterPSBlob);
-	
+
 	// GaussianFilterのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> gaussianFilterPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/GaussianFilter.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(gaussianFilterPSBlob);
@@ -370,7 +370,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 		.Create(device_->GetDevice(), boxFilterRootSignature_);
 	Logger::Log(logStream, "Create BoxFilterPipelineState\n");
 	boxFilterPipelineState_->SetName(L"BoxFilterPipelineState");
-	
+
 	// GaussianFilter用パイプラインステートの生成
 	gaussianFilterPipelineState_ = PipelineState()
 		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)												// RTVのフォーマット
@@ -516,12 +516,9 @@ void Renderer::SetFootprintManager(FootprintManager *footprintManager) {
 
 bool Renderer::IsDebugCamera() {
 	bool isDebugCamera = false;
-	registry_->ForEach<Camera, Transform, RenderingCamera>(
-		[&](uint32_t entity, Camera *, Transform *, RenderingCamera *) {
-			isDebugCamera = true;
-		},
-		exclude<Disabled, CullingCamera>()
-	);
+	registry_->ForEach<Camera, QuaternionTransform, RenderingCamera>([&](uint32_t entity, Camera *, QuaternionTransform *, RenderingCamera *) {
+		isDebugCamera = true;
+		}, exclude<Disabled, CullingCamera>());
 	return isDebugCamera;
 }
 

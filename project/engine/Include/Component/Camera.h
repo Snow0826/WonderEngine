@@ -28,13 +28,13 @@ struct CameraPosition final {
 	Vector3 worldPosition;	// ワールド座標
 };
 
-struct Transform;
+struct QuaternionTransform;
 
 /// @brief ビュープロジェクションデータの作成
 /// @param camera カメラ
 /// @param transform 変換データ
 /// @return ビュープロジェクションデータ
-ViewProjectionData MakeViewProjection(const Camera &camera, const Transform &transform);
+ViewProjectionData MakeViewProjection(const Camera &camera, const QuaternionTransform &transform);
 
 class Registry;
 

@@ -156,6 +156,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="engine\Source\System\CollisionSystem.cpp" />
     <ClCompile Include="engine\Source\System\HierarchyWindow.cpp" />
     <ClCompile Include="engine\Source\System\InspectorWindow.cpp" />
     <ClCompile Include="engine\Source\Component\Primitive\Plane.cpp" />
@@ -277,6 +278,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\SkeletonRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="engine\Include\System\CollisionSystem.h" />
     <ClInclude Include="engine\Include\Component\MeshType.h" />
     <ClInclude Include="engine\Include\Component\Primitive\Box.h" />
     <ClInclude Include="engine\Include\Component\Primitive\Plane.h" />

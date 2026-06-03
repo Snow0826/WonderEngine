@@ -6,7 +6,7 @@
 #include <imgui.h>
 #endif // USE_IMGUI
 
-ViewProjectionData MakeViewProjection(const Camera &camera, const Transform &transform) {
+ViewProjectionData MakeViewProjection(const Camera &camera, const QuaternionTransform &transform) {
 	ViewProjectionData viewProjection;
 	viewProjection.view = transform.worldMatrix.inverse();
 	viewProjection.projection = MakePerspectiveFovMatrix(camera.fovY, camera.aspectRatio, camera.nearZ, camera.farZ);

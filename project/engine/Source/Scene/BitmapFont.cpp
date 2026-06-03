@@ -17,7 +17,7 @@ void BitmapFont::Initialize() {
 		registry_->AddComponent(entity, BlendMode::kBlendModeNormal);
 		registry_->AddComponent(entity, objectManager_->CreateObject(entity));
 		registry_->AddComponent(entity, sprite);
-		registry_->AddComponent(entity, Transform{});
+		registry_->AddComponent(entity, EulerTransform{});
 		registry_->AddComponent(entity, Material{ .enableLighting = false });
 		digitEntities_.emplace_back(entity);
 	}

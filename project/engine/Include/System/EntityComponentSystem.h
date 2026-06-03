@@ -233,6 +233,17 @@ public:
 		return pools_[typeId]->HasComponent(entity);
 	}
 
+	/// @brief 指定したコンポーネントを持つエンティティの配列を取得
+	/// @tparam T コンポーネントの型
+	/// @return エンティティの配列への参照、存在しない場合は空の配列を返す
+	template<typename T>
+	const std::vector<uint32_t> &GetComponentEntities() const {
+		static const std::vector<uint32_t> empty;
+		size_t typeId = GetTypeId<T>();
+		if (typeId >= pools_.size() || !pools_[typeId]) return empty;
+		return pools_[typeId]->GetEntities();
+	}
+
 	/// @brief 指定したコンポーネントの数を取得
 	/// @tparam T コンポーネントの型
 	/// @return コンポーネントの数

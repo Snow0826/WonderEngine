@@ -10,14 +10,21 @@
 
 void PhysicalSystem::Update(float deltaTime) {
 	TransformSystem transformSystem{ registry_ };
-	registry_->ForEach<RigidBody, Transform>([&](uint32_t entity, RigidBody *rigidBody, Transform *transform) {
+	registry_->ForEach<RigidBody>([&](uint32_t entity, RigidBody *rigidBody) {
 		// 力から加速度を計算
 		Vector3 acceleration = rigidBody->force / rigidBody->mass;
 		// 速度の更新
 		rigidBody->velocity += acceleration * deltaTime;
 		// 位置の更新
-		transform->translate += rigidBody->velocity * deltaTime;
-		transformSystem.MarkDirty(entity);
+		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
+		QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
+		if (eulerTransform) {
+			eulerTransform->translate += rigidBody->velocity * deltaTime;
+			transformSystem.MarkDirty(entity);
+		} else if (quaternionTransform) {
+			quaternionTransform->translate += rigidBody->velocity * deltaTime;
+			transformSystem.MarkDirty(entity);
+		}
 
 		Vector3 r = Vector3{ 0.0f, rigidBody->radius, 0.0f };	// 力の作用点ベクトル
 		Vector3 torque = r.cross(rigidBody->force);				// トルクを計算
@@ -37,9 +44,7 @@ void PhysicalSystem::Update(float deltaTime) {
 void PhysicalSystem::Reflect(float deltaTime, uint32_t entityA, uint32_t entityB) {
 	Collision::Sphere *sphere = registry_->GetComponent<Collision::Sphere>(entityA);
 	Collision::Plane *plane = registry_->GetComponent<Collision::Plane>(entityB);
-	RigidBody *rigidBody = registry_->GetComponent<RigidBody>(entityA);
-	Transform *transform = registry_->GetComponent<Transform>(entityA);
-	if (sphere && plane && rigidBody && transform) {
+	if (sphere && plane) {
 		if (IsCollision(*sphere, *plane)) {
 			// 貫通深度の計算
 			float penetration = PenetrationDepth(*sphere, *plane);
@@ -50,7 +55,19 @@ void PhysicalSystem::Reflect(float deltaTime, uint32_t entityA, uint32_t entityB
 			}
 
 			// 貫通を修正
-			transform->translate += plane->normal * penetration;
+			EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entityA);
+			QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entityA);
+			if (eulerTransform) {
+				eulerTransform->translate += plane->normal * penetration;
+			} else if (quaternionTransform) {
+				quaternionTransform->translate += plane->normal * penetration;
+			}
+
+			// 剛体の取得
+			RigidBody *rigidBody = registry_->GetComponent<RigidBody>(entityA);
+			if (!rigidBody) {
+				return;
+			}
 
 			// 反射ベクトルの計算
 			Vector3 closestPoint = ClosestPoint(sphere->center, *plane);
@@ -72,9 +89,7 @@ void PhysicalSystem::Reflect(float deltaTime, uint32_t entityA, uint32_t entityB
 void PhysicalSystem::ReflectImpulse(float deltaTime, uint32_t entityA, uint32_t entityB) {
 	Collision::Sphere *sphere = registry_->GetComponent<Collision::Sphere>(entityA);
 	Collision::Plane *plane = registry_->GetComponent<Collision::Plane>(entityB);
-	RigidBody *rigidBody = registry_->GetComponent<RigidBody>(entityA);
-	Transform *transform = registry_->GetComponent<Transform>(entityA);
-	if (sphere && plane && rigidBody && transform) {
+	if (sphere && plane) {
 		if (IsCollision(*sphere, *plane)) {
 			// 貫通深度の計算
 			float penetration = PenetrationDepth(*sphere, *plane);
@@ -85,7 +100,19 @@ void PhysicalSystem::ReflectImpulse(float deltaTime, uint32_t entityA, uint32_t 
 			}
 
 			// 貫通を修正
-			transform->translate += plane->normal * penetration;
+			EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entityA);
+			QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entityA);
+			if (eulerTransform) {
+				eulerTransform->translate += plane->normal * penetration;
+			} else if (quaternionTransform) {
+				quaternionTransform->translate += plane->normal * penetration;
+			}
+
+			// 剛体の取得
+			RigidBody *rigidBody = registry_->GetComponent<RigidBody>(entityA);
+			if (!rigidBody) {
+				return;
+			}
 
 			// 反射ベクトルの計算
 			Vector3 closestPoint = ClosestPoint(sphere->center, *plane);

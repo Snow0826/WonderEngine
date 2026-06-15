@@ -15,7 +15,16 @@ public:
 	/// @brief 描画
 	void Draw();
 
+	/// @brief ウィンドウの開閉状態への参照を取得する
+	/// @return ウィンドウの開閉状態への参照
+	bool &IsOpen() { return isOpen_; }
+
 private:
 	Registry *registry_ = nullptr;	// レジストリ
 	SelectionContext *selection_ = nullptr;	// 選択コンテキスト
+	bool isOpen_ = true;	// ウィンドウの開閉状態
+
+	/// @brief エンティティの描画
+	/// @param entity エンティティ
+	void DrawEntity(uint32_t entity);
 };

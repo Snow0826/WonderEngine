@@ -5,6 +5,7 @@
 #include <d3d12.h>
 #include <fstream>
 #include <array>
+#include <vector>
 
 class Device;
 class DescriptorHeap;
@@ -29,9 +30,6 @@ public:
 
 	/// @brief 描画
 	void Render();
-
-	/// @brief 画像のコピー
-	void CopyImage();
 
 	/// @brief レジストリをセットする
 	/// @return レジストリ
@@ -63,6 +61,14 @@ public:
 
 	/// @brief ゲーム終了フラグをセットする
 	void SetGameFinished() { isGameFinished_ = true; }
+
+	/// @brief シーンビューの表示フラグへの参照を取得する
+	/// @return シーンビューの表示フラグへの参照
+	bool &IsSceneViewVisible() { return isSceneViewVisible_; }
+
+	/// @brief ゲームビューの表示フラグへの参照を取得する
+	/// @return ゲームビューの表示フラグへの参照
+	bool &IsGameViewVisible() { return isGameViewVisible_; }
 
 private:
 	using BlendPipelineState = std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>, static_cast<uint32_t>(BlendMode::kCountOfBlendMode)>;
@@ -111,14 +117,9 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintPipelineState_ = nullptr;			// フットプリント用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintMapPipelineState_ = nullptr;		// フットプリントマップ用パイプラインステート
 	MeshCommandSignature meshCommandSignature_;												// メッシュコマンドシグネチャ
+	bool isSceneViewVisible_ = true;														// シーンビューの表示フラグ
+	bool isGameViewVisible_ = true;															// ゲームビューの表示フラグ
 	bool isGameFinished_ = false;															// ゲーム終了フラグ
-
-	/// @brief デバッグカメラかどうか取得
-	/// @return デバッグカメラならtrue
-	bool IsDebugCamera();
-
-	/// @brief レンダーテクスチャのセットアップ
-	void SetupRenderTexture();
 
 	/// @brief 深度テクスチャをHiZテクスチャにコピー
 	void CopyDepthToHiZ();
@@ -135,27 +136,42 @@ private:
 	/// @brief 結果マップの読み込み
 	void LoadResultMap();
 
+	/// @brief シーンビューの描画
+	void RenderSceneView();
+
+	/// @brief ゲームビューの描画
+	void RenderGameView();
+
+	/// @brief リリース構成の描画
+	void RenderRelease();
+
+	/// @brief レンダーターゲットのセットアップ
+	/// @param rtvHandle RTVハンドル
+	/// @param dsvHandle DSVハンドル
+	void SetupRenderTarget(uint32_t rtvHandle, uint32_t dsvHandle);
+
+	/// @brief ワールドの描画
+	/// @param cameraBufferLocationIndex カメラのバッファ位置
+	void RenderWorld(uint32_t cameraBufferLocationIndex);
+
 	/// @brief メッシュの描画
-	void DrawMesh();
+	/// @param cameraBufferLocationIndex カメラのバッファ位置
+	void DrawMesh(uint32_t cameraBufferLocationIndex);
 
 	/// @brief パーティクルの描画
-	void DrawParticle();
-
-	/// @brief スプライトの描画前処理
-	void PreDrawSprite();
+	/// @param cameraBufferLocationIndex カメラのバッファ位置
+	void DrawParticle(uint32_t cameraBufferLocationIndex);
 
 	/// @brief スプライトの描画
 	void DrawSprite();
 
-	/// @brief ラインの描画前処理
-	void PreDrawLine();
+	/// @brief スカイボックスの描画
+	/// @param cameraBufferLocationIndex カメラのバッファ位置
+	void DrawSkybox(uint32_t cameraBufferLocationIndex);
+
+	/// @brief 画像のコピー
+	void CopyImage();
 
 	/// @brief ラインの描画
-	void DrawLine();
-
-	/// @brief スカイボックスの描画前処理
-	void PreDrawSkybox();
-
-	/// @brief スカイボックスの描画
-	void DrawSkybox();
+	void DrawLine(uint32_t cameraBufferLocationIndex);
 };

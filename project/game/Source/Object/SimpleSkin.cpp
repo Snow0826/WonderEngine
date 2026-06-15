@@ -11,6 +11,7 @@ void SimpleSkin::Create() {
 	uint32_t entity = registry_->GenerateEntity();
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
 	registry_->AddComponent(entity, EulerTransform{ .translate = {-5.0f, 0.0f, 5.0f} });
+	registry_->AddComponent(entity, Relationship{});
 	registry_->AddComponent(entity, Material{});
 	registry_->AddComponent(entity, DirtyTransform{});
 	registry_->AddComponent(entity, DirtyMaterial{});

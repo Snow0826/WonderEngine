@@ -8,11 +8,11 @@
 
 void InspectorWindow::Draw() {
 #ifdef USE_IMGUI
-	if (selection_->selectedEntity == UINT32_MAX) {
+	if (selection_->selectedEntity == UINT32_MAX || !isOpen_) {
 		return;
 	}
 
-	if (ImGui::Begin("Inspector")) {
+	if (ImGui::Begin("Inspector", &isOpen_)) {
 		ImGui::Text("Entity %u", selection_->selectedEntity);
 		DrawComponents(selection_->selectedEntity);
 		DrawTagComponents(selection_->selectedEntity);

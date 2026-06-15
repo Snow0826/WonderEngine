@@ -13,18 +13,6 @@ ViewProjectionData MakeViewProjection(const Camera &camera, const QuaternionTran
 	return viewProjection;
 }
 
-void CameraSystem::SwitchCamera(uint32_t cameraEntity) {
-	SwitchRenderingCamera(cameraEntity);
-
-	// CullingCameraコンポーネントを無効化
-	registry_->ForEach<CullingCamera>([this](uint32_t entity, CullingCamera *cullingCamera) {
-		registry_->RemoveComponent<CullingCamera>(entity);
-		}, exclude<Disabled>());
-
-	// 指定されたカメラにCullingCameraコンポーネントを有効化
-	registry_->AddComponent(cameraEntity, CullingCamera{});
-}
-
 void CameraSystem::SwitchRenderingCamera(uint32_t cameraEntity) {
 	// RenderingCameraコンポーネントを無効化
 	registry_->ForEach<RenderingCamera>([this](uint32_t entity, RenderingCamera *renderingCamera) {
@@ -33,14 +21,6 @@ void CameraSystem::SwitchRenderingCamera(uint32_t cameraEntity) {
 
 	// 指定されたカメラにRenderingCameraコンポーネントを有効化
 	registry_->AddComponent(cameraEntity, RenderingCamera{});
-}
-
-uint32_t CameraSystem::GetCullingCameraEntity() const {
-	uint32_t cullingCameraEntity = 0;
-	registry_->ForEach<CullingCamera>([this, &cullingCameraEntity](uint32_t entity, CullingCamera *cullingCamera) {
-		cullingCameraEntity = entity;
-		}, exclude<Disabled>());
-	return cullingCameraEntity;
 }
 
 void CameraInspector::Draw([[maybe_unused]] uint32_t entity) {

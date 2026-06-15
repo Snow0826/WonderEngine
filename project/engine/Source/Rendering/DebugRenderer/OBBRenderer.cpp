@@ -2,7 +2,8 @@
 #include "OBBRenderer.h"
 #include "EntityComponentSystem.h"
 #include "DebugRenderer.h"
-#include "Model.h"
+#include "Collision.h"
+#include "Matrix4x4.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -25,12 +26,6 @@ void OBBRenderSystem::Update() {
 #ifdef DRAW_LINE
 	registry_->ForEach<Collision::OBB, OBBRenderer>([&](uint32_t entity, Collision::OBB *obb, OBBRenderer *obbRenderer) {
 		debugRenderer_->AddOBB(*obb);
-		}, exclude<Disabled>());
-	
-	registry_->ForEach<Model, OBBRenderer>([&](uint32_t entity, Model *model, OBBRenderer *obbRenderer) {
-		for (const MeshData &meshData : model->modelData.meshes) {
-			debugRenderer_->AddOBB(meshData.obb);
-		}
 		}, exclude<Disabled>());
 #endif // DRAW_LINE
 }

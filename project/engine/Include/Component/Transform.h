@@ -3,9 +3,7 @@
 #include "Quaternion.h"
 #include "Matrix4x4.h"
 #include <string>
-
-/// @brief 親エンティティを持つフラグ
-struct HasParent final {};
+#include <vector>
 
 /// @brief 変換データが変更されたフラグ
 struct DirtyTransform final {};
@@ -18,7 +16,6 @@ struct EulerTransform final {
 	Vector3 pivot = { 0.0f, 0.0f, 0.0f };		// ピボット（回転中心）
 	Matrix4x4 rotateMatrix = MakeIdentity4x4();	// 回転行列
 	Matrix4x4 worldMatrix = MakeIdentity4x4();	// ワールド行列
-	uint32_t parentEntity = 0;					// 親エンティティ
 };
 
 /// @brief クォータニオン変換データ
@@ -29,7 +26,12 @@ struct QuaternionTransform final {
 	Vector3 pivot = { 0.0f, 0.0f, 0.0f };			// ピボット（回転中心）
 	Matrix4x4 rotateMatrix = MakeIdentity4x4();		// 回転行列
 	Matrix4x4 worldMatrix = MakeIdentity4x4();		// ワールド行列
-	uint32_t parentEntity = 0;						// 親エンティティ
+};
+
+/// @brief 親子関係
+struct Relationship final {
+	uint32_t parent = UINT_MAX;		// 親エンティティ
+	std::vector<uint32_t> children;	// 子エンティティ
 };
 
 /// @brief 変換行列データ
@@ -47,12 +49,12 @@ public:
 	/// @param registry レジストリ
 	TransformSystem(Registry *registry) : registry_(registry) {}
 
+	/// @brief 更新
+	void Update();
+
 	/// @brief 変換フラグの設定
 	/// @param entity エンティティ
 	void MarkDirty(uint32_t entity);
-
-	/// @brief ワールド行列の更新
-	void UpdateWorldMatrix();
 
 	/// @brief ローカル座標系の右方向ベクトルの取得
 	/// @param entity エンティティ
@@ -76,6 +78,11 @@ public:
 
 private:
 	Registry *registry_ = nullptr;
+
+	/// @brief ワールド行列の更新
+	/// @param entity エンティティ
+	/// @param parentWorldMatrix 親のワールド行列
+	void UpdateWorldMatrix(uint32_t entity, const Matrix4x4 &parentWorldMatrix);
 };
 
 /// @brief 変換データインスペクター

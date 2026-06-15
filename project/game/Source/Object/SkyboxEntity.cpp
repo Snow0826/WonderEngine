@@ -19,6 +19,7 @@ void SkyboxEntity::Create(Registry *registry, SkyboxGenerator *skyboxGenerator, 
 	// 天球の追加
 	uint32_t entity = registry->GenerateEntity();
 	registry->AddComponent(entity, EulerTransform{ .scale = {800.0f, 800.0f, 800.0f} });
+	registry->AddComponent(entity, Relationship{});
 	registry->AddComponent(entity, Material{});
 	registry->AddComponent(entity, DirtyTransform{});
 	registry->AddComponent(entity, DirtyMaterial{});

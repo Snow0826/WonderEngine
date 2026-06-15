@@ -6,62 +6,24 @@
 #include <imgui.h>
 #endif // USE_IMGUI
 
-void TransformSystem::MarkDirty(uint32_t entity) {
-	registry_->AddComponent<DirtyTransform>(entity, DirtyTransform{});
-	registry_->ForEach<EulerTransform, HasParent>([&](uint32_t child, EulerTransform *transform, HasParent *hasParent) {
-		if (transform->parentEntity == entity) {
-			MarkDirty(child);
-		}
-		}, exclude<Disabled>());
-	registry_->ForEach<QuaternionTransform, HasParent>([&](uint32_t child, QuaternionTransform *transform, HasParent *hasParent) {
-		if (transform->parentEntity == entity) {
-			MarkDirty(child);
+void TransformSystem::Update() {
+	registry_->ForEach<Relationship>([&](uint32_t entity, Relationship *relationship) {
+		if (relationship->parent == UINT_MAX) {
+			UpdateWorldMatrix(entity, MakeIdentity4x4());
 		}
 		}, exclude<Disabled>());
 }
 
-void TransformSystem::UpdateWorldMatrix() {
-	registry_->ForEach<EulerTransform, DirtyTransform>([&](uint32_t entity, EulerTransform *transform, DirtyTransform *dirtyTransform) {
-		// 回転行列の更新
-		if (!transform->rotate.isZero()) {
-			transform->rotateMatrix = MakeRotateMatrix(transform->rotate);
+void TransformSystem::MarkDirty(uint32_t entity) {
+	if (!registry_->HasComponent<DirtyTransform>(entity)) {
+		registry_->AddComponent(entity, DirtyTransform{});
+	}
+
+	if (auto relationship = registry_->GetComponent<Relationship>(entity)) {
+		for (uint32_t child : relationship->children) {
+			MarkDirty(child);
 		}
-
-		// ピボット補正付きの変換
-		Matrix4x4 toPivot = MakeTranslateMatrix(-transform->pivot);
-		Matrix4x4 srt = MakeAffineMatrix(transform->scale, transform->rotateMatrix, transform->translate);
-		Matrix4x4 fromPivot = MakeTranslateMatrix(transform->pivot);
-		transform->worldMatrix = toPivot * srt * fromPivot;
-
-		// 親のワールド行列を適用
-		if (registry_->HasComponent<HasParent>(entity)) {
-			EulerTransform *parentTransform = registry_->GetComponent<EulerTransform>(transform->parentEntity);
-			if (parentTransform) {
-				transform->worldMatrix *= parentTransform->worldMatrix;
-			}
-		}
-		}, exclude<Disabled>());
-
-	registry_->ForEach<QuaternionTransform, DirtyTransform>([&](uint32_t entity, QuaternionTransform *transform, DirtyTransform *dirtyTransform) {
-		// 回転行列の更新
-		if (transform->rotate != Quaternion::IdentityQuaternion()) {
-			transform->rotateMatrix = transform->rotate.MakeRotateMatrix();
-		}
-
-		// ピボット補正付きの変換
-		Matrix4x4 toPivot = MakeTranslateMatrix(-transform->pivot);
-		Matrix4x4 srt = MakeAffineMatrix(transform->scale, transform->rotateMatrix, transform->translate);
-		Matrix4x4 fromPivot = MakeTranslateMatrix(transform->pivot);
-		transform->worldMatrix = toPivot * srt * fromPivot;
-
-		// 親のワールド行列を適用
-		if (registry_->HasComponent<HasParent>(entity)) {
-			QuaternionTransform *parentTransform = registry_->GetComponent<QuaternionTransform>(transform->parentEntity);
-			if (parentTransform) {
-				transform->worldMatrix *= parentTransform->worldMatrix;
-			}
-		}
-		}, exclude<Disabled>());
+	}
 }
 
 Vector3 TransformSystem::GetRight(uint32_t entity) {
@@ -124,6 +86,44 @@ Vector3 TransformSystem::GetWorldPosition(uint32_t entity) {
 	return worldPosition;
 }
 
+void TransformSystem::UpdateWorldMatrix(uint32_t entity, const Matrix4x4 &parentWorldMatrix) {
+	Matrix4x4 currentWorldMatrix = parentWorldMatrix;
+	if (auto eulerTransform = registry_->GetComponent<EulerTransform>(entity)) {
+		// 回転行列の更新
+		if (!eulerTransform->rotate.isZero()) {
+			eulerTransform->rotateMatrix = MakeRotateMatrix(eulerTransform->rotate);
+		}
+
+		// ピボット補正付きの変換
+		Matrix4x4 toPivot = MakeTranslateMatrix(-eulerTransform->pivot);
+		Matrix4x4 srt = MakeAffineMatrix(eulerTransform->scale, eulerTransform->rotateMatrix, eulerTransform->translate);
+		Matrix4x4 fromPivot = MakeTranslateMatrix(eulerTransform->pivot);
+		Matrix4x4 local = toPivot * srt * fromPivot;
+		eulerTransform->worldMatrix = local * parentWorldMatrix;
+		currentWorldMatrix = eulerTransform->worldMatrix;
+	} else if (auto quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity)) {
+		// 回転行列の更新
+		if (quaternionTransform->rotate != Quaternion::IdentityQuaternion()) {
+			quaternionTransform->rotateMatrix = quaternionTransform->rotate.MakeRotateMatrix();
+		}
+
+		// ピボット補正付きの変換
+		Matrix4x4 toPivot = MakeTranslateMatrix(-quaternionTransform->pivot);
+		Matrix4x4 srt = MakeAffineMatrix(quaternionTransform->scale, quaternionTransform->rotateMatrix, quaternionTransform->translate);
+		Matrix4x4 fromPivot = MakeTranslateMatrix(quaternionTransform->pivot);
+		Matrix4x4 local = toPivot * srt * fromPivot;
+		quaternionTransform->worldMatrix = local * parentWorldMatrix;
+		currentWorldMatrix = quaternionTransform->worldMatrix;
+	}
+
+	// 子エンティティのワールド行列を更新
+	if (auto relationship = registry_->GetComponent<Relationship>(entity)) {
+		for (uint32_t child : relationship->children) {
+			UpdateWorldMatrix(child, currentWorldMatrix);
+		}
+	}
+}
+
 void TransformInspector::DrawEulerTransform([[maybe_unused]] uint32_t entity) {
 #ifdef USE_IMGUI
 	EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
@@ -170,10 +170,6 @@ void TransformInspector::DrawEulerTransform([[maybe_unused]] uint32_t entity) {
 					}
 				}
 				ImGui::TreePop();
-			}
-
-			if (ImGui::DragScalar("parentEntity", ImGuiDataType_U32, &eulerTransform->parentEntity, 1.0f, nullptr, nullptr)) {
-				transformSystem.MarkDirty(entity);
 			}
 
 			if (ImGui::Button("Reset")) {
@@ -224,10 +220,6 @@ void TransformInspector::DrawQuaternionTransform([[maybe_unused]] uint32_t entit
 					}
 				}
 				ImGui::TreePop();
-			}
-
-			if (ImGui::DragScalar("parentEntity", ImGuiDataType_U32, &quaternionTransform->parentEntity, 1.0f, nullptr, nullptr)) {
-				transformSystem.MarkDirty(entity);
 			}
 
 			if (ImGui::Button("Reset")) {

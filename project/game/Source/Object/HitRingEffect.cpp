@@ -38,6 +38,7 @@ void HitRingEffect::Initialize() {
 	// エンティティの生成
 	entity_ = registry_->GenerateEntity();
 	registry_->AddComponent(entity_, BlendMode::kBlendModeAdditive);
+	registry_->AddComponent(entity_, Relationship{});
 	registry_->AddComponent(entity_, particleGroup);
 	registry_->AddComponent(entity_, emitter);
 }

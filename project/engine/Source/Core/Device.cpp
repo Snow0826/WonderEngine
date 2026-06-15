@@ -127,10 +127,10 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	assert(SUCCEEDED(hr));
 
 	// ディスクリプタヒープの作成
-	rtvDescriptorHeap_ = DescriptorHeap::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 3, false);	// RTV用のディスクリプタヒープの作成
+	rtvDescriptorHeap_ = DescriptorHeap::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 5, false);	// RTV用のディスクリプタヒープの作成
 	gpuCbvSrvUavDescriptorHeap_ = DescriptorHeap::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, DescriptorHeap::kMaxSRVCount, true);		// GPU用のCBV,SRV,UAV用のディスクリプタヒープの作成
 	cpuCbvSrvUavDescriptorHeap_ = DescriptorHeap::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, DescriptorHeap::kMaxSRVCount, false);	// CPU用のCBV,SRV,UAV用のディスクリプタヒープの作成
-	dsvDescriptorHeap_ = DescriptorHeap::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 1, false);	// DSV用のディスクリプタヒープの作成
+	dsvDescriptorHeap_ = DescriptorHeap::Create(this, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 2, false);	// DSV用のディスクリプタヒープの作成
 
 	// RTVの設定
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
@@ -341,19 +341,26 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	depthClearValue.DepthStencil.Depth = 1.0f;	// 深度値のクリア値
 	depthClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;	// 深度24bit、ステンシル8bit
 
-	// DepthStencil用のリソースを作成
-	depthStencilTexture_ = Resource::CreateTexture2D(this, width, height, 1, D3D12_RESOURCE_STATE_DEPTH_WRITE, DXGI_FORMAT_D24_UNORM_S8_UINT, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, &depthClearValue);
-	depthStencilTexture_->SetName("DepthStencilTexture");
-	previousDepthStencilTexture_ = Resource::CreateTexture2D(this, width, height, 1, D3D12_RESOURCE_STATE_COPY_DEST, DXGI_FORMAT_D24_UNORM_S8_UINT);
-	previousDepthStencilTexture_->SetName("PreviousDepthStencilTexture");
+	// 深度ステンシルテクスチャを作成
+	mainCameraDepthStencilTexture_ = Resource::CreateTexture2D(this, width, height, 1, D3D12_RESOURCE_STATE_DEPTH_WRITE, DXGI_FORMAT_D24_UNORM_S8_UINT, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, &depthClearValue);
+	mainCameraDepthStencilTexture_->SetName("MainCameraDepthStencilTexture");
+	previousMainCameraDepthStencilTexture_ = Resource::CreateTexture2D(this, width, height, 1, D3D12_RESOURCE_STATE_COPY_DEST, DXGI_FORMAT_D24_UNORM_S8_UINT);
+	previousMainCameraDepthStencilTexture_->SetName("PreviousMainCameraDepthStencilTexture");
+	debugCameraDepthStencilTexture_ = Resource::CreateTexture2D(this, width, height, 1, D3D12_RESOURCE_STATE_DEPTH_WRITE, DXGI_FORMAT_D24_UNORM_S8_UINT, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL, &depthClearValue);
+	debugCameraDepthStencilTexture_->SetName("DebugCameraDepthStencilTexture");
 
-	// DSVの作成
+	// メインカメラ用DSVの作成
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
-	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;	// フォーマット
+	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;			// フォーマット
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;	// テクスチャ2D
-	dsvHandle_ = dsvDescriptorHeap_.AllocateDescriptor();
-	dsvDescriptorHeap_.CreateDepthStencilView(depthStencilTexture_->GetResource(), dsvDesc, dsvHandle_);
-	Logger::Log(logStream, "DepthStencilTexture DSVDescriptorIndex: " + std::to_string(dsvHandle_) + "\n");
+	mainCameraDSVHandle_ = dsvDescriptorHeap_.AllocateDescriptor();
+	dsvDescriptorHeap_.CreateDepthStencilView(mainCameraDepthStencilTexture_->GetResource(), dsvDesc, mainCameraDSVHandle_);
+	Logger::Log(logStream, "MainCameraDepthStencilTexture DSVDescriptorIndex: " + std::to_string(mainCameraDSVHandle_) + "\n");
+
+	// デバッグカメラ用DSVの作成
+	debugCameraDSVHandle_ = dsvDescriptorHeap_.AllocateDescriptor();
+	dsvDescriptorHeap_.CreateDepthStencilView(debugCameraDepthStencilTexture_->GetResource(), dsvDesc, debugCameraDSVHandle_);
+	Logger::Log(logStream, "DebugCameraDepthStencilTexture DSVDescriptorIndex: " + std::to_string(debugCameraDSVHandle_) + "\n");
 
 	// ImGuiの初期化
 	ImGuiManager::Initialize(hwnd, device_, commandQueue_, swapChainDesc, rtvDesc, dsvDesc, gpuCbvSrvUavDescriptorHeap_, logStream);
@@ -374,7 +381,7 @@ void Device::SetupSwapChain() {
 
 	// 描画先のRTVとDSVを設定する
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvCPUHandle = rtvDescriptorHeap_.GetCPUDescriptorHandle(rtvHandles_[backBufferIndex]);
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvCPUHandle = dsvDescriptorHeap_.GetCPUDescriptorHandle(dsvHandle_);
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvCPUHandle = dsvDescriptorHeap_.GetCPUDescriptorHandle(debugCameraDSVHandle_);
 	commandList_->OMSetRenderTargets(1, &rtvCPUHandle, false, &dsvCPUHandle);
 
 	// 指定した色で画面全体をクリアする
@@ -387,10 +394,10 @@ void Device::SetupSwapChain() {
 }
 
 void Device::EndFrame() {
-	// 前のフレームの深度ステンシルを保存する
-	depthStencilTexture_->TransitionBarrier(D3D12_RESOURCE_STATE_COPY_SOURCE);
-	previousDepthStencilTexture_->CopyFrom(depthStencilTexture_->GetResource());
-	depthStencilTexture_->TransitionBarrier(D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	// 前フレームのメインカメラ用深度ステンシルを保存する
+	mainCameraDepthStencilTexture_->TransitionBarrier(D3D12_RESOURCE_STATE_COPY_SOURCE);
+	previousMainCameraDepthStencilTexture_->CopyFrom(mainCameraDepthStencilTexture_->GetResource());
+	mainCameraDepthStencilTexture_->TransitionBarrier(D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 	// これから書き込むバックバッファのインデックスを取得
 	UINT backBufferIndex = swapChain_->GetCurrentBackBufferIndex();

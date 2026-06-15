@@ -14,8 +14,8 @@ struct Camera final {
 /// @brief レンダリングカメラ
 struct RenderingCamera final {};
 
-/// @brief カリングカメラ
-struct CullingCamera final {};
+/// @brief メインカメラ
+struct MainCamera final {};
 
 /// @brief ビュープロジェクションデータ
 struct ViewProjectionData final {
@@ -45,17 +45,9 @@ public:
 	/// @param registry レジストリ
 	CameraSystem(Registry *registry) : registry_(registry) {}
 
-	/// @brief カメラの切り替え
-	/// @param cameraEntity カメラエンティティ
-	void SwitchCamera(uint32_t cameraEntity);
-
 	/// @brief レンダリングカメラの切り替え
 	/// @param cameraEntity カメラエンティティ
 	void SwitchRenderingCamera(uint32_t cameraEntity);
-
-	/// @brief カリングカメラエンティティの取得
-	/// @return カリングカメラエンティティ
-	uint32_t GetCullingCameraEntity() const;
 
 private:
 	Registry *registry_ = nullptr;	// レジストリ

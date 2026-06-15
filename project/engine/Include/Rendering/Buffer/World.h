@@ -168,9 +168,17 @@ public:
 	/// @return 構造化バッファ
 	Resource *GetStructuredBuffer(StructuredBufferType type) { return structuredBuffers_[static_cast<size_t>(type)].get(); }
 
-	/// @brief レンダーテクスチャを取得
-	/// @return レンダーテクスチャ
-	Resource *GetRenderTexture() { return renderTexture_.get(); }
+	/// @brief シーンのレンダーテクスチャを取得
+	/// @return シーンのレンダーテクスチャ
+	Resource *GetSceneRenderTexture() { return sceneRenderTexture_.get(); }
+
+	/// @brief ゲームのレンダーテクスチャを取得
+	/// @return ゲームのレンダーテクスチャ
+	Resource *GetGameRenderTexture() { return gameRenderTexture_.get(); }
+
+	/// @brief ポストエフェクトのレンダーテクスチャを取得
+	/// @return ポストエフェクトのレンダーテクスチャ
+	Resource *GetPostEffectRenderTexture() { return postEffectRenderTexture_.get(); }
 
 	/// @brief Hi-Zテクスチャを取得
 	/// @return Hi-Zテクスチャ
@@ -204,13 +212,29 @@ public:
 	/// @return ミップレベル数
 	uint32_t GetMipLevels() const { return mipLevels_; }
 
-	/// @brief レンダーテクスチャのRTVハンドルを取得
-	/// @return レンダーテクスチャのRTVハンドル
-	uint32_t GetRenderTextureRTVHandle() const { return renderTextureRTVHandle_; }
+	/// @brief シーンのレンダーテクスチャのRTVハンドルを取得
+	/// @return シーンのレンダーテクスチャのRTVハンドル
+	uint32_t GetSceneRenderTextureRTVHandle() const { return sceneRenderTextureRTVHandle_; }
 
-	/// @brief レンダーテクスチャのSRVハンドルを取得
-	/// @return レンダーテクスチャのSRVハンドル
-	uint32_t GetRenderTextureSRVHandle() const { return renderTextureSRVHandle_; }
+	/// @brief シーンのレンダーテクスチャのSRVハンドルを取得
+	/// @return シーンのレンダーテクスチャのSRVハンドル
+	uint32_t GetSceneRenderTextureSRVHandle() const { return sceneRenderTextureSRVHandle_; }
+
+	/// @brief ゲームのレンダーテクスチャのRTVハンドルを取得
+	/// @return ゲームのレンダーテクスチャのRTVハンドル
+	uint32_t GetGameRenderTextureRTVHandle() const { return gameRenderTextureRTVHandle_; }
+
+	/// @brief ゲームのレンダーテクスチャのSRVハンドルを取得
+	/// @return ゲームのレンダーテクスチャのSRVハンドル
+	uint32_t GetGameRenderTextureSRVHandle() const { return gameRenderTextureSRVHandle_; }
+
+	/// @brief ポストエフェクトのレンダーテクスチャのRTVハンドルを取得
+	/// @return ポストエフェクトのレンダーテクスチャのRTVハンドル
+	uint32_t GetPostEffectRenderTextureRTVHandle() const { return postEffectRenderTextureRTVHandle_; }
+
+	/// @brief ポストエフェクトのレンダーテクスチャのSRVハンドルを取得
+	/// @return ポストエフェクトのレンダーテクスチャのSRVハンドル
+	uint32_t GetPostEffectRenderTextureSRVHandle() const { return postEffectRenderTextureSRVHandle_; }
 
 	/// @brief 深度ステンシルコピー元ハンドルを取得
 	/// @return 深度ステンシルコピー元ハンドル
@@ -299,7 +323,9 @@ private:
 	Registry *registry_ = nullptr;										// レジストリ
 	ConstantBuffers constantBuffers_;									// 定数バッファリスト
 	StructuredBuffers structuredBuffers_;								// 構造化バッファリスト
-	std::unique_ptr<Resource> renderTexture_ = nullptr;					// レンダーテクスチャ
+	std::unique_ptr<Resource> sceneRenderTexture_ = nullptr;			// シーンのレンダーテクスチャ
+	std::unique_ptr<Resource> gameRenderTexture_ = nullptr;				// ゲームのレンダーテクスチャ
+	std::unique_ptr<Resource> postEffectRenderTexture_ = nullptr;		// ポストエフェクトのレンダーテクスチャ
 	std::unique_ptr<Resource> hiZTexture_ = nullptr;					// Hi-Zテクスチャ
 	std::unique_ptr<Resource> commandBufferUpload_ = nullptr;			// コマンドバッファアップロード用
 	std::unique_ptr<Resource> processedCommandBuffer_ = nullptr;		// カリング済みコマンドバッファ
@@ -317,8 +343,12 @@ private:
 	PointLight *pointLightData_ = nullptr;								// 点光源データ
 	SpotLight *spotLightData_ = nullptr;								// スポットライトデータ
 	uint32_t mipLevels_ = 0;											// ミップレベル数
-	uint32_t renderTextureRTVHandle_ = 0;								// レンダーテクスチャRTVハンドル
-	uint32_t renderTextureSRVHandle_ = 0;								// レンダーテクスチャSRVハンドル
+	uint32_t sceneRenderTextureRTVHandle_ = 0;							// シーンのレンダーテクスチャRTVハンドル
+	uint32_t sceneRenderTextureSRVHandle_ = 0;							// シーンのレンダーテクスチャSRVハンドル
+	uint32_t gameRenderTextureRTVHandle_ = 0;							// ゲームのレンダーテクスチャRTVハンドル
+	uint32_t gameRenderTextureSRVHandle_ = 0;							// ゲームのレンダーテクスチャSRVハンドル
+	uint32_t postEffectRenderTextureRTVHandle_ = 0;						// ポストエフェクトのレンダーテクスチャRTVハンドル
+	uint32_t postEffectRenderTextureSRVHandle_ = 0;						// ポストエフェクトのレンダーテクスチャSRVハンドル
 	std::vector<uint32_t> hiZMipMapReadHandles_;						// Hi-Zミップマップ読み取りハンドル
 	std::vector<uint32_t> hiZMipMapWriteHandles_;						// Hi-Zミップマップ書き込みハンドル
 	uint32_t hiZTextureHandle_ = 0;										// Hi-Zテクスチャハンドル

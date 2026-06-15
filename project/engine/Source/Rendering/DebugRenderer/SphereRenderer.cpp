@@ -2,7 +2,7 @@
 #include "SphereRenderer.h"
 #include "EntityComponentSystem.h"
 #include "DebugRenderer.h"
-#include "Model.h"
+#include "Collision.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -12,12 +12,6 @@ void SphereRenderSystem::Update() {
 #ifdef DRAW_LINE
 	registry_->ForEach<Collision::Sphere, SphereRenderer>([&](uint32_t entity, Collision::Sphere *sphere, SphereRenderer *sphereRenderer) {
 		debugRenderer_->AddSphere(*sphere);
-		}, exclude<Disabled>());
-
-	registry_->ForEach<Model, SphereRenderer>([&](uint32_t entity, Model *model, SphereRenderer *sphereRenderer) {
-		for (const MeshData &meshData : model->modelData.meshes) {
-			debugRenderer_->AddSphere(meshData.sphere);
-		}
 		}, exclude<Disabled>());
 #endif // DRAW_LINE
 }

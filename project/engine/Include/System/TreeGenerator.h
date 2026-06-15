@@ -6,6 +6,7 @@ class CylinderGenerator;
 class ObjectManager;
 class IndirectCommandManager;
 struct Vector3;
+struct Quaternion;
 
 /// @brief 木の生成器
 class TreeGenerator {
@@ -23,14 +24,19 @@ public:
 	}
 
 	/// @brief 木の生成
+	/// @param parent 親エンティティID
 	/// @param start 開始位置
 	/// @param direction 方向
+	/// @param parentWorldRotate 親のワールド回転
 	/// @param divide 分割数
 	/// @param topRadius 上面の半径
 	/// @param bottomRadius 下面の半径
 	/// @param length 長さ
 	/// @param depth 深さ
-	void Generate(const Vector3 &start, const Vector3 &direction, uint32_t divide, float topRadius, float bottomRadius, float length, int32_t depth);
+	/// @return 生成された木のエンティティID
+	uint32_t Generate(uint32_t parent, const Vector3 &start, const Vector3 &direction, const Quaternion &parentWorldRotate, uint32_t divide, float topRadius, float bottomRadius, float length, int32_t depth);
+
+	void Delete(uint32_t entity);
 
 private:
 	Registry *registry_ = nullptr;

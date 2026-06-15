@@ -5,6 +5,8 @@
 #include "HierarchyWindow.h"
 #include "InspectorWindow.h"
 #include "SelectionContext.h"
+#include "Window.h"
+#include "Device.h"
 #include "Renderer.h"
 #include "World.h"
 #include "Resource.h"
@@ -142,13 +144,12 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	componentDrawerRegistry_->RegisterComponentDrawer<Collision::Plane>([this](uint32_t entity) { planeInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Collision::OBB>([this](uint32_t entity) { obbInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Collision::Capsule>([this](uint32_t entity) { capsuleInspector_->Draw(entity); });
-	componentDrawerRegistry_->RegisterTagComponent<CullingCamera>("CullingCamera");
+	componentDrawerRegistry_->RegisterTagComponent<MainCamera>("MainCamera");
 	componentDrawerRegistry_->RegisterTagComponent<RenderingCamera>("RenderingCamera");
 	componentDrawerRegistry_->RegisterTagComponent<UseCulling>("UseCulling");
-	componentDrawerRegistry_->RegisterTagComponent<HasParent>("HasParent");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyTransform>("DirtyTransform");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyMaterial>("DirtyMaterial");
-	componentDrawerRegistry_->RegisterTagComponent<NoCollision>("SkeletonRenderer");
+	componentDrawerRegistry_->RegisterTagComponent<NoCollision>("NoCollision");
 	componentDrawerRegistry_->RegisterTagComponent<AABBRenderer>("AABBRenderer");
 	componentDrawerRegistry_->RegisterTagComponent<SphereRenderer>("SphereRenderer");
 	componentDrawerRegistry_->RegisterTagComponent<PlaneRenderer>("PlaneRenderer");
@@ -169,21 +170,24 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	// メインカメラの生成と初期化
 	cameraEntities_[mainCameraType_] = registry_->GenerateEntity();
 	registry_->AddComponent(cameraEntities_[mainCameraType_], Camera{});
-	registry_->AddComponent(cameraEntities_[mainCameraType_], QuaternionTransform{ .translate = { .y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({ .y = 5.0f, .z = -10.0f }, {}, { .y = 1.0f }) });
+	registry_->AddComponent(cameraEntities_[mainCameraType_], QuaternionTransform{ .translate = {.y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({.y = 5.0f, .z = -10.0f }, {}, {.y = 1.0f }) });
+	registry_->AddComponent(cameraEntities_[mainCameraType_], Relationship{});
 	registry_->AddComponent(cameraEntities_[mainCameraType_], RenderingCamera{});
-	registry_->AddComponent(cameraEntities_[mainCameraType_], CullingCamera{});
+	registry_->AddComponent(cameraEntities_[mainCameraType_], MainCamera{});
 	registry_->AddComponent(cameraEntities_[mainCameraType_], FrustumRenderer{});
 	transformSystem_->MarkDirty(cameraEntities_[mainCameraType_]);
 
-	// セカンダリカメラの生成と初期化
-	cameraEntities_[secondaryCameraType_] = registry_->GenerateEntity();
-	registry_->AddComponent(cameraEntities_[secondaryCameraType_], Camera{});
-	registry_->AddComponent(cameraEntities_[secondaryCameraType_], QuaternionTransform{ .translate = { .y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({ .y = 5.0f, .z = -10.0f }, {}, { .y = 1.0f }) });
-	transformSystem_->MarkDirty(cameraEntities_[secondaryCameraType_]);
+	// デバッグカメラの生成と初期化
+	cameraEntities_[debugCameraType_] = registry_->GenerateEntity();
+	registry_->AddComponent(cameraEntities_[debugCameraType_], Camera{});
+	registry_->AddComponent(cameraEntities_[debugCameraType_], QuaternionTransform{ .translate = {.y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({.y = 5.0f, .z = -10.0f }, {}, {.y = 1.0f }) });
+	registry_->AddComponent(cameraEntities_[debugCameraType_], Relationship{});
+	transformSystem_->MarkDirty(cameraEntities_[debugCameraType_]);
 
 	// 平行光源の生成と初期化
 	directionalLightEntity_ = registry_->GenerateEntity();
 	registry_->AddComponent(directionalLightEntity_, DirectionalLight{});
+	registry_->AddComponent(directionalLightEntity_, Relationship{});
 
 	// ビットマップフォントの初期化
 	bitmapFont_ = std::make_unique<BitmapFont>(registry_.get(), spriteManager_.get(), objectManager_.get());
@@ -197,7 +201,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 
 	// デバッグカメラの生成と初期化
 	debugCamera_ = std::make_unique<DebugCamera>(registry_.get(), input);
-	debugCamera_->Initialize(cameraEntities_[secondaryCameraType_]);
+	debugCamera_->Initialize(cameraEntities_[debugCameraType_]);
 
 	// 派生クラスの初期化処理の呼び出し
 	OnInitialize();
@@ -206,6 +210,9 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 void BaseScene::Update() {
 	World *world = sceneManager_->GetWorld();
 	ParticleManager *particleManager = sceneManager_->GetParticleManager();
+	Device *device = sceneManager_->GetDevice();
+	Renderer *renderer = sceneManager_->GetRenderer();
+	DescriptorHeap *gpuCbvSrvUavDescriptorHeap_ = device->GetGpuCbvSrvUavDescriptorHeap();
 
 #ifdef USE_IMGUI
 	// フレームレートの表示
@@ -214,6 +221,12 @@ void BaseScene::Update() {
 	// ワールドの編集
 	world->Edit();
 
+	// ウィンドウの表示切り替え
+	ImGui::Checkbox("Hierarchy", &hierarchyWindow_->IsOpen());
+	ImGui::Checkbox("Inspector", &inspectorWindow_->IsOpen());
+	ImGui::Checkbox("SceneView", &renderer->IsSceneViewVisible());
+	ImGui::Checkbox("GameView", &renderer->IsGameViewVisible());
+
 	// グリッドの編集
 	grid_->Edit();
 
@@ -221,10 +234,9 @@ void BaseScene::Update() {
 	if (ImGui::Checkbox("DebugCameraActive", &isDebugCameraActive_)) {
 		if (isDebugCameraActive_) {
 			debugCamera_->Reset();
-			cameraSystem_->SwitchRenderingCamera(cameraEntities_[secondaryCameraType_]);
-			cullingCameraEntity_ = cameraSystem_->GetCullingCameraEntity();
+			cameraSystem_->SwitchRenderingCamera(cameraEntities_[debugCameraType_]);
 		} else {
-			cameraSystem_->SwitchRenderingCamera(cullingCameraEntity_);
+			cameraSystem_->SwitchRenderingCamera(cameraEntities_[mainCameraType_]);
 		}
 	}
 
@@ -248,6 +260,40 @@ void BaseScene::Update() {
 
 	// インスペクタウィンドウの描画
 	inspectorWindow_->Draw();
+
+	// シーンビューの描画
+	if (renderer->IsSceneViewVisible()) {
+		if (ImGui::Begin("SceneView", &renderer->IsSceneViewVisible())) {
+			ImVec2 avail = ImGui::GetContentRegionAvail();
+			auto camera = registry_->GetComponent<Camera>(cameraEntities_[debugCameraType_]);
+			float width = avail.x;
+			float height = width / camera->aspectRatio;
+			if (height > avail.y) {
+				height = avail.y;
+				width = height * camera->aspectRatio;
+			}
+			D3D12_GPU_DESCRIPTOR_HANDLE gpuSceneHandle = gpuCbvSrvUavDescriptorHeap_->GetGPUDescriptorHandle(world->GetSceneRenderTextureSRVHandle());
+			ImGui::Image(static_cast<ImTextureID>(gpuSceneHandle.ptr), ImVec2(width, height));
+		}
+		ImGui::End();
+	}
+
+	// ゲームビューの描画
+	if (renderer->IsGameViewVisible()) {
+		if (ImGui::Begin("GameView", &renderer->IsGameViewVisible())) {
+			ImVec2 avail = ImGui::GetContentRegionAvail();
+			auto camera = registry_->GetComponent<Camera>(cameraEntities_[mainCameraType_]);
+			float width = avail.x;
+			float height = width / camera->aspectRatio;
+			if (height > avail.y) {
+				height = avail.y;
+				width = height * camera->aspectRatio;
+			}
+			D3D12_GPU_DESCRIPTOR_HANDLE gpuGameHandle = gpuCbvSrvUavDescriptorHeap_->GetGPUDescriptorHandle(world->GetPostEffectRenderTextureSRVHandle());
+			ImGui::Image(static_cast<ImTextureID>(gpuGameHandle.ptr), ImVec2(width, height));
+		}
+		ImGui::End();
+	}
 #endif // USE_IMGUI
 
 	// デバッグレンダラーのフレーム開始
@@ -274,7 +320,7 @@ void BaseScene::Update() {
 	physicalSystem_->Update(kDeltaTime);
 
 	// ワールド行列の更新
-	transformSystem_->UpdateWorldMatrix();
+	transformSystem_->Update();
 
 	// コリジョンシステムの更新
 	collisionSystem_->Update();

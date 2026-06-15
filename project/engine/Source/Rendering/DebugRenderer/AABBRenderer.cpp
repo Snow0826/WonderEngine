@@ -2,7 +2,7 @@
 #include "AABBRenderer.h"
 #include "EntityComponentSystem.h"
 #include "DebugRenderer.h"
-#include "Model.h"
+#include "Collision.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -12,12 +12,6 @@ void AABBRenderSystem::Update() {
 #ifdef DRAW_LINE
 	registry_->ForEach<Collision::AABB, AABBRenderer>([&](uint32_t entity, Collision::AABB *aabb, AABBRenderer *aabbRenderer) {
 		debugRenderer_->AddAABB(*aabb);
-		}, exclude<Disabled>());
-
-	registry_->ForEach<Model, AABBRenderer>([&](uint32_t entity, Model *model, AABBRenderer *aabbRenderer) {
-		for (const MeshData &meshData : model->modelData.meshes) {
-			debugRenderer_->AddAABB(meshData.aabb);
-		}
 		}, exclude<Disabled>());
 #endif // DRAW_LINE
 }

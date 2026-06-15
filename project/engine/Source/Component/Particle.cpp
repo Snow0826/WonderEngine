@@ -109,7 +109,7 @@ void ParticleManager::Emit(uint32_t entity) {
 }
 
 void ParticleManager::UpdateParticle() {
-	registry_->ForEach<QuaternionTransform, RenderingCamera>([&](uint32_t entity, QuaternionTransform *transform, RenderingCamera *activeCamera) {
+	registry_->ForEach<QuaternionTransform, MainCamera>([&](uint32_t entity, QuaternionTransform *transform, MainCamera *cullingCamera) {
 		registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
 			particleGroup->numInstance = 0;
 

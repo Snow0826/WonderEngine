@@ -12,19 +12,27 @@
 #include "AnimatedCube.h"
 #include "SimpleSkin.h"
 #include "Human.h"
+#include "Quaternion.h"
+#include "Random.h"
+#include "Particle.h"
+#include "EntityComponentSystem.h"
+#include "IndirectCommand.h"
+#include "Object.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
 
 namespace {
+	uint32_t count = 10;
 	Vector3 start;
+	Range<Vector3> positionRange{ .min = { -100.0f, 0.0f, -100.0f }, .max = { 100.0f, 0.0f, 100.0f } };
 	Vector3 direction{ 0.0f, 1.0f, 0.0f };
 	float length = 5.0f;
 	int32_t depth = 5;
 	uint32_t divide = 32;
 	float topRadius = 0.1f;
-	float bottomRadius = 0.1f;
+	float bottomRadius = 0.2f;
 }
 
 SampleScene::SampleScene() = default;
@@ -77,21 +85,34 @@ void SampleScene::OnUpdate() {
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode("TreeGenerator")) {
 		int32_t divideInt = divide;
+		int32_t countInt = count;
 		ImGui::DragInt("Divide", &divideInt, 1, 3, 500);
+		ImGui::DragInt("Count", &countInt, 1, 1, 100);
 		ImGui::DragFloat("TopRadius", &topRadius, 0.1f, 0.0f, std::numeric_limits<float>::max());
 		ImGui::DragFloat("BottomRadius", &bottomRadius, 0.1f, 0.0f, std::numeric_limits<float>::max());
 		ImGui::DragFloat("Length", &length, 0.1f, 0.0f, std::numeric_limits<float>::max());
 		ImGui::DragFloat3("Start", &start.x, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		ImGui::DragFloat3("Direction", &direction.x, 0.1f, 0.0f, 1.0f);
+		ImGui::DragFloat3("PositionRangeMin", &positionRange.min.x, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		ImGui::DragFloat3("PositionRangeMax", &positionRange.max.x, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		ImGui::DragInt("Depth", &depth, 1, 0, 10);
 		direction = direction.normalized();
 		divide = static_cast<uint32_t>(divideInt);
+		count = static_cast<uint32_t>(countInt);
+		MeshManager *meshManager = sceneManager_->GetMeshManager();
+		TextureManager *textureManager = sceneManager_->GetTextureManager();
+		CylinderGenerator cylinderGenerator{ meshManager, textureManager };
+		TreeGenerator treeGenerator{ registry_.get(), &cylinderGenerator, objectManager_.get(), indirectCommandManager_.get() };
 		if (ImGui::Button("Generate")) {
-			MeshManager *meshManager = sceneManager_->GetMeshManager();
-			TextureManager *textureManager = sceneManager_->GetTextureManager();
-			CylinderGenerator cylinderGenerator{ meshManager, textureManager };
-			TreeGenerator treeGenerator{ registry_.get(), &cylinderGenerator, objectManager_.get(), indirectCommandManager_.get() };
-			treeGenerator.Generate(start, direction, divide, topRadius, bottomRadius, length, depth);
+			for (size_t i = 0; i < count; i++) {
+				uint32_t treeEntity = treeGenerator.Generate(UINT_MAX, start + Random::generate(positionRange.min, positionRange.max), direction, Quaternion::IdentityQuaternion(), divide, topRadius, bottomRadius, length, depth);
+				treeEntities_.emplace_back(treeEntity);
+			}
+		}
+
+		if (ImGui::Button("Delete") && !treeEntities_.empty()) {
+			treeGenerator.Delete(treeEntities_.back());
+			treeEntities_.pop_back();
 		}
 		ImGui::TreePop();
 	}

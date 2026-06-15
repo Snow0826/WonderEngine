@@ -58,8 +58,7 @@ void Player::Initialize(const Vector3 &position) {
 
 		EulerTransform *childTransform = registry_->GetComponent<EulerTransform>(entities_[i]);
 		if (childTransform) {
-			registry_->AddComponent(entities_[i], HasParent{});
-			childTransform->parentEntity = bodyEntity;
+			registry_->AddComponent(entities_[i], Relationship{ .parent = bodyEntity });
 		}
 	}
 

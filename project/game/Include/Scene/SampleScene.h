@@ -1,5 +1,6 @@
 #pragma once
 #include "BaseScene.h"
+#include <vector>
 
 class HitEffect;
 class SlashEffect;
@@ -26,4 +27,5 @@ private:
 	std::unique_ptr<SlashEffect> slashEffect_ = nullptr;			// スラッシュエフェクト
 	std::unique_ptr<HitRingEffect> hitRingEffect_ = nullptr;		// ヒットリングエフェクト
 	std::unique_ptr<SlashRingEffect> slashRingEffect_ = nullptr;	// スラッシュリングエフェクト
+	std::vector<uint32_t> treeEntities_;							// 木のエンティティIDのリスト
 };

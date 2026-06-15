@@ -96,10 +96,6 @@ void Application::Run() {
 
 		renderer_->Render();	// 描画処理
 
-		device_->SetupSwapChain();	// スワップチェーンの設定
-
-		renderer_->CopyImage();	// 画像のコピー
-
 		ImGuiManager::Draw(device_->GetCommandList());	// ImGuiの描画
 
 		device_->EndFrame();	// 描画終了処理

@@ -26,6 +26,7 @@
 using namespace StringConverter;
 
 namespace {
+	// メッシュタイプ名リスト
 	std::array<std::string, static_cast<uint32_t>(MeshType::kCountOfMeshType)> meshTypeNames = {
 		"Model",
 		"Plane",
@@ -43,6 +44,9 @@ namespace {
 		"Multiplicative",
 		"Screen"
 	};
+
+	constexpr uint32_t kMainCameraIndex = 1;	// メインカメラのインデックス
+	constexpr uint32_t kDebugCameraIndex = 2;	// デバッグカメラのインデックス
 }
 
 Renderer::Renderer(Device *device)
@@ -448,9 +452,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 }
 
 void Renderer::Render() {
-	// レンダーテクスチャの設定
-	SetupRenderTexture();
-
 	// オクルージョンカリングの実行
 	CopyDepthToHiZ();
 	GenerateHiZMipMap();
@@ -468,15 +469,20 @@ void Renderer::Render() {
 	// フットプリントマップのコピー
 	world_->CopyFootprintMapBuffer();
 
-	// 各オブジェクトの描画
-	PreDrawSkybox();
-	DrawSkybox();
-	DrawMesh();
-	DrawParticle();
-	PreDrawSprite();
-	DrawSprite();
-	PreDrawLine();
-	DrawLine();
+	// シーンビューの描画
+	RenderSceneView();
+
+	// ゲームビューの描画	
+	RenderGameView();
+
+#ifdef USE_IMGUI
+	// スワップチェーンの設定
+	device_->SetupSwapChain();
+	return;
+#endif // USE_IMGUI
+
+	// リリース構成の描画
+	RenderRelease();
 }
 
 void Renderer::SetRegistry(Registry *registry) {
@@ -514,82 +520,12 @@ void Renderer::SetFootprintManager(FootprintManager *footprintManager) {
 	footprintManager_ = footprintManager;
 }
 
-bool Renderer::IsDebugCamera() {
-	bool isDebugCamera = false;
-	registry_->ForEach<Camera, QuaternionTransform, RenderingCamera>([&](uint32_t entity, Camera *, QuaternionTransform *, RenderingCamera *) {
-		isDebugCamera = true;
-		}, exclude<Disabled, CullingCamera>());
-	return isDebugCamera;
-}
-
-void Renderer::SetupRenderTexture() {
-	DescriptorHeap *rtvDescriptorHeap = device_->GetRTVDescriptorHeap();
-	DescriptorHeap *dsvDescriptorHeap = device_->GetDSVDescriptorHeap();
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvCPUHandle = rtvDescriptorHeap->GetCPUDescriptorHandle(world_->GetRenderTextureRTVHandle());
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvCPUHandle = dsvDescriptorHeap->GetCPUDescriptorHandle(device_->GetDSVHandle());
-
-	// 描画先のRTVとDSVを設定する
-	commandList_->OMSetRenderTargets(1, &rtvCPUHandle, false, &dsvCPUHandle);
-
-	// 指定した色で画面全体をクリアする
-	float clearColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };
-	commandList_->ClearRenderTargetView(rtvCPUHandle, clearColor, 0, nullptr);
-
-	// ビューポートとシザー矩形の設定
-	D3D12_VIEWPORT viewport = device_->GetViewport();
-	D3D12_RECT scissorRect = device_->GetScissorRect();
-	commandList_->RSSetViewports(1, &viewport);			// ビューポートの設定
-	commandList_->RSSetScissorRects(1, &scissorRect);	// シザー矩形の設定
-}
-
-void Renderer::CopyImage() {
-	world_->GetRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	switch (world_->GetPostEffect()) {
-		case PostEffect::kNone:
-			commandList_->SetGraphicsRootSignature(fullscreenRootSignature_);
-			commandList_->SetPipelineState(fullscreenPipelineState_.Get());
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(0, world_->GetRenderTextureSRVHandle());
-			break;
-		case PostEffect::kGrayscale:
-			commandList_->SetGraphicsRootSignature(grayscaleRootSignature_);
-			commandList_->SetPipelineState(grayscalePipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kGrayscaleColor)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetRenderTextureSRVHandle());
-			break;
-		case PostEffect::kVignette:
-			commandList_->SetGraphicsRootSignature(vignetteRootSignature_);
-			commandList_->SetPipelineState(vignettePipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kVignetteParam)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetRenderTextureSRVHandle());
-			break;
-		case PostEffect::kBoxFilter:
-			commandList_->SetGraphicsRootSignature(boxFilterRootSignature_);
-			commandList_->SetPipelineState(boxFilterPipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kBoxFilterParam)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetRenderTextureSRVHandle());
-			break;
-		case PostEffect::kGaussianFilter:
-			commandList_->SetGraphicsRootSignature(gaussianFilterRootSignature_);
-			commandList_->SetPipelineState(gaussianFilterPipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kGaussianFilterParam)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetRenderTextureSRVHandle());
-			break;
-		case PostEffect::kCountOfPostEffect:
-			break;
-		default:
-			break;
-	}
-	commandList_->DrawInstanced(3, 1, 0, 0);
-	world_->GetRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET);
-}
-
 void Renderer::CopyDepthToHiZ() {
 	// 深度ステンシルテクスチャコピー用ルートシグネチャとパイプラインステートの設定
 	commandList_->SetComputeRootSignature(depthStencilCopyRootSignature_);
 	commandList_->SetPipelineState(depthStencilCopyPipelineState_.Get());
 
-	Resource *depthStencilTexture = device_->GetPreviousDepthStencilTexture();
+	Resource *depthStencilTexture = device_->GetPreviousMainCameraDepthStencilTexture();
 	Resource *hiZTexture = world_->GetHiZTexture();
 	depthStencilTexture->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	hiZTexture->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0);
@@ -646,26 +582,9 @@ void Renderer::OcclusionCulling() {
 	commandList_->SetPipelineState(occlusionCullingPipelineState_.Get());
 
 	// CBVの設定
-	ConstantBuffer *frustumCB = world_->GetConstantBuffer(ConstantBufferType::kFrustum);
-	if (IsDebugCamera()) {
-		frustumCB->BindToCompute(0, 1);
-	} else {
-		frustumCB->BindToCompute(0, 0);
-	}
-
-	ConstantBuffer *viewProjCB = world_->GetConstantBuffer(ConstantBufferType::kViewProjection);
-	if (IsDebugCamera()) {
-		viewProjCB->BindToCompute(1, 2);
-	} else {
-		viewProjCB->BindToCompute(1, 1);
-	}
-
-	ConstantBuffer *cameraCB = world_->GetConstantBuffer(ConstantBufferType::kCameraPosition);
-	if (IsDebugCamera()) {
-		cameraCB->BindToCompute(2, 1);
-	} else {
-		cameraCB->BindToCompute(2, 0);
-	}
+	world_->GetConstantBuffer(ConstantBufferType::kFrustum)->BindToCompute(0, 0);
+	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToCompute(1, 1);
+	world_->GetConstantBuffer(ConstantBufferType::kCameraPosition)->BindToCompute(2, 0);
 
 	// メッシュ数の設定
 	CullingConstantsData cullingConstantsData = {
@@ -711,9 +630,6 @@ void Renderer::OcclusionCulling() {
 		world_->GetProcessedCommandBuffer()->UAVBarrier();
 		world_->GetCommandCounterBuffer()->UAVBarrier();
 	}
-
-	// 指定した深度で画面全体をクリアする
-	commandList_->ClearDepthStencilView(device_->GetDSVDescriptorHeap()->GetCPUDescriptorHandle(device_->GetDSVHandle()), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 }
 
 void Renderer::Footprint() {
@@ -788,7 +704,112 @@ void Renderer::LoadResultMap() {
 		}, exclude<Disabled>());
 }
 
-void Renderer::DrawMesh() {
+void Renderer::RenderSceneView() {
+#ifdef USE_IMGUI
+	if (!isSceneViewVisible_) {
+		return;
+	}
+
+	world_->GetSceneRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	bool isDebugCamera = false;
+	registry_->ForEach<Camera, RenderingCamera>([&](uint32_t entity, Camera *camera, RenderingCamera *renderingCamera) {
+		isDebugCamera = true;
+		}, exclude<Disabled, MainCamera>());
+
+	if (isDebugCamera) {
+		// レンダーターゲットの設定
+		SetupRenderTarget(world_->GetSceneRenderTextureRTVHandle(), device_->GetDebugCameraDSVHandle());
+
+		// ワールド描画
+		RenderWorld(kDebugCameraIndex);
+
+		// デバッグ描画
+		DrawLine(kDebugCameraIndex);
+	} else {
+		// レンダーターゲットの設定
+		SetupRenderTarget(world_->GetSceneRenderTextureRTVHandle(), device_->GetMainCameraDSVHandle());
+
+		// ワールド描画
+		RenderWorld(kMainCameraIndex);
+
+		// デバッグ描画
+		DrawLine(kMainCameraIndex);
+	}
+
+	world_->GetSceneRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+#endif // USE_IMGUI
+}
+
+void Renderer::RenderGameView() {
+#ifdef USE_IMGUI
+	if (!isGameViewVisible_) {
+		return;
+	}
+
+	world_->GetPostEffectRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	// ゲームビューのレンダーターゲットの設定
+	SetupRenderTarget(world_->GetGameRenderTextureRTVHandle(), device_->GetMainCameraDSVHandle());
+
+	// ワールド描画
+	RenderWorld(kMainCameraIndex);
+
+	// ポストエフェクトのレンダーターゲットの設定
+	SetupRenderTarget(world_->GetPostEffectRenderTextureRTVHandle(), device_->GetMainCameraDSVHandle());
+
+	// ポストエフェクトの描画
+	CopyImage();
+
+	world_->GetPostEffectRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+#endif // USE_IMGUI
+}
+
+void Renderer::RenderRelease() {
+	// ゲームビューのレンダーターゲットの設定
+	SetupRenderTarget(world_->GetGameRenderTextureRTVHandle(), device_->GetMainCameraDSVHandle());
+
+	// ワールド描画
+	RenderWorld(kMainCameraIndex);
+
+	// スワップチェーンの設定
+	device_->SetupSwapChain();
+
+	// ポストエフェクトの描画
+	CopyImage();
+}
+
+void Renderer::SetupRenderTarget(uint32_t rtvHandle, uint32_t dsvHandle) {
+	DescriptorHeap *rtvDescriptorHeap = device_->GetRTVDescriptorHeap();
+	DescriptorHeap *dsvDescriptorHeap = device_->GetDSVDescriptorHeap();
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvCPUHandle = rtvDescriptorHeap->GetCPUDescriptorHandle(rtvHandle);
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvCPUHandle = dsvDescriptorHeap->GetCPUDescriptorHandle(dsvHandle);
+
+	// 描画先のRTVとDSVを設定する
+	commandList_->OMSetRenderTargets(1, &rtvCPUHandle, false, &dsvCPUHandle);
+
+	// 指定した色で画面全体をクリアする
+	float clearColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };
+	commandList_->ClearRenderTargetView(rtvCPUHandle, clearColor, 0, nullptr);
+
+	// 指定した深度で画面全体をクリアする
+	commandList_->ClearDepthStencilView(dsvCPUHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+	// ビューポートとシザー矩形の設定
+	D3D12_VIEWPORT viewport = device_->GetViewport();
+	D3D12_RECT scissorRect = device_->GetScissorRect();
+	commandList_->RSSetViewports(1, &viewport);			// ビューポートの設定
+	commandList_->RSSetScissorRects(1, &scissorRect);	// シザー矩形の設定
+}
+
+void Renderer::RenderWorld(uint32_t cameraBufferLocationIndex) {
+	DrawSkybox(cameraBufferLocationIndex);
+	DrawMesh(cameraBufferLocationIndex);
+	DrawParticle(cameraBufferLocationIndex);
+	DrawSprite();
+}
+
+void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
 	// 三角形のトポロジの設定
 	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -811,15 +832,8 @@ void Renderer::DrawMesh() {
 		PIXBeginEvent(commandList_, pixColor[i], ConvertString(label).c_str());
 		commandList_->SetGraphicsRootSignature(static_cast<MeshType>(i) == MeshType::kRing ? ringObject3dRootSignature_ : object3dRootSignature_);
 
-		// メッシュのビュープロジェクションのCBVを設定
-		ConstantBuffer *viewProjCB = world_->GetConstantBuffer(ConstantBufferType::kViewProjection);
-		if (IsDebugCamera()) {
-			viewProjCB->BindToGraphics(1, 2);
-		} else {
-			viewProjCB->BindToGraphics(1, 1);
-		}
-
 		// メッシュの共通のCBVを設定
+		world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(1, cameraBufferLocationIndex);
 		world_->GetConstantBuffer(ConstantBufferType::kCameraPosition)->BindToGraphics(3, 0);
 		world_->GetConstantBuffer(ConstantBufferType::kDirectionalLight)->BindToGraphics(4, 0);
 		LightCount lightCount = {
@@ -857,7 +871,7 @@ void Renderer::DrawMesh() {
 	}
 }
 
-void Renderer::DrawParticle() {
+void Renderer::DrawParticle(uint32_t cameraBufferLocationIndex) {
 	// PIXイベントの色の設定
 	UINT32 pixColor[static_cast<uint32_t>(MeshType::kCountOfMeshType)] = {
 		PIX_COLOR(255, 0, 0),	// MeshType::kModel
@@ -876,12 +890,7 @@ void Renderer::DrawParticle() {
 		commandList_->SetGraphicsRootSignature(static_cast<MeshType>(i) == MeshType::kRing ? ringInstance3dRootSignature_ : instance3dRootSignature_);
 
 		// パーティクルのビュープロジェクションのCBVを設定
-		ConstantBuffer *viewProjCB = world_->GetConstantBuffer(ConstantBufferType::kViewProjection);
-		if (IsDebugCamera()) {
-			viewProjCB->BindToGraphics(0, 2);
-		} else {
-			viewProjCB->BindToGraphics(0, 1);
-		}
+		world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(0, cameraBufferLocationIndex);
 
 		// パーティクルのテクスチャのSRVを設定
 		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, 0);
@@ -909,7 +918,7 @@ void Renderer::DrawParticle() {
 	}
 }
 
-void Renderer::PreDrawSprite() {
+void Renderer::DrawSprite() {
 	// Object3d用ルートシグネチャの設定
 	commandList_->SetGraphicsRootSignature(object3dRootSignature_);
 
@@ -921,9 +930,7 @@ void Renderer::PreDrawSprite() {
 		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, skybox->textureHandle);
 		}, exclude<Disabled>());
 	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, 0);
-}
 
-void Renderer::DrawSprite() {
 	// 各ブレンドモードのスプライトの描画
 	for (uint32_t i = 0; i < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); i++) {
 		// Sprite用パイプラインステートの設定
@@ -945,7 +952,71 @@ void Renderer::DrawSprite() {
 	}
 }
 
-void Renderer::PreDrawLine() {
+void Renderer::DrawSkybox(uint32_t cameraBufferLocationIndex) {
+	// Skybox用ルートシグネチャの設定
+	commandList_->SetGraphicsRootSignature(skyboxRootSignature_);
+
+	// 三角形のトポロジの設定
+	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// Skybox用パイプラインステートの設定
+	commandList_->SetPipelineState(skyboxPipelineState_.Get());
+
+	// スカイボックスのCBVを設定
+	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(1, cameraBufferLocationIndex);
+
+	// スカイボックスの描画
+	registry_->ForEach<Skybox, Object>([&](uint32_t entity, Skybox *skybox, Object *object) {
+		world_->GetConstantBuffer(ConstantBufferType::kTransform)->BindToGraphics(0, object->handle);
+		world_->GetConstantBuffer(ConstantBufferType::kMaterial)->BindToGraphics(2, object->handle);
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, skybox->textureHandle);
+		meshManager_->Draw(skybox->meshHandle);
+		}, exclude<Disabled>());
+}
+
+void Renderer::CopyImage() {
+	world_->GetGameRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	switch (world_->GetPostEffect()) {
+		case PostEffect::kNone:
+			commandList_->SetGraphicsRootSignature(fullscreenRootSignature_);
+			commandList_->SetPipelineState(fullscreenPipelineState_.Get());
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(0, world_->GetGameRenderTextureSRVHandle());
+			break;
+		case PostEffect::kGrayscale:
+			commandList_->SetGraphicsRootSignature(grayscaleRootSignature_);
+			commandList_->SetPipelineState(grayscalePipelineState_.Get());
+			world_->GetConstantBuffer(ConstantBufferType::kGrayscaleColor)->BindToGraphics(0, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
+			break;
+		case PostEffect::kVignette:
+			commandList_->SetGraphicsRootSignature(vignetteRootSignature_);
+			commandList_->SetPipelineState(vignettePipelineState_.Get());
+			world_->GetConstantBuffer(ConstantBufferType::kVignetteParam)->BindToGraphics(0, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
+			break;
+		case PostEffect::kBoxFilter:
+			commandList_->SetGraphicsRootSignature(boxFilterRootSignature_);
+			commandList_->SetPipelineState(boxFilterPipelineState_.Get());
+			world_->GetConstantBuffer(ConstantBufferType::kBoxFilterParam)->BindToGraphics(0, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
+			break;
+		case PostEffect::kGaussianFilter:
+			commandList_->SetGraphicsRootSignature(gaussianFilterRootSignature_);
+			commandList_->SetPipelineState(gaussianFilterPipelineState_.Get());
+			world_->GetConstantBuffer(ConstantBufferType::kGaussianFilterParam)->BindToGraphics(0, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
+			break;
+		case PostEffect::kCountOfPostEffect:
+			break;
+		default:
+			break;
+	}
+	commandList_->DrawInstanced(3, 1, 0, 0);
+	world_->GetGameRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET);
+}
+
+void Renderer::DrawLine(uint32_t cameraBufferLocationIndex) {
 #ifdef DRAW_LINE
 	// Line用ルートシグネチャの設定
 	commandList_->SetGraphicsRootSignature(lineRootSignature_);
@@ -957,51 +1028,15 @@ void Renderer::PreDrawLine() {
 	commandList_->SetPipelineState(linePipelineState_.Get());
 
 	// ラインのビュープロジェクションのCBVを設定
-	ConstantBuffer *viewProjCB = world_->GetConstantBuffer(ConstantBufferType::kViewProjection);
-	if (IsDebugCamera()) {
-		viewProjCB->BindToGraphics(0, 2);
-	} else {
-		viewProjCB->BindToGraphics(0, 1);
-	}
+	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(0, cameraBufferLocationIndex);
 
 	// ラインのSRVを設定
 	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetLineHandle());
-#endif // DRAW_LINE
-}
 
-void Renderer::DrawLine() {
-#ifdef DRAW_LINE
+	// ラインの描画
 	uint32_t instanceCount = debugRenderer_->GetLineCount();
 	if (instanceCount) {
 		commandList_->DrawInstanced(2, instanceCount, 0, 0);
 	}
 #endif // DRAW_LINE
-}
-
-void Renderer::PreDrawSkybox() {
-	// Skybox用ルートシグネチャの設定
-	commandList_->SetGraphicsRootSignature(skyboxRootSignature_);
-
-	// 三角形のトポロジの設定
-	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// Skybox用パイプラインステートの設定
-	commandList_->SetPipelineState(skyboxPipelineState_.Get());
-
-	// スカイボックスのCBVを設定
-	ConstantBuffer *viewProjCB = world_->GetConstantBuffer(ConstantBufferType::kViewProjection);
-	if (IsDebugCamera()) {
-		viewProjCB->BindToGraphics(1, 2);
-	} else {
-		viewProjCB->BindToGraphics(1, 1);
-	}
-}
-
-void Renderer::DrawSkybox() {
-	registry_->ForEach<Skybox, Object>([&](uint32_t entity, Skybox *skybox, Object *object) {
-		world_->GetConstantBuffer(ConstantBufferType::kTransform)->BindToGraphics(0, object->handle);
-		world_->GetConstantBuffer(ConstantBufferType::kMaterial)->BindToGraphics(2, object->handle);
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, skybox->textureHandle);
-		meshManager_->Draw(skybox->meshHandle);
-		}, exclude<Disabled>());
 }

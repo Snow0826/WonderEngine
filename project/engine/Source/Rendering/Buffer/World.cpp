@@ -182,24 +182,25 @@ World::World(Device *device, std::ofstream &logStream) {
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMeshLOD)]->GetResource(), srvBufferDesc, meshLODHandle_);
 	Logger::Log(logStream, "MeshLOD SRVDescriptorIndex: " + std::to_string(meshLODHandle_) + "\n");
 
-	// レンダーテクスチャの作成
+	// シーンのレンダーテクスチャの作成
 	D3D12_CLEAR_VALUE clearValue{};
 	clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	clearValue.Color[0] = 1.0f;
 	clearValue.Color[1] = 0.0f;
 	clearValue.Color[2] = 0.0f;
 	clearValue.Color[3] = 1.0f;
-	renderTexture_ = Resource::CreateTexture2D(device, Window::GetClientWidth(), Window::GetClientHeight(), 1, D3D12_RESOURCE_STATE_RENDER_TARGET, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, &clearValue);
+	sceneRenderTexture_ = Resource::CreateTexture2D(device, Window::GetClientWidth(), Window::GetClientHeight(), 1, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, &clearValue);
+	sceneRenderTexture_->SetName("SceneRenderTexture");
 
-	// レンダーテクスチャ用のRTVの作成
+	// シーンのレンダーテクスチャ用のRTVの作成
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc{};
 	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-	renderTextureRTVHandle_ = device->GetRTVDescriptorHeap()->AllocateDescriptor();
-	device->GetRTVDescriptorHeap()->CreateRenderTargetView(renderTexture_->GetResource(), rtvDesc, renderTextureRTVHandle_);
-	Logger::Log(logStream, "RenderTexture RTVDescriptorIndex: " + std::to_string(renderTextureRTVHandle_) + "\n");
+	sceneRenderTextureRTVHandle_ = device->GetRTVDescriptorHeap()->AllocateDescriptor();
+	device->GetRTVDescriptorHeap()->CreateRenderTargetView(sceneRenderTexture_->GetResource(), rtvDesc, sceneRenderTextureRTVHandle_);
+	Logger::Log(logStream, "SceneRenderTexture RTVDescriptorIndex: " + std::to_string(sceneRenderTextureRTVHandle_) + "\n");
 
-	// レンダーテクスチャ用のSRVの作成
+	// シーンのレンダーテクスチャ用のSRVの作成
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvRenderTextureDesc{};
 	srvRenderTextureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	srvRenderTextureDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -207,9 +208,37 @@ World::World(Device *device, std::ofstream &logStream) {
 	srvRenderTextureDesc.Texture2D.MostDetailedMip = 0;
 	srvRenderTextureDesc.Texture2D.MipLevels = 1;
 	srvRenderTextureDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	renderTextureSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(renderTexture_->GetResource(), srvRenderTextureDesc, renderTextureSRVHandle_);
-	Logger::Log(logStream, "RenderTexture SRVDescriptorIndex: " + std::to_string(renderTextureSRVHandle_) + "\n");
+	sceneRenderTextureSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(sceneRenderTexture_->GetResource(), srvRenderTextureDesc, sceneRenderTextureSRVHandle_);
+	Logger::Log(logStream, "SceneRenderTexture SRVDescriptorIndex: " + std::to_string(sceneRenderTextureSRVHandle_) + "\n");
+
+	// ゲームのレンダーテクスチャの作成
+	gameRenderTexture_ = Resource::CreateTexture2D(device, Window::GetClientWidth(), Window::GetClientHeight(), 1, D3D12_RESOURCE_STATE_RENDER_TARGET, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, &clearValue);
+	gameRenderTexture_->SetName("GameRenderTexture");
+
+	// ゲームのレンダーテクスチャ用のRTVの作成
+	gameRenderTextureRTVHandle_ = device->GetRTVDescriptorHeap()->AllocateDescriptor();
+	device->GetRTVDescriptorHeap()->CreateRenderTargetView(gameRenderTexture_->GetResource(), rtvDesc, gameRenderTextureRTVHandle_);
+	Logger::Log(logStream, "GameRenderTexture RTVDescriptorIndex: " + std::to_string(gameRenderTextureRTVHandle_) + "\n");
+
+	// ゲームのレンダーテクスチャ用のSRVの作成
+	gameRenderTextureSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(gameRenderTexture_->GetResource(), srvRenderTextureDesc, gameRenderTextureSRVHandle_);
+	Logger::Log(logStream, "GameRenderTexture SRVDescriptorIndex: " + std::to_string(gameRenderTextureSRVHandle_) + "\n");
+	
+	// ポストエフェクトのレンダーテクスチャの作成
+	postEffectRenderTexture_ = Resource::CreateTexture2D(device, Window::GetClientWidth(), Window::GetClientHeight(), 1, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, &clearValue);
+	postEffectRenderTexture_->SetName("PostEffectRenderTexture");
+
+	// ポストエフェクトのレンダーテクスチャ用のRTVの作成
+	postEffectRenderTextureRTVHandle_ = device->GetRTVDescriptorHeap()->AllocateDescriptor();
+	device->GetRTVDescriptorHeap()->CreateRenderTargetView(postEffectRenderTexture_->GetResource(), rtvDesc, postEffectRenderTextureRTVHandle_);
+	Logger::Log(logStream, "PostEffectRenderTexture RTVDescriptorIndex: " + std::to_string(postEffectRenderTextureRTVHandle_) + "\n");
+
+	// ポストエフェクトのレンダーテクスチャ用のSRVの作成
+	postEffectRenderTextureSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(postEffectRenderTexture_->GetResource(), srvRenderTextureDesc, postEffectRenderTextureSRVHandle_);
+	Logger::Log(logStream, "PostEffectRenderTexture SRVDescriptorIndex: " + std::to_string(postEffectRenderTextureSRVHandle_) + "\n");
 
 	// 深度バッファ用SRVの作成
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDepthStencilCopyDesc{};
@@ -220,7 +249,7 @@ World::World(Device *device, std::ofstream &logStream) {
 	srvDepthStencilCopyDesc.Texture2D.MipLevels = 1;
 	srvDepthStencilCopyDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	depthStencilCopySourceHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(device->GetPreviousDepthStencilTexture()->GetResource(), srvDepthStencilCopyDesc, depthStencilCopySourceHandle_);
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(device->GetPreviousMainCameraDepthStencilTexture()->GetResource(), srvDepthStencilCopyDesc, depthStencilCopySourceHandle_);
 	Logger::Log(logStream, "DepthStencilCopySource SRVDescriptorIndex: " + std::to_string(depthStencilCopySourceHandle_) + "\n");
 
 #pragma region HiZMipMap
@@ -459,31 +488,18 @@ void World::TransferSpotLight() {
 
 void World::TransferCamera() {
 	TransformSystem transformSystem{ registry_ };
-
-	// カリングカメラ
-	registry_->ForEach<Camera, QuaternionTransform, CullingCamera>([&](uint32_t entity, Camera *camera, QuaternionTransform *transform, CullingCamera *cullingCamera) {
+	uint32_t cameraIndex = 0;
+	registry_->ForEach<Camera, QuaternionTransform>([&](uint32_t entity, Camera *camera, QuaternionTransform *transform) {
 		ViewProjectionData viewProjection = MakeViewProjection(*camera, *transform);
 		Frustum frustum = MakeFrustum(viewProjection);
 		CameraPosition cameraPosition = {
 			.worldPosition = transformSystem.GetWorldPosition(entity)
 		};
-		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kViewProjection)]->CopyData(&viewProjection, sizeof(ViewProjectionData), 1);
-		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), 0);
-		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCameraPosition)]->CopyData(&cameraPosition, sizeof(CameraPosition), 0);
+		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kViewProjection)]->CopyData(&viewProjection, sizeof(ViewProjectionData), cameraIndex + 1);
+		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), cameraIndex);
+		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCameraPosition)]->CopyData(&cameraPosition, sizeof(CameraPosition), cameraIndex);
+		cameraIndex++;
 		}, exclude<Disabled>());
-
-	// デバッグカメラ
-	registry_->ForEach<Camera, QuaternionTransform, RenderingCamera>([&](uint32_t entity, Camera *camera, QuaternionTransform *transform, RenderingCamera *renderingCamera) {
-		ViewProjectionData viewProjection = MakeViewProjection(*camera, *transform);
-		Frustum frustum = MakeFrustum(viewProjection);
-		CameraPosition cameraPosition = {
-			.worldPosition = transformSystem.GetWorldPosition(entity)
-		};
-		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kViewProjection)]->CopyData(&viewProjection, sizeof(ViewProjectionData), 2);
-		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), 1);
-		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCameraPosition)]->CopyData(&cameraPosition, sizeof(CameraPosition), 1);
-
-		}, exclude<Disabled, CullingCamera>());
 }
 
 void World::TransferTransform() {

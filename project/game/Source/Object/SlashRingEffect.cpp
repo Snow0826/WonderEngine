@@ -31,6 +31,7 @@ void SlashRingEffect::Initialize() {
 	// エンティティの生成
 	entity_ = registry_->GenerateEntity();
 	registry_->AddComponent(entity_, BlendMode::kBlendModeAdditive);
+	registry_->AddComponent(entity_, Relationship{});
 	registry_->AddComponent(entity_, particleManager_->FindParticleGroup("slashRingEffect"));
 	registry_->AddComponent(entity_, emitter);
 }

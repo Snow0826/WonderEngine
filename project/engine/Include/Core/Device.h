@@ -66,13 +66,17 @@ public:
 	/// @return シザー矩形
 	D3D12_RECT GetScissorRect() const { return scissorRect_; }
 
-	/// @brief 前フレームの深度ステンシルテクスチャを取得
-	/// @return 前フレームの深度ステンシルテクスチャ
-	Resource *GetPreviousDepthStencilTexture() const { return previousDepthStencilTexture_.get(); }
+	/// @brief 前フレームのメインカメラ用深度ステンシルテクスチャを取得
+	/// @return 前フレームのメインカメラ用深度ステンシルテクスチャ
+	Resource *GetPreviousMainCameraDepthStencilTexture() const { return previousMainCameraDepthStencilTexture_.get(); }
 
-	/// @brief DSVハンドルを取得
-	/// @return DSVハンドル
-	uint32_t GetDSVHandle() const { return dsvHandle_; }
+	/// @brief メインカメラ用DSVハンドルを取得
+	/// @return メインカメラ用DSVハンドル
+	uint32_t GetMainCameraDSVHandle() const { return mainCameraDSVHandle_; }
+
+	/// @brief デバッグカメラ用DSVハンドルを取得
+	/// @return デバッグカメラ用DSVハンドル
+	uint32_t GetDebugCameraDSVHandle() const { return debugCameraDSVHandle_; }
 
 	/// @brief Object3d用ルートシグネチャを取得
 	/// @return Object3d用ルートシグネチャ
@@ -156,10 +160,12 @@ private:
 	DescriptorHeap cpuCbvSrvUavDescriptorHeap_;												// CPU用のCBV,SRV,UAV用のディスクリプタヒープ
 	DescriptorHeap dsvDescriptorHeap_;														// DSV用のディスクリプタヒープ
 	std::vector<uint32_t> rtvHandles_;														// RTVハンドル
-	uint32_t dsvHandle_;																	// DSVハンドル
+	uint32_t mainCameraDSVHandle_ = 0;														// メインカメラ用DSVハンドル
+	uint32_t debugCameraDSVHandle_ = 0;														// デバッグカメラ用DSVハンドル
 	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> swapChainResources_;				// スワップチェーンリソース
-	std::unique_ptr<Resource> previousDepthStencilTexture_ = nullptr;						// 前フレームの深度ステンシルテクスチャ
-	std::unique_ptr<Resource> depthStencilTexture_ = nullptr;								// 深度ステンシルテクスチャ
+	std::unique_ptr<Resource> previousMainCameraDepthStencilTexture_ = nullptr;				// 前フレームのメインカメラ用深度ステンシルテクスチャ
+	std::unique_ptr<Resource> mainCameraDepthStencilTexture_ = nullptr;						// メインカメラ用深度ステンシルテクスチャ
+	std::unique_ptr<Resource> debugCameraDepthStencilTexture_ = nullptr;					// デバッグカメラ用深度ステンシルテクスチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> object3dRootSignature_ = nullptr;			// Object3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringObject3dRootSignature_ = nullptr;		// RingObject3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> instance3dRootSignature_ = nullptr;			// Instance3d用ルートシグネチャ

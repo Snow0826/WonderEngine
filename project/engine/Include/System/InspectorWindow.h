@@ -18,10 +18,15 @@ public:
 	/// @brief 描画
 	void Draw();
 
+	/// @brief ウィンドウの開閉状態への参照を取得
+	/// @return ウィンドウの開閉状態への参照
+	bool &IsOpen() { return isOpen_; }
+
 private:
 	Registry *registry_ = nullptr;	// レジストリ
 	ComponentDrawerRegistry *componentDrawerRegistry_ = nullptr;	// コンポーネント描画関数レジストリ
 	SelectionContext *selection_ = nullptr;	// 選択コンテキスト
+	bool isOpen_ = true;	// ウィンドウの開閉状態
 
 	/// @brief コンポーネントの描画
 	/// @param entity エンティティ

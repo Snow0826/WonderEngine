@@ -17,11 +17,11 @@ uint32_t TreeGenerator::Generate(uint32_t parent, const Vector3 &start, const Ve
 	uint32_t entity = registry_->GenerateEntity();
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
 	registry_->AddComponent(entity, QuaternionTransform{ .rotate = localRotate, .translate = start });
-	registry_->AddComponent(entity, Material{});
+	registry_->AddComponent(entity, Material{ .environmentCoefficient = 0.0f });
 	registry_->AddComponent(entity, DirtyTransform{});
 	registry_->AddComponent(entity, DirtyMaterial{});
 	registry_->AddComponent(entity, objectManager_->CreateObject(entity));
-	registry_->AddComponent(entity, cylinderGenerator_->CreateCylinder(divide, topRadius, bottomRadius, length, "white8x8.png"));
+	registry_->AddComponent(entity, cylinderGenerator_->CreateCylinder(divide, topRadius, bottomRadius, length, "Bark001_1K-JPG_Color.jpg"));
 	registry_->AddComponent(entity, UseCulling{});
 	registry_->AddComponent(entity, indirectCommandManager_->AddIndirectCommand(entity));
 

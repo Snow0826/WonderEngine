@@ -4,6 +4,7 @@
 #include "Vector2.h"
 #include "Vector3.h"
 #include "Vector4.h"
+#include "Matrix4x4.h"
 #include <array>
 #include <vector>
 #include <memory>
@@ -59,6 +60,17 @@ struct GaussianFilterParam final {
 	float sigma = 2.0f;			// 標準偏差
 };
 
+/// @brief プレウィットフィルターパラメータ
+struct PrewittFilterParam final {
+	Vector2 texelSize;			// テクセルサイズ
+	float scale = 1.0f;			// スケール
+};
+
+/// @brief 深度マテリアル
+struct DepthMaterial final {
+	Matrix4x4 projectionInverse;	// プロジェクション逆行列
+};
+
 /// @brief int型4要素ベクトル
 struct Int4 final {
 	int32_t x = 0;
@@ -86,6 +98,8 @@ enum class ConstantBufferType {
 	kVignetteParam,				// ビネットパラメータ
 	kBoxFilterParam,			// ボックスフィルターパラメータ
 	kGaussianFilterParam,		// ガウシアンフィルターパラメータ
+	kPrewittFilterParam,		// プレウィットフィルターパラメータ
+	kDepthMaterial,				// 深度マテリアル
 	kFootprintMap,				// フットプリントマップ
 	kCountOfConstantBufferType	// 定数バッファの種類の数
 };
@@ -104,12 +118,14 @@ enum class StructuredBufferType {
 
 /// @brief ポストエフェクト
 enum class PostEffect {
-	kNone,				// なし
-	kGrayscale,			// グレースケール
-	kVignette,			// ビネット
-	kBoxFilter,			// ボックスフィルター
-	kGaussianFilter,	// ガウシアンフィルター
-	kCountOfPostEffect	// ポストエフェクトの数
+	kNone,					// なし
+	kGrayscale,				// グレースケール
+	kVignette,				// ビネット
+	kBoxFilter,				// ボックスフィルター
+	kGaussianFilter,		// ガウシアンフィルター
+	kLuminanceBasedOutline,	// 輝度ベースの輪郭抽出
+	kDepthBasedOutline,		// 深度ベースの輪郭抽出
+	kCountOfPostEffect		// ポストエフェクトの数
 };
 
 class Device;
@@ -236,13 +252,21 @@ public:
 	/// @return ポストエフェクトのレンダーテクスチャのSRVハンドル
 	uint32_t GetPostEffectRenderTextureSRVHandle() const { return postEffectRenderTextureSRVHandle_; }
 
-	/// @brief 深度ステンシルコピー元ハンドルを取得
-	/// @return 深度ステンシルコピー元ハンドル
-	uint32_t GetDepthStencilCopySourceHandle() const { return depthStencilCopySourceHandle_; }
+	/// @brief 前フレームのメインカメラの深度ステンシルテクスチャのSRVハンドルを取得
+	/// @return 前フレームのメインカメラの深度ステンシルテクスチャのSRVハンドル
+	uint32_t GetPreviousMainCameraDepthStencilTextureSRVHandle() const { return previousMainCameraDepthStencilTextureSRVHandle_; }
 
-	/// @brief 深度ステンシルコピー先ハンドルを取得
-	/// @return 深度ステンシルコピー先ハンドル
-	uint32_t GetDepthStencilCopyDestHandle() const { return depthStencilCopyDestHandle_; }
+	/// @brief メインカメラの深度ステンシルテクスチャのSRVハンドルを取得
+	/// @return メインカメラの深度ステンシルテクスチャのSRVハンドル
+	uint32_t GetMainCameraDepthStencilTextureSRVHandle() const { return mainCameraDepthStencilTextureSRVHandle_; }
+
+	/// @brief Hi-ZテクスチャのSRVハンドルを取得
+	/// @return Hi-ZテクスチャのSRVハンドル
+	uint32_t GetHiZTextureSRVHandle() const { return hiZTextureSRVHandle_; }
+
+	/// @brief Hi-ZテクスチャのUAVハンドルを取得
+	/// @return Hi-ZテクスチャのUAVハンドル
+	uint32_t GetHiZTextureUAVHandle() const { return hiZTextureUAVHandle_; }
 
 	/// @brief Hi-Zミップマップ読み取りハンドルを取得
 	/// @param index インデックス
@@ -253,10 +277,6 @@ public:
 	/// @param index インデックス
 	/// @return Hi-Zミップマップ書き込みハンドル
 	uint32_t GetHiZMipMapWriteHandle(uint32_t index) const { return hiZMipMapWriteHandles_[index]; }
-
-	/// @brief Hi-Zテクスチャハンドルを取得
-	/// @return Hi-Zテクスチャハンドル
-	uint32_t GetHiZTextureHandle() const { return hiZTextureHandle_; }
 
 	/// @brief フットプリントハンドルを取得
 	/// @return フットプリントハンドル
@@ -337,6 +357,9 @@ private:
 	VignetteParam vignetteParam_;										// ビネットパラメータ
 	BoxFilterParam boxFilterParam_;										// ボックスフィルターパラメータ
 	GaussianFilterParam gaussianFilterParam_;							// ガウシアンフィルターパラメータ
+	PrewittFilterParam luminancePrewittFilterParam_;					// 輝度用プレウィットフィルターパラメータ
+	PrewittFilterParam depthPrewittFilterParam_;						// 深度用プレウィットフィルターパラメータ
+	DepthMaterial depthMaterial_;										// 深度マテリアル
 	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
 	Int4 *colorData_ = nullptr;											// 色データ
 	Rendering::Line *lineData_ = nullptr;								// ラインデータ
@@ -349,11 +372,12 @@ private:
 	uint32_t gameRenderTextureSRVHandle_ = 0;							// ゲームのレンダーテクスチャSRVハンドル
 	uint32_t postEffectRenderTextureRTVHandle_ = 0;						// ポストエフェクトのレンダーテクスチャRTVハンドル
 	uint32_t postEffectRenderTextureSRVHandle_ = 0;						// ポストエフェクトのレンダーテクスチャSRVハンドル
+	uint32_t previousMainCameraDepthStencilTextureSRVHandle_ = 0;		// 前フレームのメインカメラ用深度ステンシルテクスチャSRVハンドル
+	uint32_t mainCameraDepthStencilTextureSRVHandle_ = 0;				// メインカメラ用深度ステンシルテクスチャSRVハンドル
+	uint32_t hiZTextureSRVHandle_ = 0;									// Hi-ZテクスチャSRVハンドル
+	uint32_t hiZTextureUAVHandle_ = 0;									// Hi-ZテクスチャUAVハンドル
 	std::vector<uint32_t> hiZMipMapReadHandles_;						// Hi-Zミップマップ読み取りハンドル
 	std::vector<uint32_t> hiZMipMapWriteHandles_;						// Hi-Zミップマップ書き込みハンドル
-	uint32_t hiZTextureHandle_ = 0;										// Hi-Zテクスチャハンドル
-	uint32_t depthStencilCopySourceHandle_ = 0;							// 深度ステンシルコピー元ハンドル
-	uint32_t depthStencilCopyDestHandle_ = 0;							// 深度ステンシルコピー先ハンドル
 	uint32_t processedCommandHandle_ = 0;								// カリング済みコマンドハンドル
 	uint32_t commandCounterHandle_ = 0;									// コマンドカウンターハンドル
 	uint32_t footprintHandle_ = 0;										// フットプリントハンドル
@@ -394,9 +418,15 @@ private:
 
 	/// @brief ボックスフィルターパラメータの転送
 	void TransferBoxFilterParam();
-	
+
 	/// @brief ガウシアンフィルターパラメータの転送
 	void TransferGaussianFilterParam();
+
+	/// @brief 輝度ベースのアウトラインデータの転送
+	void TransferLuminanceBasedOutlineData();
+
+	/// @brief 深度ベースのアウトラインデータの転送
+	void TransferDepthBasedOutlineData();
 
 	/// @brief フットプリントの転送
 	void TransferFootprint();

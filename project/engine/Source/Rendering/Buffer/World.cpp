@@ -33,7 +33,9 @@ namespace {
 		"GrayScale",
 		"Vignette",
 		"BoxFilter",
-		"GaussianFilter"
+		"GaussianFilter",
+		"LuminanceBasedOutline",
+		"DepthBasedOutline",
 	};
 }
 
@@ -66,6 +68,10 @@ World::World(Device *device, std::ofstream &logStream) {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kBoxFilterParam)]->SetName("BoxFilterParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGaussianFilterParam)]->Initialize(device, sizeof(GaussianFilterParam), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGaussianFilterParam)]->SetName("GaussianFilterParam");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPrewittFilterParam)]->Initialize(device, sizeof(PrewittFilterParam), 2);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPrewittFilterParam)]->SetName("PrewittFilterParam");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDepthMaterial)]->Initialize(device, sizeof(DepthMaterial), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDepthMaterial)]->SetName("DepthMaterial");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->Initialize(device, sizeof(FootprintMap), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->SetName("FootprintMap");
 
@@ -80,6 +86,10 @@ World::World(Device *device, std::ofstream &logStream) {
 
 	// GaussianFilter用のパラメータの初期データ設定
 	gaussianFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
+
+	// PrewittFilter用のパラメータの初期データ設定
+	luminancePrewittFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
+	depthPrewittFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
 
 	// 構造化バッファの初期化
 	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kLine)] = Resource::CreateUploadBuffer(device, sizeof(Rendering::Line) * kMaxLine);
@@ -225,7 +235,7 @@ World::World(Device *device, std::ofstream &logStream) {
 	gameRenderTextureSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(gameRenderTexture_->GetResource(), srvRenderTextureDesc, gameRenderTextureSRVHandle_);
 	Logger::Log(logStream, "GameRenderTexture SRVDescriptorIndex: " + std::to_string(gameRenderTextureSRVHandle_) + "\n");
-	
+
 	// ポストエフェクトのレンダーテクスチャの作成
 	postEffectRenderTexture_ = Resource::CreateTexture2D(device, Window::GetClientWidth(), Window::GetClientHeight(), 1, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET, &clearValue);
 	postEffectRenderTexture_->SetName("PostEffectRenderTexture");
@@ -241,16 +251,23 @@ World::World(Device *device, std::ofstream &logStream) {
 	Logger::Log(logStream, "PostEffectRenderTexture SRVDescriptorIndex: " + std::to_string(postEffectRenderTextureSRVHandle_) + "\n");
 
 	// 深度バッファ用SRVの作成
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDepthStencilCopyDesc{};
-	srvDepthStencilCopyDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
-	srvDepthStencilCopyDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDepthStencilCopyDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDepthStencilCopyDesc.Texture2D.MostDetailedMip = 0;
-	srvDepthStencilCopyDesc.Texture2D.MipLevels = 1;
-	srvDepthStencilCopyDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	depthStencilCopySourceHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(device->GetPreviousMainCameraDepthStencilTexture()->GetResource(), srvDepthStencilCopyDesc, depthStencilCopySourceHandle_);
-	Logger::Log(logStream, "DepthStencilCopySource SRVDescriptorIndex: " + std::to_string(depthStencilCopySourceHandle_) + "\n");
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDepthStencilTextureDesc{};
+	srvDepthStencilTextureDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	srvDepthStencilTextureDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDepthStencilTextureDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDepthStencilTextureDesc.Texture2D.MostDetailedMip = 0;
+	srvDepthStencilTextureDesc.Texture2D.MipLevels = 1;
+	srvDepthStencilTextureDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+	// 前フレームのメインカメラの深度ステンシルテクスチャ用SRVの作成
+	previousMainCameraDepthStencilTextureSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(device->GetPreviousMainCameraDepthStencilTexture()->GetResource(), srvDepthStencilTextureDesc, previousMainCameraDepthStencilTextureSRVHandle_);
+	Logger::Log(logStream, "PreviousMainCameraDepthStencilTexture SRVDescriptorIndex: " + std::to_string(previousMainCameraDepthStencilTextureSRVHandle_) + "\n");
+
+	// メインカメラの深度ステンシルテクスチャ用SRVの作成
+	mainCameraDepthStencilTextureSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(device->GetMainCameraDepthStencilTexture()->GetResource(), srvDepthStencilTextureDesc, mainCameraDepthStencilTextureSRVHandle_);
+	Logger::Log(logStream, "MainCameraDepthStencilTexture SRVDescriptorIndex: " + std::to_string(mainCameraDepthStencilTextureSRVHandle_) + "\n");
 
 #pragma region HiZMipMap
 	const int32_t width = static_cast<int32_t>(device->GetViewport().Width);
@@ -259,15 +276,29 @@ World::World(Device *device, std::ofstream &logStream) {
 	hiZTexture_ = Resource::CreateTexture2D(device, width, height, mipLevels_, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, DXGI_FORMAT_R32_FLOAT, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
 	hiZTexture_->SetName("hiZTexture");
 
-	D3D12_UNORDERED_ACCESS_VIEW_DESC uavDepthStencilCopyDesc{};
-	uavDepthStencilCopyDesc.Format = DXGI_FORMAT_R32_FLOAT;
-	uavDepthStencilCopyDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-	uavDepthStencilCopyDesc.Texture2D.MipSlice = 0;
-	uavDepthStencilCopyDesc.Texture2D.PlaneSlice = 0;
-	depthStencilCopyDestHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(hiZTexture_->GetResource(), uavDepthStencilCopyDesc, depthStencilCopyDestHandle_);
-	Logger::Log(logStream, "DepthStencilCopyDest UAVDescriptorIndex: " + std::to_string(depthStencilCopyDestHandle_) + "\n");
+	// HiZテクスチャ用SRVの作成
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvHiZTextureDesc{};
+	srvHiZTextureDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	srvHiZTextureDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvHiZTextureDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvHiZTextureDesc.Texture2D.MostDetailedMip = 0;
+	srvHiZTextureDesc.Texture2D.MipLevels = mipLevels_;
+	srvHiZTextureDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	hiZTextureSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(hiZTexture_->GetResource(), srvHiZTextureDesc, hiZTextureSRVHandle_);
+	Logger::Log(logStream, "HiZTexture SRVDescriptorIndex: " + std::to_string(hiZTextureSRVHandle_) + "\n");
 
+	// HiZテクスチャ用UAVの作成
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavHiZTextureDesc{};
+	uavHiZTextureDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	uavHiZTextureDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	uavHiZTextureDesc.Texture2D.MipSlice = 0;
+	uavHiZTextureDesc.Texture2D.PlaneSlice = 0;
+	hiZTextureUAVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(hiZTexture_->GetResource(), uavHiZTextureDesc, hiZTextureUAVHandle_);
+	Logger::Log(logStream, "HiZTexture UAVDescriptorIndex: " + std::to_string(hiZTextureUAVHandle_) + "\n");
+
+	// 各ミップレベルのSRVとUAVの作成
 	for (uint32_t mip = 0; mip < mipLevels_ - 1; ++mip) {
 		D3D12_SHADER_RESOURCE_VIEW_DESC srvHiZTextureDesc{};
 		srvHiZTextureDesc.Format = DXGI_FORMAT_R32_FLOAT;
@@ -292,17 +323,6 @@ World::World(Device *device, std::ofstream &logStream) {
 		Logger::Log(logStream, "mip" + std::to_string(mip + 1) + " HiZMipMap UAVDescriptorIndex: " + std::to_string(uavHandle) + "\n");
 	}
 #pragma endregion
-
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvHiZTextureDesc{};
-	srvHiZTextureDesc.Format = DXGI_FORMAT_R32_FLOAT;
-	srvHiZTextureDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvHiZTextureDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvHiZTextureDesc.Texture2D.MostDetailedMip = 0;
-	srvHiZTextureDesc.Texture2D.MipLevels = mipLevels_;
-	srvHiZTextureDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	hiZTextureHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(hiZTexture_->GetResource(), srvHiZTextureDesc, hiZTextureHandle_);
-	Logger::Log(logStream, "HiZTexture SRVDescriptorIndex: " + std::to_string(hiZTextureHandle_) + "\n");
 
 	// カリング済みコマンドバッファ用UAVの設定
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavBufferDesc{};
@@ -377,6 +397,8 @@ void World::Update() {
 	TransferVignetteParam();
 	TransferBoxFilterParam();
 	TransferGaussianFilterParam();
+	TransferLuminanceBasedOutlineData();
+	TransferDepthBasedOutlineData();
 	TransferFootprint();
 	TransferFootprintMap();
 }
@@ -448,6 +470,22 @@ void World::Edit() {
 		}
 		ImGui::TreePop();
 	}
+
+	if (ImGui::TreeNode("LuminanceBasedOutline")) {
+		ImGui::DragFloat("Scale", &luminancePrewittFilterParam_.scale, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		if (ImGui::Button("Reset")) {
+			luminancePrewittFilterParam_.scale = 1.0f;
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("DepthBasedOutline")) {
+		ImGui::DragFloat("Scale", &depthPrewittFilterParam_.scale, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		if (ImGui::Button("Reset")) {
+			depthPrewittFilterParam_.scale = 1.0f;
+		}
+		ImGui::TreePop();
+	}
 #endif // USE_IMGUI
 }
 
@@ -495,6 +533,9 @@ void World::TransferCamera() {
 		CameraPosition cameraPosition = {
 			.worldPosition = transformSystem.GetWorldPosition(entity)
 		};
+		if (registry_->HasComponent<MainCamera>(entity)) {
+			depthMaterial_.projectionInverse = viewProjection.projection.inverse();
+		}
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kViewProjection)]->CopyData(&viewProjection, sizeof(ViewProjectionData), cameraIndex + 1);
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), cameraIndex);
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCameraPosition)]->CopyData(&cameraPosition, sizeof(CameraPosition), cameraIndex);
@@ -543,6 +584,15 @@ void World::TransferBoxFilterParam() {
 
 void World::TransferGaussianFilterParam() {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGaussianFilterParam)]->CopyData(&gaussianFilterParam_, sizeof(GaussianFilterParam), 0);
+}
+
+void World::TransferLuminanceBasedOutlineData() {
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPrewittFilterParam)]->CopyData(&luminancePrewittFilterParam_, sizeof(PrewittFilterParam), 0);
+}
+
+void World::TransferDepthBasedOutlineData() {
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPrewittFilterParam)]->CopyData(&depthPrewittFilterParam_, sizeof(PrewittFilterParam), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDepthMaterial)]->CopyData(&depthMaterial_, sizeof(DepthMaterial), 0);
 }
 
 void World::TransferFootprint() {

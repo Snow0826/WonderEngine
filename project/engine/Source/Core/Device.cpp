@@ -146,7 +146,7 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 		rtvDescriptorHeap_.CreateRenderTargetView(swapChainResource, rtvDesc, rtvHandle);
 		Logger::Log(logStream, "SwapChain " + std::to_string(i) + " RTVDescriptorIndex: " + std::to_string(rtvHandle) + "\n");
 		swapChainResources_.emplace_back(swapChainResource);
-		rtvHandles_.emplace_back(rtvHandle);
+		swapChainResourceRTVHandles_.emplace_back(rtvHandle);
 	}
 
 	// Object3d用ルートシグネチャの作成
@@ -272,6 +272,27 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create GaussianFilterRootSignature\n");
 	gaussianFilterRootSignature_->SetName(L"GaussianFilterRootSignature");
 
+	// LuminanceBasedOutline用ルートシグネチャの作成
+	luminanceBasedOutlineRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:FilterData
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
+		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create LuminanceBasedOutlineRootSignature\n");
+	luminanceBasedOutlineRootSignature_->SetName(L"LuminanceBasedOutlineRootSignature");
+
+	// DepthBasedOutline用ルートシグネチャの作成
+	depthBasedOutlineRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:FilterData
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)												// 1:MaterialData
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 2:Texture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)	// 3:DepthTexture
+		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// SamplerLinearを追加
+		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 1, D3D12_SHADER_VISIBILITY_PIXEL)	// SamplerPointを追加
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create DepthBasedOutlineRootSignature\n");
+	depthBasedOutlineRootSignature_->SetName(L"DepthBasedOutlineRootSignature");
+
 	// 深度ステンシルテクスチャコピー用ルートシグネチャの作成
 	depthStencilCopyRootSignature_ = RootSignature()
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 0:DepthStencil
@@ -353,14 +374,14 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
 	dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;			// フォーマット
 	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;	// テクスチャ2D
-	mainCameraDSVHandle_ = dsvDescriptorHeap_.AllocateDescriptor();
-	dsvDescriptorHeap_.CreateDepthStencilView(mainCameraDepthStencilTexture_->GetResource(), dsvDesc, mainCameraDSVHandle_);
-	Logger::Log(logStream, "MainCameraDepthStencilTexture DSVDescriptorIndex: " + std::to_string(mainCameraDSVHandle_) + "\n");
+	mainCameraDepthStencilTextureDSVHandle_ = dsvDescriptorHeap_.AllocateDescriptor();
+	dsvDescriptorHeap_.CreateDepthStencilView(mainCameraDepthStencilTexture_->GetResource(), dsvDesc, mainCameraDepthStencilTextureDSVHandle_);
+	Logger::Log(logStream, "MainCameraDepthStencilTexture DSVDescriptorIndex: " + std::to_string(mainCameraDepthStencilTextureDSVHandle_) + "\n");
 
 	// デバッグカメラ用DSVの作成
-	debugCameraDSVHandle_ = dsvDescriptorHeap_.AllocateDescriptor();
-	dsvDescriptorHeap_.CreateDepthStencilView(debugCameraDepthStencilTexture_->GetResource(), dsvDesc, debugCameraDSVHandle_);
-	Logger::Log(logStream, "DebugCameraDepthStencilTexture DSVDescriptorIndex: " + std::to_string(debugCameraDSVHandle_) + "\n");
+	debugCameraDepthStencilTextureDSVHandle_ = dsvDescriptorHeap_.AllocateDescriptor();
+	dsvDescriptorHeap_.CreateDepthStencilView(debugCameraDepthStencilTexture_->GetResource(), dsvDesc, debugCameraDepthStencilTextureDSVHandle_);
+	Logger::Log(logStream, "DebugCameraDepthStencilTexture DSVDescriptorIndex: " + std::to_string(debugCameraDepthStencilTextureDSVHandle_) + "\n");
 
 	// ImGuiの初期化
 	ImGuiManager::Initialize(hwnd, device_, commandQueue_, swapChainDesc, rtvDesc, dsvDesc, gpuCbvSrvUavDescriptorHeap_, logStream);
@@ -380,8 +401,8 @@ void Device::SetupSwapChain() {
 	Resource::TransitionBarrier(commandList_, swapChainResources_[backBufferIndex], D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// 描画先のRTVとDSVを設定する
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvCPUHandle = rtvDescriptorHeap_.GetCPUDescriptorHandle(rtvHandles_[backBufferIndex]);
-	D3D12_CPU_DESCRIPTOR_HANDLE dsvCPUHandle = dsvDescriptorHeap_.GetCPUDescriptorHandle(debugCameraDSVHandle_);
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvCPUHandle = rtvDescriptorHeap_.GetCPUDescriptorHandle(swapChainResourceRTVHandles_[backBufferIndex]);
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvCPUHandle = dsvDescriptorHeap_.GetCPUDescriptorHandle(debugCameraDepthStencilTextureDSVHandle_);
 	commandList_->OMSetRenderTargets(1, &rtvCPUHandle, false, &dsvCPUHandle);
 
 	// 指定した色で画面全体をクリアする

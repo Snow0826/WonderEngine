@@ -36,11 +36,13 @@ public:
 	/// @return 生成された木のエンティティID
 	uint32_t Generate(uint32_t parent, const Vector3 &start, const Vector3 &direction, const Quaternion &parentWorldRotate, uint32_t divide, float topRadius, float bottomRadius, float length, int32_t depth);
 
+	/// @brief 木の削除
+	/// @param entity 削除する木のエンティティID
 	void Delete(uint32_t entity);
 
 private:
-	Registry *registry_ = nullptr;
-	CylinderGenerator *cylinderGenerator_ = nullptr;
-	ObjectManager *objectManager_ = nullptr;
-	IndirectCommandManager *indirectCommandManager_ = nullptr;
+	Registry *registry_ = nullptr;								// レジストリ
+	CylinderGenerator *cylinderGenerator_ = nullptr;			// 円柱ジェネレーター
+	ObjectManager *objectManager_ = nullptr;					// オブジェクトマネージャー
+	IndirectCommandManager *indirectCommandManager_ = nullptr;	// 間接コマンドマネージャー
 };

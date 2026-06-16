@@ -65,6 +65,8 @@ Renderer::Renderer(Device *device)
 	, vignetteRootSignature_(device->GetVignetteRootSignature())
 	, boxFilterRootSignature_(device->GetBoxFilterRootSignature())
 	, gaussianFilterRootSignature_(device->GetGaussianFilterRootSignature())
+	, luminanceBasedOutlineRootSignature_(device->GetLuminanceBasedOutlineRootSignature())
+	, depthBasedOutlineRootSignature_(device->GetDepthBasedOutlineRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
@@ -214,6 +216,14 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// GaussianFilterのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> gaussianFilterPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/GaussianFilter.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(gaussianFilterPSBlob);
+
+	// LuminanceBasedOutlineのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> luminanceBasedOutlinePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/LuminanceBasedOutline.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(luminanceBasedOutlinePSBlob);
+
+	// DepthBasedOutlineのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> depthBasedOutlinePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthBasedOutline.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(depthBasedOutlinePSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -388,6 +398,32 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create GaussianFilterPipelineState\n");
 	gaussianFilterPipelineState_->SetName(L"GaussianFilterPipelineState");
 
+	// LuminanceBasedOutline用パイプラインステートの生成
+	luminanceBasedOutlinePipelineState_ = PipelineState()
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)															// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])									// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)																			// RasterizerState
+		.SetDepthState({ .DepthEnable = false })																		// DepthStencilState
+		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())						// 頂点シェーダー
+		.SetPixelShader(luminanceBasedOutlinePSBlob->GetBufferPointer(), luminanceBasedOutlinePSBlob->GetBufferSize())	// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)												// プリミティブトポロジー
+		.Create(device_->GetDevice(), luminanceBasedOutlineRootSignature_);
+	Logger::Log(logStream, "Create LuminanceBasedOutlinePipelineState\n");
+	luminanceBasedOutlinePipelineState_->SetName(L"LuminanceBasedOutlinePipelineState");
+
+	// DepthBasedOutline用パイプラインステートの生成
+	depthBasedOutlinePipelineState_ = PipelineState()
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)													// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])							// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)																	// RasterizerState
+		.SetDepthState({ .DepthEnable = false })																// DepthStencilState
+		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())				// 頂点シェーダー
+		.SetPixelShader(depthBasedOutlinePSBlob->GetBufferPointer(), depthBasedOutlinePSBlob->GetBufferSize())	// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)										// プリミティブトポロジー
+		.Create(device_->GetDevice(), depthBasedOutlineRootSignature_);
+	Logger::Log(logStream, "Create DepthBasedOutlinePipelineState\n");
+	depthBasedOutlinePipelineState_->SetName(L"DepthBasedOutlinePipelineState");
+
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
 		.SetComputeShader(depthStencilCopyCSBlob->GetBufferPointer(), depthStencilCopyCSBlob->GetBufferSize())	// コンピュートシェーダー
@@ -531,8 +567,8 @@ void Renderer::CopyDepthToHiZ() {
 	hiZTexture->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0);
 
 	// 各種バッファのSRV/UAVを設定
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, world_->GetDepthStencilCopySourceHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetDepthStencilCopyDestHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, world_->GetPreviousMainCameraDepthStencilTextureSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetHiZTextureUAVHandle());
 
 	// コピーの実行
 	uint32_t groupsX = (static_cast<uint32_t>(device_->GetViewport().Width) + 7) / 8;
@@ -597,7 +633,7 @@ void Renderer::OcclusionCulling() {
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetCullingObjectHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetCullingMeshHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetMeshLODHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetHiZTextureHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetHiZTextureSRVHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetProcessedCommandHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetCommandCounterHandle());
 
@@ -719,7 +755,7 @@ void Renderer::RenderSceneView() {
 
 	if (isDebugCamera) {
 		// レンダーターゲットの設定
-		SetupRenderTarget(world_->GetSceneRenderTextureRTVHandle(), device_->GetDebugCameraDSVHandle());
+		SetupRenderTarget(world_->GetSceneRenderTextureRTVHandle(), device_->GetDebugCameraDepthStencilTextureDSVHandle());
 
 		// ワールド描画
 		RenderWorld(kDebugCameraIndex);
@@ -728,7 +764,7 @@ void Renderer::RenderSceneView() {
 		DrawLine(kDebugCameraIndex);
 	} else {
 		// レンダーターゲットの設定
-		SetupRenderTarget(world_->GetSceneRenderTextureRTVHandle(), device_->GetMainCameraDSVHandle());
+		SetupRenderTarget(world_->GetSceneRenderTextureRTVHandle(), device_->GetMainCameraDepthStencilTextureDSVHandle());
 
 		// ワールド描画
 		RenderWorld(kMainCameraIndex);
@@ -750,13 +786,13 @@ void Renderer::RenderGameView() {
 	world_->GetPostEffectRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	// ゲームビューのレンダーターゲットの設定
-	SetupRenderTarget(world_->GetGameRenderTextureRTVHandle(), device_->GetMainCameraDSVHandle());
+	SetupRenderTarget(world_->GetGameRenderTextureRTVHandle(), device_->GetMainCameraDepthStencilTextureDSVHandle());
 
 	// ワールド描画
 	RenderWorld(kMainCameraIndex);
 
 	// ポストエフェクトのレンダーターゲットの設定
-	SetupRenderTarget(world_->GetPostEffectRenderTextureRTVHandle(), device_->GetMainCameraDSVHandle());
+	SetupRenderTarget(world_->GetPostEffectRenderTextureRTVHandle(), device_->GetMainCameraDepthStencilTextureDSVHandle(), false);
 
 	// ポストエフェクトの描画
 	CopyImage();
@@ -767,7 +803,7 @@ void Renderer::RenderGameView() {
 
 void Renderer::RenderRelease() {
 	// ゲームビューのレンダーターゲットの設定
-	SetupRenderTarget(world_->GetGameRenderTextureRTVHandle(), device_->GetMainCameraDSVHandle());
+	SetupRenderTarget(world_->GetGameRenderTextureRTVHandle(), device_->GetMainCameraDepthStencilTextureDSVHandle());
 
 	// ワールド描画
 	RenderWorld(kMainCameraIndex);
@@ -779,7 +815,7 @@ void Renderer::RenderRelease() {
 	CopyImage();
 }
 
-void Renderer::SetupRenderTarget(uint32_t rtvHandle, uint32_t dsvHandle) {
+void Renderer::SetupRenderTarget(uint32_t rtvHandle, uint32_t dsvHandle, bool clearDepth) {
 	DescriptorHeap *rtvDescriptorHeap = device_->GetRTVDescriptorHeap();
 	DescriptorHeap *dsvDescriptorHeap = device_->GetDSVDescriptorHeap();
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvCPUHandle = rtvDescriptorHeap->GetCPUDescriptorHandle(rtvHandle);
@@ -793,7 +829,9 @@ void Renderer::SetupRenderTarget(uint32_t rtvHandle, uint32_t dsvHandle) {
 	commandList_->ClearRenderTargetView(rtvCPUHandle, clearColor, 0, nullptr);
 
 	// 指定した深度で画面全体をクリアする
-	commandList_->ClearDepthStencilView(dsvCPUHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	if (clearDepth) {
+		commandList_->ClearDepthStencilView(dsvCPUHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	}
 
 	// ビューポートとシザー矩形の設定
 	D3D12_VIEWPORT viewport = device_->GetViewport();
@@ -976,6 +1014,7 @@ void Renderer::DrawSkybox(uint32_t cameraBufferLocationIndex) {
 
 void Renderer::CopyImage() {
 	world_->GetGameRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	device_->GetMainCameraDepthStencilTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	switch (world_->GetPostEffect()) {
 		case PostEffect::kNone:
@@ -1007,12 +1046,27 @@ void Renderer::CopyImage() {
 			world_->GetConstantBuffer(ConstantBufferType::kGaussianFilterParam)->BindToGraphics(0, 0);
 			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
 			break;
+		case PostEffect::kLuminanceBasedOutline:
+			commandList_->SetGraphicsRootSignature(luminanceBasedOutlineRootSignature_);
+			commandList_->SetPipelineState(luminanceBasedOutlinePipelineState_.Get());
+			world_->GetConstantBuffer(ConstantBufferType::kPrewittFilterParam)->BindToGraphics(0, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
+			break;
+		case PostEffect::kDepthBasedOutline:
+			commandList_->SetGraphicsRootSignature(depthBasedOutlineRootSignature_);
+			commandList_->SetPipelineState(depthBasedOutlinePipelineState_.Get());
+			world_->GetConstantBuffer(ConstantBufferType::kPrewittFilterParam)->BindToGraphics(0, 1);
+			world_->GetConstantBuffer(ConstantBufferType::kDepthMaterial)->BindToGraphics(1, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, world_->GetGameRenderTextureSRVHandle());
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, world_->GetMainCameraDepthStencilTextureSRVHandle());
+			break;
 		case PostEffect::kCountOfPostEffect:
 			break;
 		default:
 			break;
 	}
 	commandList_->DrawInstanced(3, 1, 0, 0);
+	device_->GetMainCameraDepthStencilTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	world_->GetGameRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 

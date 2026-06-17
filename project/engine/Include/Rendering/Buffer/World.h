@@ -62,13 +62,20 @@ struct GaussianFilterParam final {
 
 /// @brief プレウィットフィルターパラメータ
 struct PrewittFilterParam final {
-	Vector2 texelSize;			// テクセルサイズ
-	float scale = 1.0f;			// スケール
+	Vector2 texelSize;	// テクセルサイズ
+	float scale = 1.0f;	// スケール
 };
 
 /// @brief 深度マテリアル
 struct DepthMaterial final {
 	Matrix4x4 projectionInverse;	// プロジェクション逆行列
+};
+
+/// @brief ラジアルブラーのパラメータ
+struct RadialBlurParam final {
+	Vector2 center = { 0.5f, 0.5f };	// 中心座標
+	float blurWidth = 0.01f;			// ブラー幅
+	uint32_t sampleCount = 10;			// サンプル数
 };
 
 /// @brief int型4要素ベクトル
@@ -100,6 +107,7 @@ enum class ConstantBufferType {
 	kGaussianFilterParam,		// ガウシアンフィルターパラメータ
 	kPrewittFilterParam,		// プレウィットフィルターパラメータ
 	kDepthMaterial,				// 深度マテリアル
+	kRadialBlurParam,			// ラジアルブラーのパラメータ
 	kFootprintMap,				// フットプリントマップ
 	kCountOfConstantBufferType	// 定数バッファの種類の数
 };
@@ -125,6 +133,7 @@ enum class PostEffect {
 	kGaussianFilter,		// ガウシアンフィルター
 	kLuminanceBasedOutline,	// 輝度ベースの輪郭抽出
 	kDepthBasedOutline,		// 深度ベースの輪郭抽出
+	kRadialBlur,			// ラジアルブラー
 	kCountOfPostEffect		// ポストエフェクトの数
 };
 
@@ -360,6 +369,7 @@ private:
 	PrewittFilterParam luminancePrewittFilterParam_;					// 輝度用プレウィットフィルターパラメータ
 	PrewittFilterParam depthPrewittFilterParam_;						// 深度用プレウィットフィルターパラメータ
 	DepthMaterial depthMaterial_;										// 深度マテリアル
+	RadialBlurParam radialBlurParam_;									// ラジアルブラーのパラメータ
 	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
 	Int4 *colorData_ = nullptr;											// 色データ
 	Rendering::Line *lineData_ = nullptr;								// ラインデータ
@@ -427,6 +437,9 @@ private:
 
 	/// @brief 深度ベースのアウトラインデータの転送
 	void TransferDepthBasedOutlineData();
+
+	/// @brief ラジアルブラーのパラメータの転送
+	void TransferRadialBlurParam();
 
 	/// @brief フットプリントの転送
 	void TransferFootprint();

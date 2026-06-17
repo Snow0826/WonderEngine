@@ -36,6 +36,7 @@ namespace {
 		"GaussianFilter",
 		"LuminanceBasedOutline",
 		"DepthBasedOutline",
+		"RadialBlur",
 	};
 }
 
@@ -72,6 +73,8 @@ World::World(Device *device, std::ofstream &logStream) {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPrewittFilterParam)]->SetName("PrewittFilterParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDepthMaterial)]->Initialize(device, sizeof(DepthMaterial), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDepthMaterial)]->SetName("DepthMaterial");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kRadialBlurParam)]->Initialize(device, sizeof(RadialBlurParam), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kRadialBlurParam)]->SetName("RadialBlurParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->Initialize(device, sizeof(FootprintMap), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->SetName("FootprintMap");
 
@@ -399,6 +402,7 @@ void World::Update() {
 	TransferGaussianFilterParam();
 	TransferLuminanceBasedOutlineData();
 	TransferDepthBasedOutlineData();
+	TransferRadialBlurParam();
 	TransferFootprint();
 	TransferFootprintMap();
 }
@@ -483,6 +487,20 @@ void World::Edit() {
 		ImGui::DragFloat("Scale", &depthPrewittFilterParam_.scale, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		if (ImGui::Button("Reset")) {
 			depthPrewittFilterParam_.scale = 1.0f;
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("RadialBlur")) {
+		int32_t sampleCount = static_cast<int32_t>(radialBlurParam_.sampleCount);
+		ImGui::DragFloat2("Center", &radialBlurParam_.center.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		ImGui::DragFloat("BlurWidth", &radialBlurParam_.blurWidth, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		ImGui::DragInt("SampleCount", &sampleCount, 1.0f, 1, 64);
+		radialBlurParam_.sampleCount = static_cast<uint32_t>(sampleCount);
+		if (ImGui::Button("Reset")) {
+			radialBlurParam_.center = { 0.5f, 0.5f };
+			radialBlurParam_.blurWidth = 0.01f;
+			radialBlurParam_.sampleCount = 10;
 		}
 		ImGui::TreePop();
 	}
@@ -593,6 +611,10 @@ void World::TransferLuminanceBasedOutlineData() {
 void World::TransferDepthBasedOutlineData() {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPrewittFilterParam)]->CopyData(&depthPrewittFilterParam_, sizeof(PrewittFilterParam), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDepthMaterial)]->CopyData(&depthMaterial_, sizeof(DepthMaterial), 0);
+}
+
+void World::TransferRadialBlurParam() {
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kRadialBlurParam)]->CopyData(&radialBlurParam_, sizeof(RadialBlurParam), 0);
 }
 
 void World::TransferFootprint() {

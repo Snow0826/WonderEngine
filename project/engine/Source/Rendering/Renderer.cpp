@@ -67,6 +67,7 @@ Renderer::Renderer(Device *device)
 	, gaussianFilterRootSignature_(device->GetGaussianFilterRootSignature())
 	, luminanceBasedOutlineRootSignature_(device->GetLuminanceBasedOutlineRootSignature())
 	, depthBasedOutlineRootSignature_(device->GetDepthBasedOutlineRootSignature())
+	, radialBlurRootSignature_(device->GetRadialBlurRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
@@ -224,6 +225,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// DepthBasedOutlineのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthBasedOutlinePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthBasedOutline.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(depthBasedOutlinePSBlob);
+
+	// RadialBlurのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> radialBlurPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/RadialBlur.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(radialBlurPSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -423,6 +428,19 @@ void Renderer::Initialize(std::ofstream &logStream) {
 		.Create(device_->GetDevice(), depthBasedOutlineRootSignature_);
 	Logger::Log(logStream, "Create DepthBasedOutlinePipelineState\n");
 	depthBasedOutlinePipelineState_->SetName(L"DepthBasedOutlinePipelineState");
+	
+	// RadialBlur用パイプラインステートの生成
+	radialBlurPipelineState_ = PipelineState()
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
+		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
+		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
+		.SetPixelShader(radialBlurPSBlob->GetBufferPointer(), radialBlurPSBlob->GetBufferSize())	// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+		.Create(device_->GetDevice(), radialBlurRootSignature_);
+	Logger::Log(logStream, "Create RadialBlurPipelineState\n");
+	radialBlurPipelineState_->SetName(L"RadialBlurPipelineState");
 
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
@@ -1059,6 +1077,12 @@ void Renderer::CopyImage() {
 			world_->GetConstantBuffer(ConstantBufferType::kDepthMaterial)->BindToGraphics(1, 0);
 			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, world_->GetGameRenderTextureSRVHandle());
 			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, world_->GetMainCameraDepthStencilTextureSRVHandle());
+			break;
+		case PostEffect::kRadialBlur:
+			commandList_->SetGraphicsRootSignature(radialBlurRootSignature_);
+			commandList_->SetPipelineState(radialBlurPipelineState_.Get());
+			world_->GetConstantBuffer(ConstantBufferType::kRadialBlurParam)->BindToGraphics(0, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
 			break;
 		case PostEffect::kCountOfPostEffect:
 			break;

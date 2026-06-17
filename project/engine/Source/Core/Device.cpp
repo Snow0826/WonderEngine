@@ -293,6 +293,15 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create DepthBasedOutlineRootSignature\n");
 	depthBasedOutlineRootSignature_->SetName(L"DepthBasedOutlineRootSignature");
 
+	// RadialBlur用ルートシグネチャの作成
+	radialBlurRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:BlurData
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
+		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create RadialBlurRootSignature\n");
+	radialBlurRootSignature_->SetName(L"RadialBlurRootSignature");
+
 	// 深度ステンシルテクスチャコピー用ルートシグネチャの作成
 	depthStencilCopyRootSignature_ = RootSignature()
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 0:DepthStencil

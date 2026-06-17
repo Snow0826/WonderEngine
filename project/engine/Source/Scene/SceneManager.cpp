@@ -57,6 +57,8 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	textureManager_->LoadTexture("kloofendal_48d_partly_cloudy_puresky_2k.dds");
 	textureManager_->LoadTexture("Bark001_1K-JPG_Color.jpg");
 	textureManager_->LoadTexture("white8x8.png");
+	textureManager_->LoadTexture("noise0.png");
+	textureManager_->LoadTexture("noise1.png");
 
 	// メッシュマネージャーの生成
 	meshManager_ = std::make_unique<MeshManager>(device_);

@@ -78,6 +78,13 @@ struct RadialBlurParam final {
 	uint32_t sampleCount = 10;			// サンプル数
 };
 
+/// @brief ディゾルブのパラメータ
+struct DissolveParam final {
+	float threshold = 0.5f;		// 閾値
+	float edgeWidth = 0.03f;	// エッジ幅
+	Vector3 edgeColor = { 1.0f, 1.0f, 1.0f };	// エッジカラー
+};
+
 /// @brief int型4要素ベクトル
 struct Int4 final {
 	int32_t x = 0;
@@ -108,6 +115,7 @@ enum class ConstantBufferType {
 	kPrewittFilterParam,		// プレウィットフィルターパラメータ
 	kDepthMaterial,				// 深度マテリアル
 	kRadialBlurParam,			// ラジアルブラーのパラメータ
+	kDissolveParam,				// ディゾルブのパラメータ
 	kFootprintMap,				// フットプリントマップ
 	kCountOfConstantBufferType	// 定数バッファの種類の数
 };
@@ -134,6 +142,7 @@ enum class PostEffect {
 	kLuminanceBasedOutline,	// 輝度ベースの輪郭抽出
 	kDepthBasedOutline,		// 深度ベースの輪郭抽出
 	kRadialBlur,			// ラジアルブラー
+	kDissolve,				// ディゾルブ
 	kCountOfPostEffect		// ポストエフェクトの数
 };
 
@@ -370,6 +379,7 @@ private:
 	PrewittFilterParam depthPrewittFilterParam_;						// 深度用プレウィットフィルターパラメータ
 	DepthMaterial depthMaterial_;										// 深度マテリアル
 	RadialBlurParam radialBlurParam_;									// ラジアルブラーのパラメータ
+	DissolveParam dissolveParam_;										// ディゾルブのパラメータ
 	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
 	Int4 *colorData_ = nullptr;											// 色データ
 	Rendering::Line *lineData_ = nullptr;								// ラインデータ
@@ -440,6 +450,9 @@ private:
 
 	/// @brief ラジアルブラーのパラメータの転送
 	void TransferRadialBlurParam();
+
+	/// @brief ディゾルブのパラメータの転送
+	void TransferDissolveParam();
 
 	/// @brief フットプリントの転送
 	void TransferFootprint();

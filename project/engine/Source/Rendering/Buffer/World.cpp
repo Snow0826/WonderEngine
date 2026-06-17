@@ -37,6 +37,7 @@ namespace {
 		"LuminanceBasedOutline",
 		"DepthBasedOutline",
 		"RadialBlur",
+		"Dissolve",
 	};
 }
 
@@ -75,6 +76,8 @@ World::World(Device *device, std::ofstream &logStream) {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDepthMaterial)]->SetName("DepthMaterial");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kRadialBlurParam)]->Initialize(device, sizeof(RadialBlurParam), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kRadialBlurParam)]->SetName("RadialBlurParam");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDissolveParam)]->Initialize(device, sizeof(DissolveParam), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDissolveParam)]->SetName("DissolveParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->Initialize(device, sizeof(FootprintMap), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->SetName("FootprintMap");
 
@@ -403,6 +406,7 @@ void World::Update() {
 	TransferLuminanceBasedOutlineData();
 	TransferDepthBasedOutlineData();
 	TransferRadialBlurParam();
+	TransferDissolveParam();
 	TransferFootprint();
 	TransferFootprintMap();
 }
@@ -501,6 +505,18 @@ void World::Edit() {
 			radialBlurParam_.center = { 0.5f, 0.5f };
 			radialBlurParam_.blurWidth = 0.01f;
 			radialBlurParam_.sampleCount = 10;
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Dissolve")) {
+		ImGui::SliderFloat("Threshold", &dissolveParam_.threshold, 0.0f, 1.0f);
+		ImGui::DragFloat("EdgeWidth", &dissolveParam_.edgeWidth, 0.01f, 0.0f, 1.0f);
+		ImGui::ColorEdit3("EdgeColor", &dissolveParam_.edgeColor.x, ImGuiColorEditFlags_Float);
+		if (ImGui::Button("Reset")) {
+			dissolveParam_.threshold = 0.5f;
+			dissolveParam_.edgeWidth = 0.03f;
+			dissolveParam_.edgeColor = { 1.0f, 1.0f, 1.0f };
 		}
 		ImGui::TreePop();
 	}
@@ -615,6 +631,10 @@ void World::TransferDepthBasedOutlineData() {
 
 void World::TransferRadialBlurParam() {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kRadialBlurParam)]->CopyData(&radialBlurParam_, sizeof(RadialBlurParam), 0);
+}
+
+void World::TransferDissolveParam() {
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDissolveParam)]->CopyData(&dissolveParam_, sizeof(DissolveParam), 0);
 }
 
 void World::TransferFootprint() {

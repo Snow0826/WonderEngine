@@ -169,3 +169,10 @@ Quaternion Quaternion::Slerp(const Quaternion &q0, const Quaternion &q1, float t
 		(s0 * q0.w) + (s1 * q2.w)
 	);
 }
+
+Quaternion Quaternion::EulerToQuaternion(const Vector3 &euler) {
+	Quaternion qx = MakeRotateAxisAngleQuaternion(Vector3{ 1.0f, 0.0f, 0.0f }, euler.x);
+	Quaternion qy = MakeRotateAxisAngleQuaternion(Vector3{ 0.0f, 1.0f, 0.0f }, euler.y);
+	Quaternion qz = MakeRotateAxisAngleQuaternion(Vector3{ 0.0f, 0.0f, 1.0f }, euler.z);
+	return qz * qy * qx;
+}

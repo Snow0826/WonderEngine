@@ -162,6 +162,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Component\Primitive\Plane.cpp" />
     <ClCompile Include="engine\Source\Component\Primitive\Box.cpp" />
     <ClCompile Include="engine\Source\Component\Primitive\Ring.cpp" />
+    <ClCompile Include="engine\Source\System\GameViewWindow.cpp" />
     <ClCompile Include="game\Source\Object\AnimatedCube.cpp" />
     <ClCompile Include="engine\Source\System\TreeGenerator.cpp" />
     <ClCompile Include="engine\Source\Component\Primitive\Cylinder.cpp" />
@@ -254,6 +255,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="game\Source\Object\HitEffect.cpp" />
     <ClCompile Include="game\Source\Object\HitRingEffect.cpp" />
     <ClCompile Include="game\Source\Object\Human.cpp" />
+    <ClCompile Include="game\Source\Object\LeafEffect.cpp" />
     <ClCompile Include="main.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">MaxSpeed</Optimization>
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">true</WholeProgramOptimization>
@@ -276,6 +278,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="game\Source\Object\SlashRingEffect.cpp" />
     <ClCompile Include="game\Source\Object\SimpleSkin.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\SkeletonRenderer.cpp" />
+    <ClCompile Include="engine\Source\System\SceneViewWindow.cpp" />
+    <ClCompile Include="engine\Source\System\TransformManipulator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\System\CollisionSystem.h" />
@@ -287,6 +291,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\System\ComponentDrawerRegistry.h" />
     <ClInclude Include="engine\Include\System\InspectorWindow.h" />
     <ClInclude Include="engine\Include\System\SelectionContext.h" />
+    <ClInclude Include="engine\Include\System\GameViewWindow.h" />
     <ClInclude Include="game\Include\Object\AnimatedCube.h" />
     <ClInclude Include="engine\Include\System\TreeGenerator.h" />
     <ClInclude Include="engine\Include\Component\Primitive\Cylinder.h" />
@@ -405,6 +410,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="game\Include\Object\SimpleSkin.h" />
     <ClInclude Include="game\Include\Object\Human.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\SkeletonRenderer.h" />
+    <ClInclude Include="game\Include\Object\LeafEffect.h" />
+    <ClInclude Include="engine\Include\System\SceneViewWindow.h" />
+    <ClInclude Include="engine\Include\System\TransformManipulator.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

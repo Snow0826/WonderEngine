@@ -4,6 +4,7 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#include <ImGuizmo.h>
 #endif // USE_IMGUI
 
 void TransformSystem::Update() {
@@ -24,6 +25,72 @@ void TransformSystem::MarkDirty(uint32_t entity) {
 			MarkDirty(child);
 		}
 	}
+}
+
+bool TransformSystem::ManipulateTransform([[maybe_unused]] float *cameraView, [[maybe_unused]] float *cameraProjection, [[maybe_unused]] float *matrix) {
+#ifdef USE_IMGUI
+	static ImGuizmo::OPERATION currentGizmoOperation(ImGuizmo::ROTATE);
+	static ImGuizmo::MODE currentGizmoMode(ImGuizmo::WORLD);
+	if (ImGui::IsKeyPressed(ImGuiKey_T)) {
+		currentGizmoOperation = ImGuizmo::TRANSLATE;
+	}
+
+	if (ImGui::IsKeyPressed(ImGuiKey_E)) {
+		currentGizmoOperation = ImGuizmo::ROTATE;
+	}
+
+	if (ImGui::IsKeyPressed(ImGuiKey_R)) {
+		currentGizmoOperation = ImGuizmo::SCALE;
+	}
+
+	if (ImGui::RadioButton("Translate", currentGizmoOperation == ImGuizmo::TRANSLATE)) {
+		currentGizmoOperation = ImGuizmo::TRANSLATE;
+	}
+	ImGui::SameLine();
+
+	if (ImGui::RadioButton("Rotate", currentGizmoOperation == ImGuizmo::ROTATE)) {
+		currentGizmoOperation = ImGuizmo::ROTATE;
+	}
+	ImGui::SameLine();
+
+	if (ImGui::RadioButton("Scale", currentGizmoOperation == ImGuizmo::SCALE)) {
+		currentGizmoOperation = ImGuizmo::SCALE;
+	}
+
+	if (currentGizmoOperation != ImGuizmo::SCALE) {
+		if (ImGui::RadioButton("Local", currentGizmoMode == ImGuizmo::LOCAL)) {
+			currentGizmoMode = ImGuizmo::LOCAL;
+		}
+		ImGui::SameLine();
+		if (ImGui::RadioButton("World", currentGizmoMode == ImGuizmo::WORLD)) {
+			currentGizmoMode = ImGuizmo::WORLD;
+		}
+	}
+
+	static bool useSnap(false);
+	if (ImGui::IsKeyPressed(ImGuiKey_S)) {
+		useSnap = !useSnap;
+	}
+	ImGui::Checkbox("##useSnap", &useSnap);
+	ImGui::SameLine();
+	static Vector3 snap;
+	switch (currentGizmoOperation) {
+		case ImGuizmo::TRANSLATE:
+			ImGui::DragFloat3("Snap", &snap.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			break;
+		case ImGuizmo::ROTATE:
+			ImGui::SliderAngle("AngleSnap", &snap.x);
+			break;
+		case ImGuizmo::SCALE:
+			ImGui::DragFloat("ScaleSnap", &snap.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			break;
+		default:
+			break;
+	}
+	ImGuizmo::Enable(true);
+	ImGuizmo::SetDrawlist();
+	return ImGuizmo::Manipulate(cameraView, cameraProjection, currentGizmoOperation, currentGizmoMode, matrix, nullptr, useSnap ? &snap.x : nullptr);
+#endif // USE_IMGUI
 }
 
 Vector3 TransformSystem::GetRight(uint32_t entity) {

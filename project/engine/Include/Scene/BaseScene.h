@@ -22,6 +22,8 @@ class Registry;
 class ComponentDrawerRegistry;
 class HierarchyWindow;
 class InspectorWindow;
+class SceneViewWindow;
+class GameViewWindow;
 class BlendModeInspector;
 class ModelInspector;
 class SpriteInspector;
@@ -105,6 +107,8 @@ protected:
 	std::unique_ptr<ComponentDrawerRegistry> componentDrawerRegistry_ = nullptr;		// コンポーネント描画関数レジストリ
 	std::unique_ptr<HierarchyWindow> hierarchyWindow_ = nullptr;						// 階層ウィンドウ
 	std::unique_ptr<InspectorWindow> inspectorWindow_ = nullptr;						// インスペクタウィンドウ
+	std::unique_ptr<SceneViewWindow> sceneViewWindow_ = nullptr;						// シーンビューウィンドウ
+	std::unique_ptr<GameViewWindow> gameViewWindow_ = nullptr;							// ゲームビューウィンドウ
 	std::unique_ptr<SelectionContext> selection_ = nullptr;								// 選択コンテキスト
 	std::unique_ptr<BlendModeInspector> blendModeInspector_ = nullptr;					// ブレンドモードインスペクター
 	std::unique_ptr<ModelInspector> modelInspector_ = nullptr;							// モデルインスペクター

@@ -13,6 +13,7 @@
 #include "Skybox.h"
 #include "FootprintMap.h"
 #include "EntityComponentSystem.h"
+#include "SelectionContext.h"
 #include "Device.h"
 #include "World.h"
 #include "ConstantBuffer.h"

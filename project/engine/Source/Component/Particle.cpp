@@ -123,7 +123,6 @@ void ParticleManager::UpdateParticle() {
 				billboardMatrix = MakeIdentity4x4();
 			}
 
-			Field *field = registry_->GetComponent<Field>(entity);
 			for (std::list<Particle>::iterator particleIterator = particleGroup->particles.begin(); particleIterator != particleGroup->particles.end();) {
 				if ((*particleIterator).age >= (*particleIterator).lifeTime) {
 					particleIterator = particleGroup->particles.erase(particleIterator);
@@ -131,19 +130,22 @@ void ParticleManager::UpdateParticle() {
 				}
 
 				if (particleGroup->numInstance < kMaxParticle) {
-					if (field) {
-						if (IsCollision(field->area, (*particleIterator).transform.translate)) {
-							(*particleIterator).velocity += field->acceleration * kDeltaTime;
-							(*particleIterator).collidedField = true;
-						}
+					if (particleGroup->canCollideField) {
+						registry_->ForEach<Field>([&](uint32_t entity, Field *field) {
+							if (IsCollision(field->area, (*particleIterator).transform.translate)) {
+								(*particleIterator).velocity += field->acceleration * kDeltaTime;
+								(*particleIterator).collidedField = true;
+								(*particleIterator).orbitCenter = (*particleIterator).transform.translate;
+							}
 
-						if ((*particleIterator).collidedField) {
-							(*particleIterator).angle += field->angularVelocity * kDeltaTime;
-							Vector3 right, up;
-							MakeBasis((*particleIterator).velocity, right, up);
-							Vector3 circle = std::cos((*particleIterator).angle) * field->radius * right + std::sin((*particleIterator).angle) * field->radius * up;
-							(*particleIterator).transform.translate += circle;
-						}
+							if ((*particleIterator).collidedField) {
+								(*particleIterator).angle += field->angularVelocity * kDeltaTime;
+								Vector3 right, up;
+								MakeBasis((*particleIterator).velocity, right, up);
+								Vector3 circle = std::cos((*particleIterator).angle) * field->radius * right + std::sin((*particleIterator).angle) * field->radius * up;
+								(*particleIterator).transform.translate = (*particleIterator).orbitCenter + circle;
+							}
+							}, exclude<Disabled>());
 					}
 
 					(*particleIterator).transform.translate += (*particleIterator).velocity * kDeltaTime;

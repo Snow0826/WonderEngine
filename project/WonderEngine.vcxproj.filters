@@ -114,6 +114,10 @@
     <ClCompile Include="game\Source\Object\Human.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\SkeletonRenderer.cpp" />
     <ClCompile Include="engine\Source\System\CollisionSystem.cpp" />
+    <ClCompile Include="game\Source\Object\LeafEffect.cpp" />
+    <ClCompile Include="engine\Source\System\SceneViewWindow.cpp" />
+    <ClCompile Include="engine\Source\System\GameViewWindow.cpp" />
+    <ClCompile Include="engine\Source\System\TransformManipulator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -243,6 +247,10 @@
     <ClInclude Include="game\Include\Object\Human.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\SkeletonRenderer.h" />
     <ClInclude Include="engine\Include\System\CollisionSystem.h" />
+    <ClInclude Include="game\Include\Object\LeafEffect.h" />
+    <ClInclude Include="engine\Include\System\SceneViewWindow.h" />
+    <ClInclude Include="engine\Include\System\GameViewWindow.h" />
+    <ClInclude Include="engine\Include\System\TransformManipulator.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

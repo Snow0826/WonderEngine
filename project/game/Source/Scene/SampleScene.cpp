@@ -9,6 +9,7 @@
 #include "SlashEffect.h"
 #include "HitRingEffect.h"
 #include "SlashRingEffect.h"
+#include "LeafEffect.h"
 #include "AnimatedCube.h"
 #include "SimpleSkin.h"
 #include "Human.h"
@@ -18,6 +19,8 @@
 #include "EntityComponentSystem.h"
 #include "IndirectCommand.h"
 #include "Object.h"
+#include "DebugCamera.h"
+#include <numbers>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -67,6 +70,10 @@ void SampleScene::OnInitialize() {
 	slashRingEffect_ = std::make_unique<SlashRingEffect>(registry_.get(), particleManager);
 	slashRingEffect_->Initialize();
 
+	// メインカメラの作成
+	mainCamera_ = std::make_unique<DebugCamera>(registry_.get(), sceneManager_->GetInput());
+	mainCamera_->Initialize(cameraEntities_[mainCameraType_]);
+
 	// アニメーションキューブの作成
 	AnimatedCube animatedCube{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
 	animatedCube.Create();
@@ -79,6 +86,16 @@ void SampleScene::OnInitialize() {
 	Human human{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
 	human.Create("walk.gltf", { 0.0f, 0.0f, 5.0f });
 	human.Create("sneakWalk.gltf", { 5.0f, 0.0f, 5.0f });
+
+	Field field{
+		.area = {.min = { -100.0f, 0.0f, -100.0f }, .max = { 100.0f, 100.0f, 100.0f } },
+		.acceleration = { 0.0f, 1.0f, 0.0f },
+		.angularVelocity = std::numbers::pi_v<float> / 4.0f,
+		.radius = 0.2f
+	};
+
+	uint32_t entity = registry_->GenerateEntity();
+	registry_->AddComponent(entity, field);
 }
 
 void SampleScene::OnUpdate() {
@@ -129,4 +146,7 @@ void SampleScene::OnUpdate() {
 
 	// スラッシュリングエフェクトの更新
 	slashRingEffect_->Update();
+
+	// メインカメラの更新
+	mainCamera_->Update();
 }

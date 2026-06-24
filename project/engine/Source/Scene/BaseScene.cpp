@@ -4,6 +4,8 @@
 #include "ComponentDrawerRegistry.h"
 #include "HierarchyWindow.h"
 #include "InspectorWindow.h"
+#include "SceneViewWindow.h"
+#include "GameViewWindow.h"
 #include "SelectionContext.h"
 #include "Window.h"
 #include "Device.h"
@@ -167,6 +169,12 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	// インスペクタウィンドウの生成
 	inspectorWindow_ = std::make_unique<InspectorWindow>(registry_.get(), componentDrawerRegistry_.get(), selection_.get());
 
+	// シーンビューウィンドウの生成
+	sceneViewWindow_ = std::make_unique<SceneViewWindow>(registry_.get(), device, world, selection_.get());
+
+	// ゲームビューウィンドウの生成
+	gameViewWindow_ = std::make_unique<GameViewWindow>(registry_.get(), device, world);
+
 	// メインカメラの生成と初期化
 	cameraEntities_[mainCameraType_] = registry_->GenerateEntity();
 	registry_->AddComponent(cameraEntities_[mainCameraType_], Camera{});
@@ -210,9 +218,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 void BaseScene::Update() {
 	World *world = sceneManager_->GetWorld();
 	ParticleManager *particleManager = sceneManager_->GetParticleManager();
-	Device *device = sceneManager_->GetDevice();
 	Renderer *renderer = sceneManager_->GetRenderer();
-	DescriptorHeap *gpuCbvSrvUavDescriptorHeap_ = device->GetGpuCbvSrvUavDescriptorHeap();
 
 #ifdef USE_IMGUI
 	// フレームレートの表示
@@ -224,8 +230,10 @@ void BaseScene::Update() {
 	// ウィンドウの表示切り替え
 	ImGui::Checkbox("Hierarchy", &hierarchyWindow_->IsOpen());
 	ImGui::Checkbox("Inspector", &inspectorWindow_->IsOpen());
-	ImGui::Checkbox("SceneView", &renderer->IsSceneViewVisible());
-	ImGui::Checkbox("GameView", &renderer->IsGameViewVisible());
+	ImGui::Checkbox("SceneView", &sceneViewWindow_->IsOpen());
+	ImGui::Checkbox("GameView", &gameViewWindow_->IsOpen());
+	renderer->SetSceneViewVisible(sceneViewWindow_->IsOpen());
+	renderer->SetGameViewVisible(gameViewWindow_->IsOpen());
 
 	// グリッドの編集
 	grid_->Edit();
@@ -261,39 +269,11 @@ void BaseScene::Update() {
 	// インスペクタウィンドウの描画
 	inspectorWindow_->Draw();
 
-	// シーンビューの描画
-	if (renderer->IsSceneViewVisible()) {
-		if (ImGui::Begin("SceneView", &renderer->IsSceneViewVisible())) {
-			ImVec2 avail = ImGui::GetContentRegionAvail();
-			auto camera = registry_->GetComponent<Camera>(cameraEntities_[debugCameraType_]);
-			float width = avail.x;
-			float height = width / camera->aspectRatio;
-			if (height > avail.y) {
-				height = avail.y;
-				width = height * camera->aspectRatio;
-			}
-			D3D12_GPU_DESCRIPTOR_HANDLE gpuSceneHandle = gpuCbvSrvUavDescriptorHeap_->GetGPUDescriptorHandle(world->GetSceneRenderTextureSRVHandle());
-			ImGui::Image(static_cast<ImTextureID>(gpuSceneHandle.ptr), ImVec2(width, height));
-		}
-		ImGui::End();
-	}
+	// シーンビューウィンドウの描画
+	sceneViewWindow_->Draw();
 
-	// ゲームビューの描画
-	if (renderer->IsGameViewVisible()) {
-		if (ImGui::Begin("GameView", &renderer->IsGameViewVisible())) {
-			ImVec2 avail = ImGui::GetContentRegionAvail();
-			auto camera = registry_->GetComponent<Camera>(cameraEntities_[mainCameraType_]);
-			float width = avail.x;
-			float height = width / camera->aspectRatio;
-			if (height > avail.y) {
-				height = avail.y;
-				width = height * camera->aspectRatio;
-			}
-			D3D12_GPU_DESCRIPTOR_HANDLE gpuGameHandle = gpuCbvSrvUavDescriptorHeap_->GetGPUDescriptorHandle(world->GetPostEffectRenderTextureSRVHandle());
-			ImGui::Image(static_cast<ImTextureID>(gpuGameHandle.ptr), ImVec2(width, height));
-		}
-		ImGui::End();
-	}
+	// ゲームビューウィンドウの描画
+	gameViewWindow_->Draw();
 #endif // USE_IMGUI
 
 	// デバッグレンダラーのフレーム開始

@@ -2,6 +2,13 @@
 #include "DescriptorHeap.h"
 #include "Logger.h"
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#include <imgui_impl_win32.h>
+#include <imgui_impl_dx12.h>
+#include <ImGuizmo.h>
+#endif // USE_IMGUI
+
 void ImGuiManager::Initialize([[maybe_unused]] HWND hwnd, [[maybe_unused]] const Microsoft::WRL::ComPtr<ID3D12Device> &device, [[maybe_unused]] const Microsoft::WRL::ComPtr<ID3D12CommandQueue> &commandQueue, [[maybe_unused]] const DXGI_SWAP_CHAIN_DESC1 &swapChainDesc, const D3D12_RENDER_TARGET_VIEW_DESC &rtvDesc, const D3D12_DEPTH_STENCIL_VIEW_DESC &dsvDesc, [[maybe_unused]] DescriptorHeap &cbvSrvUavDescriptorHeap, [[maybe_unused]] std::ofstream &logStream) {
 #ifdef USE_IMGUI
 	IMGUI_CHECKVERSION();
@@ -39,6 +46,7 @@ void ImGuiManager::Begin() {
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+	ImGuizmo::BeginFrame();
 #endif // USE_IMGUI
 }
 
@@ -60,24 +68,4 @@ void ImGuiManager::Finalize() {
 	ImGui_ImplWin32_Shutdown();
 	ImGui::DestroyContext();
 #endif // USE_IMGUI
-}
-
-bool ImGuiManager::Combo([[maybe_unused]] const std::string &label, [[maybe_unused]] uint32_t &current_item, [[maybe_unused]] const std::vector<std::string> &items) {
-	bool changed = false;
-#ifdef USE_IMGUI
-	if (ImGui::BeginCombo(label.c_str(), items[current_item].c_str())) {
-		for (uint32_t i = 0; i < items.size(); i++) {
-			bool selected = (items[current_item] == items[i]);
-			if (ImGui::Selectable(items[i].c_str(), selected)) {
-				current_item = i;
-				changed = true;
-			}
-			if (selected) {
-				ImGui::SetItemDefaultFocus();
-			}
-		}
-		ImGui::EndCombo();
-	}
-#endif // USE_IMGUI
-	return changed;
 }

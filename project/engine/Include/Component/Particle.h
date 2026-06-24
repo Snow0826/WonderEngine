@@ -16,6 +16,7 @@ struct ParticleForGPU final {
 /// @brief パーティクル
 struct Particle final {
 	EulerTransform transform;	// SRTデータ
+	Vector3 orbitCenter;		// 軌道中心
 	Vector3 velocity;			// 速度
 	Vector4 color;				// 色
 	float lifeTime = 0.0f;		// 寿命
@@ -29,6 +30,7 @@ struct ParticleGroup final {
 	std::list<Particle> particles;			// パーティクルリスト
 	MeshType meshType = MeshType::kPlane;	// メッシュタイプ
 	bool isBillboard = true;				// ビルボード有効フラグ
+	bool canCollideField = false;			// 場と衝突するかどうか
 	uint32_t meshHandle = 0;				// メッシュハンドル
 	uint32_t textureHandle = 0;				// テクスチャハンドル
 	uint32_t instanceHandle = 0;			// インスタンスハンドル

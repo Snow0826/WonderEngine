@@ -74,6 +74,11 @@ struct Quaternion final {
 	/// @return 補間結果のクォータニオン
 	static Quaternion Slerp(const Quaternion &q0, const Quaternion &q1, float t);
 
+	/// @brief オイラー角からクォータニオンに変換
+	/// @param euler オイラー角（ラジアン）
+	/// @return 変換後のクォータニオン
+	static Quaternion EulerToQuaternion(const Vector3 &euler);
+
 	float x = 0.0f;
 	float y = 0.0f;
 	float z = 0.0f;

@@ -56,6 +56,12 @@ public:
 	/// @param entity エンティティ
 	void MarkDirty(uint32_t entity);
 
+	/// @brief 変換行列の操作
+	/// @param cameraView カメラのビュー行列
+	/// @param cameraProjection カメラのプロジェクション行列
+	/// @param matrix 編集する変換行列
+	bool ManipulateTransform(float *cameraView, float *cameraProjection, float *matrix);
+
 	/// @brief ローカル座標系の右方向ベクトルの取得
 	/// @param entity エンティティ
 	/// @return 右方向ベクトル
@@ -101,5 +107,5 @@ public:
 	void DrawQuaternionTransform(uint32_t entity);
 
 private:
-	Registry *registry_ = nullptr;
+	Registry *registry_ = nullptr;	// レジストリ
 };

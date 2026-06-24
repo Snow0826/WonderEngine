@@ -10,6 +10,10 @@
 #include "Logger.h"
 #include <cassert>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxgi.lib")

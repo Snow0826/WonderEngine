@@ -4,7 +4,10 @@
 #include "Logger.h"
 #include "Device.h"
 #include "d3dx12.h"
-#include "ImGuiManager.h"
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 TextureManager::TextureManager(Device *device, std::ofstream *logStream) : device_(device), logStream_(logStream) {}
 TextureManager::~TextureManager() = default;

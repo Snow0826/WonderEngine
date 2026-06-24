@@ -1,9 +1,4 @@
 #pragma once
-#ifdef USE_IMGUI
-#include "imgui.h"
-#include "imgui_impl_win32.h"
-#include "imgui_impl_dx12.h"
-#endif // USE_IMGUI
 #include <wrl/client.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
@@ -34,13 +29,6 @@ struct ImGuiManager final {
 
 	/// @brief ImGuiの終了
 	static void Finalize();
-
-	/// @brief ImGuiのComboBoxを作成
-	/// @param label ラベル
-	/// @param current_item 現在のアイテム
-	/// @param items アイテム名リスト
-	/// @return 選択されたらtrueを返す
-	static bool Combo(const std::string &label, uint32_t &current_item, const std::vector<std::string> &items);
 
 private:
 	/// @brief ImGuiのコンテキスト

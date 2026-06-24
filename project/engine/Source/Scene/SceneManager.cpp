@@ -41,16 +41,6 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	world_ = std::make_unique<World>(device_, *logStream_);
 	renderer_->SetWorld(world_.get());
 
-	// 音声データの読み込み
-	soundHandle_.bgmHandleMap_[BGMType::Title] = audio_->Load("titleBGM.mp3");
-	soundHandle_.bgmHandleMap_[BGMType::Game] = audio_->Load("gameBGM.mp3");
-	soundHandle_.seHandleMap_[SEType::Start] = audio_->Load("startSE.mp3");
-	soundHandle_.seHandleMap_[SEType::Decide] = audio_->Load("decideSE.mp3");
-	soundHandle_.seHandleMap_[SEType::Jump] = audio_->Load("jumpSE.mp3");
-	soundHandle_.seHandleMap_[SEType::OnGround] = audio_->Load("onGroundSE.mp3");
-	soundHandle_.seHandleMap_[SEType::Attack] = audio_->Load("attackSE.mp3");
-	soundHandle_.seHandleMap_[SEType::Dash] = audio_->Load("dashSE.mp3");
-
 	// テクスチャの読み込み
 	textureManager_ = std::make_unique<TextureManager>(device_, logStream_);
 	renderer_->SetTextureManager(textureManager_.get());

@@ -58,17 +58,17 @@ public:
 	/// @brief フットプリントマネージャーをセットする
 	/// @param footprintManager フットプリントマネージャー
 	void SetFootprintManager(FootprintManager *footprintManager);
-
+	
 	/// @brief ゲーム終了フラグをセットする
 	void SetGameFinished() { isGameFinished_ = true; }
 
-	/// @brief シーンビューの表示フラグへの参照を取得する
-	/// @return シーンビューの表示フラグへの参照
-	bool &IsSceneViewVisible() { return isSceneViewVisible_; }
+	/// @brief シーンビューの表示フラグをセットする
+	/// @param visible 表示フラグ
+	void SetSceneViewVisible(bool visible) { isSceneViewVisible_ = visible; }
 
-	/// @brief ゲームビューの表示フラグへの参照を取得する
-	/// @return ゲームビューの表示フラグへの参照
-	bool &IsGameViewVisible() { return isGameViewVisible_; }
+	/// @brief ゲームビューの表示フラグをセットする
+	/// @param visible 表示フラグ
+	void SetGameViewVisible(bool visible) { isGameViewVisible_ = visible; }
 
 private:
 	using BlendPipelineState = std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>, static_cast<uint32_t>(BlendMode::kCountOfBlendMode)>;

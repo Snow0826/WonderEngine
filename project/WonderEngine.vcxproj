@@ -280,6 +280,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\SkeletonRenderer.cpp" />
     <ClCompile Include="engine\Source\System\SceneViewWindow.cpp" />
     <ClCompile Include="engine\Source\System\TransformManipulator.cpp" />
+    <ClCompile Include="engine\Source\Asset\SkinCluster.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\System\CollisionSystem.h" />
@@ -413,6 +414,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="game\Include\Object\LeafEffect.h" />
     <ClInclude Include="engine\Include\System\SceneViewWindow.h" />
     <ClInclude Include="engine\Include\System\TransformManipulator.h" />
+    <ClInclude Include="engine\Include\Asset\SkinCluster.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

@@ -6,6 +6,7 @@
 #include "World.h"
 #include "Audio.h"
 #include "Texture.h"
+#include "SkinCluster.h"
 #include "Model.h"
 #include "Particle.h"
 #include <cassert>
@@ -54,8 +55,11 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	meshManager_ = std::make_unique<MeshManager>(device_);
 	renderer_->SetMeshManager(meshManager_.get());
 
+	// スキンクラスターマネージャーの生成
+	skinClusterManager_ = std::make_unique<SkinClusterManager>(device_);
+
 	// モデルの読み込み
-	modelManager_ = std::make_unique<ModelManager>(textureManager_.get(), meshManager_.get(), logStream_);
+	modelManager_ = std::make_unique<ModelManager>(textureManager_.get(), meshManager_.get(), skinClusterManager_.get(), logStream_);
 	modelManager_->LoadModel("AnimatedCube.gltf");
 	modelManager_->LoadModel("simpleSkin.gltf");
 	modelManager_->LoadModel("walk.gltf");

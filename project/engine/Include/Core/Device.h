@@ -90,6 +90,10 @@ public:
 	/// @return RingObject3d用ルートシグネチャ
 	ID3D12RootSignature *GetRingObject3dRootSignature() const { return ringObject3dRootSignature_.Get(); }
 
+	/// @brief SkinningObject3d用ルートシグネチャを取得
+	/// @return SkinningObject3d用ルートシグネチャ
+	ID3D12RootSignature *GetSkinningObject3dRootSignature() const { return skinningObject3dRootSignature_.Get(); }
+
 	/// @brief Instance3d用ルートシグネチャを取得
 	/// @return Instance3d用ルートシグネチャ
 	ID3D12RootSignature *GetInstance3dRootSignature() const { return instance3dRootSignature_.Get(); }
@@ -188,6 +192,7 @@ private:
 	std::unique_ptr<Resource> debugCameraDepthStencilTexture_ = nullptr;						// デバッグカメラ用深度ステンシルテクスチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> object3dRootSignature_ = nullptr;				// Object3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringObject3dRootSignature_ = nullptr;			// RingObject3d用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> skinningObject3dRootSignature_ = nullptr;		// SkinningObject3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> instance3dRootSignature_ = nullptr;				// Instance3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringInstance3dRootSignature_ = nullptr;			// RingInstance3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> lineRootSignature_ = nullptr;					// Line用ルートシグネチャ

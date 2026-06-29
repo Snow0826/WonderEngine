@@ -31,8 +31,9 @@ public:
 	/// @param numDescriptors ディスクリプタの数
 	/// @param visibility シェーダーの可視性
 	/// @param shaderRegister シェーダーのレジスタ番号
+	/// @param numDescriptorRanges ディスクリプタ範囲の数
 	/// @return ルートシグネチャ
-	RootSignature AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT numDescriptors, D3D12_SHADER_VISIBILITY visibility, UINT shaderRegister);
+	RootSignature AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT numDescriptors, D3D12_SHADER_VISIBILITY visibility, UINT shaderRegister, UINT numDescriptorRanges);
 
 	/// @brief StaticSamplerの追加
 	/// @param filter フィルタリングモード

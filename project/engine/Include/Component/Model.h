@@ -30,6 +30,21 @@ struct Skeleton final {
 	std::vector<Joint> joints;	// ジョイントリスト
 };
 
+/// @brief スキンメッシュタグ
+struct SkinMesh final{};
+
+/// @brief 頂点ウェイトデータ
+struct VertexWeightData final {
+	float weight;			// ウェイト
+	uint32_t vertexIndex;	// 頂点インデックス
+};
+
+/// @brief ジョイントウェイトデータ
+struct JointWeightData final {
+	Matrix4x4 inverseBindPoseMatrix;	// 逆バインドポーズ行列
+	std::vector<VertexWeightData> vertexWeights;	// 頂点ウェイトデータリスト
+};
+
 /// @brief マテリアルデータ
 struct MaterialData final {
 	std::string textureFilePath;	// テクスチャファイルパス
@@ -37,11 +52,13 @@ struct MaterialData final {
 
 /// @brief モデルデータ
 struct ModelData final {
-	std::string format;						// フォーマット名
-	std::vector<MeshData> meshes;			// メッシュデータ
+	std::string format;	// フォーマット名
+	std::vector<MeshData> meshes;	// メッシュデータ
 	std::vector<MaterialData> materials;	// マテリアルデータ
 	std::vector<AnimationClip> animations;	// アニメーションクリップ
-	Node rootNode;							// ルートノード
+	std::map<std::string, JointWeightData> skinClusterData;	// スキンクラスター名からジョイントウェイトデータへのマップ
+	Skeleton skeleton;	// スケルトン
+	Node rootNode;	// ルートノード
 };
 
 /// @brief モデル
@@ -49,11 +66,13 @@ struct Model final {
 	ModelData modelData;					// モデルデータ
 	std::vector<uint32_t> textureHandle;	// テクスチャハンドル
 	std::vector<bool> enableMipMaps;		// ミップマップ有効フラグ
+	uint32_t skinClusterHandle = 0;			// スキンクラスターハンドル
 	std::string name;						// モデル名
 };
 
 class TextureManager;
 class MeshManager;
+class SkinClusterManager;
 
 /// @brief モデルマネージャー
 class ModelManager final {
@@ -61,11 +80,13 @@ public:
 	/// @brief コンストラクタ
 	/// @param textureManager テクスチャマネージャー
 	/// @param meshManager メッシュマネージャー
+	/// @param skinClusterManager スキンクラスターマネージャー
 	/// @param registry レジストリ
 	/// @param logStream ログストリーム
-	ModelManager(TextureManager *textureManager, MeshManager *meshManager, std::ofstream *logStream)
+	ModelManager(TextureManager *textureManager, MeshManager *meshManager, SkinClusterManager *skinClusterManager, std::ofstream *logStream)
 		: textureManager_(textureManager)
 		, meshManager_(meshManager)
+		, skinClusterManager_(skinClusterManager)
 		, logStream_(logStream) {
 	}
 
@@ -84,11 +105,6 @@ public:
 	/// @return 選択されたかどうか
 	bool Combo(const std::string &label, Model *model);
 
-	/// @brief スケルトンの作成
-	/// @param rootNode ルートノード
-	/// @return スケルトン
-	static Skeleton CreateSkeleton(const Node &rootNode);
-
 	/// @brief スケルトンの更新
 	/// @param skeleton スケルトン
 	static void UpdateSkeleton(Skeleton &skeleton);
@@ -101,6 +117,7 @@ public:
 private:
 	TextureManager *textureManager_ = nullptr;				// テクスチャマネージャー
 	MeshManager *meshManager_ = nullptr;					// メッシュマネージャー
+	SkinClusterManager *skinClusterManager_ = nullptr;		// スキンクラスターマネージャー
 	std::ofstream *logStream_ = nullptr;					// ログ出力用のストリーム
 	std::map<std::string, std::unique_ptr<Model>> models_;	// 読み込んだモデルのマップ
 
@@ -113,6 +130,11 @@ private:
 	/// @param node Assimpのノード
 	/// @return ノード
 	static Node ReadNode(const aiNode *node);
+
+	/// @brief スケルトンの作成
+	/// @param rootNode ルートノード
+	/// @return スケルトン
+	static Skeleton CreateSkeleton(const Node &rootNode);
 
 	/// @brief ジョイントの作成
 	/// @param node ノード

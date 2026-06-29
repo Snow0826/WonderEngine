@@ -30,16 +30,19 @@ struct CullingMeshData final {
 
 /// @brief テクスチャデータ
 struct TextureData final {
-	uint32_t textureHandle = 0;	// テクスチャハンドル
-	bool enableMipMaps = true;	// ミップマップ有効フラグ
+	uint32_t textureHandle = 0;			// テクスチャハンドル
+	uint32_t environmentMapHandle = 0;	// 環境マップハンドル
+	bool enableMipMaps = true;			// ミップマップ有効フラグ
 };
 
 /// @brief 間接コマンド
 #pragma pack(push, 1)
 struct IndirectCommand final {
 	D3D12_GPU_VIRTUAL_ADDRESS cbv[2];					// CBV
+	uint32_t matrixPalettehandle = 0;					// 行列パレットハンドル
 	TextureData textureData;							// テクスチャデータ
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;			// 頂点バッファビュー
+	D3D12_VERTEX_BUFFER_VIEW influenceBufferView;		// 頂点影響バッファビュー
 	D3D12_INDEX_BUFFER_VIEW indexBufferView;			// インデックスバッファビュー
 	D3D12_DRAW_INDEXED_ARGUMENTS drawIndexedArguments;	// 描画コマンド引数
 };
@@ -49,7 +52,7 @@ struct IndirectCommand final {
 #pragma pack(push, 1)
 struct MeshLOD final {
 	IndirectCommand indirectCommand;	// 間接コマンド
-	float error = 0.0f;					// LODエラー
+	float error = 0.0f;						// LODエラー
 };
 #pragma pack(pop)
 
@@ -64,6 +67,7 @@ struct UseCulling final {};
 class Registry;
 class World;
 class MeshManager;
+class SkinClusterManager;
 
 /// @brief 間接コマンドマネージャ
 class IndirectCommandManager {
@@ -72,7 +76,8 @@ public:
 	/// @param registry レジストリ
 	/// @param world ワールド
 	/// @param meshManager メッシュマネージャー
-	IndirectCommandManager(Registry *registry, World *world, MeshManager *meshManager);
+	/// @param skinClusterManager スキンクラスターマネージャー
+	IndirectCommandManager(Registry *registry, World *world, MeshManager *meshManager, SkinClusterManager *skinClusterManager);
 
 	/// @brief 間接コマンドの追加
 	/// @param entity エンティティ
@@ -96,6 +101,7 @@ private:
 	Registry *registry_ = nullptr;						// レジストリ
 	World *world_ = nullptr;							// ワールド
 	MeshManager *meshManager_ = nullptr;				// メッシュマネージャー
+	SkinClusterManager *skinClusterManager_ = nullptr;	// スキンクラスターマネージャー
 	CullingObjectData *cullingObjectData_ = nullptr;	// カリングオブジェクトデータ
 	CullingMeshData *cullingMeshData_ = nullptr;		// カリングメッシュデータ
 	MeshLOD *meshLODData_ = nullptr;					// メッシュLODデータ

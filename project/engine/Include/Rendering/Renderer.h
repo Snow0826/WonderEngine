@@ -87,6 +87,7 @@ private:
 	FootprintManager *footprintManager_ = nullptr;												// フットプリントマネージャー
 	ID3D12RootSignature *object3dRootSignature_ = nullptr;										// Object3d用ルートシグネチャ
 	ID3D12RootSignature *ringObject3dRootSignature_ = nullptr;									// RingObject3d用ルートシグネチャ
+	ID3D12RootSignature *skinningObject3dRootSignature_ = nullptr;								// SkinningObject3d用ルートシグネチャ
 	ID3D12RootSignature *instance3dRootSignature_ = nullptr;									// Instance3d用ルートシグネチャ
 	ID3D12RootSignature *ringInstance3dRootSignature_ = nullptr;								// RingInstance3d用ルートシグネチャ
 	ID3D12RootSignature *lineRootSignature_ = nullptr;											// Line用ルートシグネチャ

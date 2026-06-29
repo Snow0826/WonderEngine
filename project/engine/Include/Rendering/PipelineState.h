@@ -18,9 +18,10 @@ public:
 	/// @param name セマンティクス名
 	/// @param index セマンティックインデックス
 	/// @param format 要素データの形式
+	/// @param inputSlot 入力スロット
 	/// @param alignedByteOffset 頂点の先頭からこの要素へのオフセット
 	/// @return パイプラインステート
-	PipelineState AddInput(LPCSTR name, UINT index, DXGI_FORMAT format, UINT alignedByteOffset);
+	PipelineState AddInput(LPCSTR name, UINT index, DXGI_FORMAT format, UINT inputSlot, UINT alignedByteOffset);
 
 	/// @brief レンダーターゲットフォーマットの追加
 	/// @param format フォーマット

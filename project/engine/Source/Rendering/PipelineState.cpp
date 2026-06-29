@@ -43,11 +43,12 @@ Microsoft::WRL::ComPtr<ID3D12PipelineState> PipelineState::Create(ID3D12Device *
 	return pipelineState;
 }
 
-PipelineState PipelineState::AddInput(LPCSTR name, UINT index, DXGI_FORMAT format, UINT alignedByteOffset) {
+PipelineState PipelineState::AddInput(LPCSTR name, UINT index, DXGI_FORMAT format, UINT inputSlot, UINT alignedByteOffset) {
 	D3D12_INPUT_ELEMENT_DESC inputElement{};
 	inputElement.SemanticName = name;					// セマンティクス名
 	inputElement.SemanticIndex = index;					// セマンティックインデックス
 	inputElement.Format = format;						// 要素データの形式
+	inputElement.InputSlot = inputSlot;					// 入力スロット
 	inputElement.AlignedByteOffset = alignedByteOffset;	// 頂点の先頭からこの要素へのオフセット
 	inputElements_.emplace_back(inputElement);
 	return *this;

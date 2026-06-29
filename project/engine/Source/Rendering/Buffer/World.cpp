@@ -581,7 +581,7 @@ void World::TransferTransform() {
 	registry_->ForEach<Object, DirtyTransform>([&](uint32_t entity, Object *object, DirtyTransform *dirtyTransform) {
 		TransformationMatrix transformationMatrix;
 		Model *model = registry_->GetComponent<Model>(entity);
-		if (model && !registry_->HasComponent<Skeleton>(entity)) {
+		if (model && !registry_->HasComponent<SkinMesh>(entity)) {
 			transformationMatrix.worldMatrix = ModelManager::MakeLocalMatrix(model->modelData.rootNode);
 		}
 		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);

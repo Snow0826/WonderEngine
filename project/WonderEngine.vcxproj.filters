@@ -118,6 +118,7 @@
     <ClCompile Include="engine\Source\System\SceneViewWindow.cpp" />
     <ClCompile Include="engine\Source\System\GameViewWindow.cpp" />
     <ClCompile Include="engine\Source\System\TransformManipulator.cpp" />
+    <ClCompile Include="engine\Source\Asset\SkinCluster.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -251,6 +252,7 @@
     <ClInclude Include="engine\Include\System\SceneViewWindow.h" />
     <ClInclude Include="engine\Include\System\GameViewWindow.h" />
     <ClInclude Include="engine\Include\System\TransformManipulator.h" />
+    <ClInclude Include="engine\Include\Asset\SkinCluster.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

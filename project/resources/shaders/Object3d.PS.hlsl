@@ -34,13 +34,16 @@ ConstantBuffer<DirectionalLight> gDirectionalLight : register(b2);
 cbuffer TextureData : register(b3)
 {
     uint textureHandle;
+    uint environmentMapHandle;
     uint enableMipmaps;
 };
 
-cbuffer LightCount : register(b4)
+cbuffer LightData : register(b4)
 {
     uint gPointLightCount;
     uint gSpotLightCount;
+    uint gPointLightHandle;
+    uint gSpotLightHandle;
 };
 
 struct PointLight
@@ -64,10 +67,10 @@ struct SpotLight
     float cosFalloffStart;
 };
 
-StructuredBuffer<PointLight> gPointLights : register(t0);
-StructuredBuffer<SpotLight> gSpotLights : register(t1);
-TextureCube<float4> gEnvironmentTexture : register(t2);
-Texture2D<float4> gTexture[] : register(t3);
+Texture2D<float4> gTextures[] : register(t0, space0);
+TextureCube<float4> gEnvironmentMaps[] : register(t0, space1);
+StructuredBuffer<PointLight> gPointLights[] : register(t0, space2);
+StructuredBuffer<SpotLight> gSpotLights[] : register(t0, space3);
 SamplerState gSampler : register(s0);
 SamplerState gSamplerMip0 : register(s1);
 
@@ -84,11 +87,11 @@ PixelShaderOutput main(VertexShaderOutput input)
     float4 textureColor;
     if (enableMipmaps != 0)
     {
-        textureColor = gTexture[textureHandle].Sample(gSampler, transformedUV.xy);
+        textureColor = gTextures[textureHandle].Sample(gSampler, transformedUV.xy);
     }
     else
     {
-        textureColor = gTexture[textureHandle].Sample(gSamplerMip0, transformedUV.xy);
+        textureColor = gTextures[textureHandle].Sample(gSamplerMip0, transformedUV.xy);
     }
     
     if (gMaterial.enableLighting != 0)
@@ -98,7 +101,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         
         for (uint i = 0; i < gPointLightCount; ++i)
         {
-            PointLight light = gPointLights[i];
+            PointLight light = gPointLights[gPointLightHandle][i];
             float3 direction = CalculateDirection(light.position, input.worldPosition);
             float attenuation = CalculateAttenuation(light.position, input.worldPosition, light.radius, light.decay);
             output.color.rgb += ApplyLightCommon(direction, input, textureColor) * light.color.rgb * light.intensity * attenuation;
@@ -106,7 +109,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         
         for (uint j = 0; j < gSpotLightCount; ++j)
         {
-            SpotLight light = gSpotLights[j];
+            SpotLight light = gSpotLights[gSpotLightHandle][j];
             float3 direction = CalculateDirection(light.position, input.worldPosition);
             float attenuation = CalculateAttenuation(light.position, input.worldPosition, light.distance, light.decay);
             float cosAngle = dot(direction, light.direction);
@@ -116,7 +119,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         
         float3 cameraToPosition = normalize(input.worldPosition - gCamera.worldPosition);
         float3 reflectedVector = reflect(cameraToPosition, normalize(input.normal));
-        float4 environmentColor = gEnvironmentTexture.Sample(gSampler, reflectedVector);
+        float4 environmentColor = gEnvironmentMaps[environmentMapHandle].Sample(gSampler, reflectedVector);
         output.color.rgb += environmentColor.rgb * gMaterial.environmentCoefficient;
     }
     else

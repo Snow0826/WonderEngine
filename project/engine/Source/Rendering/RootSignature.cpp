@@ -46,20 +46,23 @@ RootSignature RootSignature::AddCBuffer(D3D12_SHADER_VISIBILITY visibility, UINT
 	return *this;
 }
 
-RootSignature RootSignature::AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT numDescriptors, D3D12_SHADER_VISIBILITY visibility, UINT shaderRegister) {
+RootSignature RootSignature::AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE rangeType, UINT numDescriptors, D3D12_SHADER_VISIBILITY visibility, UINT shaderRegister, UINT numDescriptorRanges) {
 	// DescriptorRangeの設定
 	D3D12_DESCRIPTOR_RANGE descriptorRange{};
 	descriptorRange.BaseShaderRegister = shaderRegister;										// シェーダーのレジスタ番号
 	descriptorRange.NumDescriptors = numDescriptors;											// ディスクリプタの数
 	descriptorRange.RangeType = rangeType;														// ディスクリプタの種類
 	descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;	// ディスクリプタテーブルのオフセット
-	descriptorRanges_.emplace_back(descriptorRange);											// DescriptorRangeの配列を追加
+	for (size_t i = 0; i < numDescriptorRanges; i++) {
+		descriptorRange.RegisterSpace = static_cast<UINT>(i);									// レジスタスペース
+		descriptorRanges_.emplace_back(descriptorRange);										// DescriptorRangeの配列を追加
+	}
 
 	// DescriptorTableの設定
 	D3D12_ROOT_DESCRIPTOR_TABLE descriptorTable{};
-	descriptorTable.NumDescriptorRanges = 1;								// ディスクリプタテーブルの数
+	descriptorTable.NumDescriptorRanges = numDescriptorRanges;				// ディスクリプタテーブルの数
 	descriptorTable.pDescriptorRanges = &descriptorRanges_[rangeCounter_];	// ディスクリプタテーブルの配列
-	rangeCounter_++;														// ディスクリプタのカウンターをインクリメント
+	rangeCounter_ += numDescriptorRanges;									// ディスクリプタのカウンターをインクリメント
 
 	// RootParameterの設定
 	D3D12_ROOT_PARAMETER rootParameter{};

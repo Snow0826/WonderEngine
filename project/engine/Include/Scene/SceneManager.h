@@ -9,6 +9,7 @@ class Renderer;
 class World;
 class TextureManager;
 class MeshManager;
+class SkinClusterManager;
 class ModelManager;
 class ParticleManager;
 class BaseScene;
@@ -69,6 +70,10 @@ public:
 	/// @return メッシュマネージャー
 	MeshManager *GetMeshManager() const { return meshManager_.get(); }
 
+	/// @brief スキンクラスターマネージャーの取得
+	/// @return スキンクラスターマネージャー
+	SkinClusterManager *GetSkinClusterManager() const { return skinClusterManager_.get(); }
+
 	/// @brief モデルマネージャーの取得
 	/// @return モデルマネージャー
 	ModelManager *GetModelManager() const { return modelManager_.get(); }
@@ -78,17 +83,18 @@ public:
 	ParticleManager *GetParticleManager() const { return particleManager_.get(); }
 
 private:
-	Device *device_ = nullptr;										// デバイス
-	Input *input_ = nullptr;										// 入力
-	Audio *audio_ = nullptr;										// オーディオ
-	Renderer *renderer_ = nullptr;									// レンダラー
-	std::ofstream *logStream_ = nullptr;							// ログ出力用のストリーム
-	std::unique_ptr<World> world_ = nullptr;						// ワールド
-	std::unique_ptr<TextureManager> textureManager_ = nullptr;		// テクスチャマネージャー
-	std::unique_ptr<MeshManager> meshManager_ = nullptr;			// メッシュマネージャー
-	std::unique_ptr<ModelManager> modelManager_ = nullptr;			// モデルマネージャー
-	std::unique_ptr<ParticleManager> particleManager_ = nullptr;	// パーティクルマネージャー
-	SoundHandle soundHandle_;										// 音声ハンドル
-	BaseScene *currentScene_ = nullptr;								// 現在のシーン
-	BaseScene *nextScene_ = nullptr;								// 次のシーン
+	Device *device_ = nullptr;											// デバイス
+	Input *input_ = nullptr;											// 入力
+	Audio *audio_ = nullptr;											// オーディオ
+	Renderer *renderer_ = nullptr;										// レンダラー
+	std::ofstream *logStream_ = nullptr;								// ログ出力用のストリーム
+	std::unique_ptr<World> world_ = nullptr;							// ワールド
+	std::unique_ptr<TextureManager> textureManager_ = nullptr;			// テクスチャマネージャー
+	std::unique_ptr<MeshManager> meshManager_ = nullptr;				// メッシュマネージャー
+	std::unique_ptr<SkinClusterManager> skinClusterManager_ = nullptr;	// スキンクラスターマネージャー
+	std::unique_ptr<ModelManager> modelManager_ = nullptr;				// モデルマネージャー
+	std::unique_ptr<ParticleManager> particleManager_ = nullptr;		// パーティクルマネージャー
+	SoundHandle soundHandle_;											// 音声ハンドル
+	BaseScene *currentScene_ = nullptr;									// 現在のシーン
+	BaseScene *nextScene_ = nullptr;									// 次のシーン
 };

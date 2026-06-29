@@ -16,8 +16,9 @@
 #include "IndirectCommand.h"
 #include "Object.h"
 #include "Texture.h"
-#include "UVTransform.h"
+#include "SkinCluster.h"
 #include "Material.h"
+#include "UVTransform.h"
 #include "Model.h"
 #include "Particle.h"
 #include "Sprite.h"
@@ -57,6 +58,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	World *world = sceneManager_->GetWorld();
 	TextureManager *textureManager = sceneManager_->GetTextureManager();
 	MeshManager *meshManager = sceneManager_->GetMeshManager();
+	SkinClusterManager *skinClusterManager = sceneManager_->GetSkinClusterManager();
 	ModelManager *modelManager = sceneManager_->GetModelManager();
 	ParticleManager *particleManager = sceneManager_->GetParticleManager();
 
@@ -64,6 +66,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	registry_ = std::make_unique<Registry>();
 	renderer->SetRegistry(registry_.get());
 	world->SetRegistry(registry_.get());
+	skinClusterManager->SetRegistry(registry_.get());
 	particleManager->SetRegistry(registry_.get());
 
 	// デバッグレンダラーの生成
@@ -71,7 +74,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	renderer->SetDebugRenderer(debugRenderer_.get());
 
 	// 間接コマンドマネージャーの生成
-	indirectCommandManager_ = std::make_unique<IndirectCommandManager>(registry_.get(), world, meshManager);
+	indirectCommandManager_ = std::make_unique<IndirectCommandManager>(registry_.get(), world, meshManager, skinClusterManager);
 	renderer->SetIndirectCommandManager(indirectCommandManager_.get());
 
 	// フットプリントマネージャーの生成
@@ -216,9 +219,10 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 }
 
 void BaseScene::Update() {
-	World *world = sceneManager_->GetWorld();
-	ParticleManager *particleManager = sceneManager_->GetParticleManager();
 	Renderer *renderer = sceneManager_->GetRenderer();
+	World *world = sceneManager_->GetWorld();
+	SkinClusterManager *skinClusterManager = sceneManager_->GetSkinClusterManager();
+	ParticleManager *particleManager = sceneManager_->GetParticleManager();
 
 #ifdef USE_IMGUI
 	// フレームレートの表示
@@ -307,6 +311,9 @@ void BaseScene::Update() {
 
 	// カリングデータの更新
 	indirectCommandManager_->UpdateCullingData();
+
+	// スキンクラスターの更新
+	skinClusterManager->Update();
 
 	// パーティクルの更新
 	particleManager->UpdateParticle();

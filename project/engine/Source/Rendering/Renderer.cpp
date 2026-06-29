@@ -33,7 +33,8 @@ namespace {
 		"Plane",
 		"Box",
 		"Ring",
-		"Cylinder"
+		"Cylinder",
+		"Skinned"
 	};
 
 	// ブレンドモード名リスト
@@ -57,6 +58,7 @@ Renderer::Renderer(Device *device)
 	, commandList_(device->GetCommandList())
 	, object3dRootSignature_(device->GetObject3dRootSignature())
 	, ringObject3dRootSignature_(device->GetRingObject3dRootSignature())
+	, skinningObject3dRootSignature_(device->GetSkinningObject3dRootSignature())
 	, instance3dRootSignature_(device->GetInstance3dRootSignature())
 	, ringInstance3dRootSignature_(device->GetRingInstance3dRootSignature())
 	, lineRootSignature_(device->GetLineRootSignature())
@@ -81,57 +83,63 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	std::array<D3D12_BLEND_DESC, static_cast<uint32_t>(BlendMode::kCountOfBlendMode)> blendDescList{};
 
 	// kBlendModeNoneのBlendDescの設定
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
+	uint32_t blendModeIndex = static_cast<uint32_t>(BlendMode::kBlendModeNone);
+	blendDescList[blendModeIndex].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
 
 	// kBlendModeNormalのBlendDescの設定
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNormal)].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNormal)].RenderTarget[0].BlendEnable = true;									// ブレンドを有効化
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNormal)].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;						// ソースのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNormal)].RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;				// デスティネーションのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNormal)].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;							// ブレンド演算は加算
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNormal)].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;						// ソースのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNormal)].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;					// デスティネーションのアルファ値は使用しない
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNormal)].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;					// アルファブレンド演算は加算
+	blendModeIndex = static_cast<uint32_t>(BlendMode::kBlendModeNormal);
+	blendDescList[blendModeIndex].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
+	blendDescList[blendModeIndex].RenderTarget[0].BlendEnable = true;									// ブレンドを有効化
+	blendDescList[blendModeIndex].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;						// ソースのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;				// デスティネーションのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;							// ブレンド演算は加算
+	blendDescList[blendModeIndex].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;						// ソースのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;					// デスティネーションのアルファ値は使用しない
+	blendDescList[blendModeIndex].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;					// アルファブレンド演算は加算
 
 	// kBlendModeAdditiveのBlendDescの設定
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeAdditive)].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeAdditive)].RenderTarget[0].BlendEnable = true;										// ブレンドを有効化
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeAdditive)].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;						// ソースのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeAdditive)].RenderTarget[0].DestBlend = D3D12_BLEND_ONE;							// デスティネーションのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeAdditive)].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;							// ブレンド演算は加算
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeAdditive)].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;						// ソースのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeAdditive)].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;						// デスティネーションのアルファ値は使用しない
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeAdditive)].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;						// アルファブレンド演算は加算
+	blendModeIndex = static_cast<uint32_t>(BlendMode::kBlendModeAdditive);
+	blendDescList[blendModeIndex].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
+	blendDescList[blendModeIndex].RenderTarget[0].BlendEnable = true;									// ブレンドを有効化
+	blendDescList[blendModeIndex].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;						// ソースのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].DestBlend = D3D12_BLEND_ONE;							// デスティネーションのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;							// ブレンド演算は加算
+	blendDescList[blendModeIndex].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;						// ソースのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;					// デスティネーションのアルファ値は使用しない
+	blendDescList[blendModeIndex].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;					// アルファブレンド演算は加算
 
 	// kBlendModeSubtractiveのBlendDescの設定
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeSubtractive)].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeSubtractive)].RenderTarget[0].BlendEnable = true;										// ブレンドを有効化
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeSubtractive)].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;						// ソースのアルファ値は使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeSubtractive)].RenderTarget[0].DestBlend = D3D12_BLEND_ONE;								// デスティネーションのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeSubtractive)].RenderTarget[0].BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;					// ブレンド演算は逆減算
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeSubtractive)].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;							// ソースのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeSubtractive)].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;						// デスティネーションのアルファ値は使用しない
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeSubtractive)].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;						// アルファブレンド演算は加算
+	blendModeIndex = static_cast<uint32_t>(BlendMode::kBlendModeSubtractive);
+	blendDescList[blendModeIndex].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
+	blendDescList[blendModeIndex].RenderTarget[0].BlendEnable = true;									// ブレンドを有効化
+	blendDescList[blendModeIndex].RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;						// ソースのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].DestBlend = D3D12_BLEND_ONE;							// デスティネーションのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].BlendOp = D3D12_BLEND_OP_REV_SUBTRACT;				// ブレンド演算は逆減算
+	blendDescList[blendModeIndex].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;						// ソースのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;					// デスティネーションのアルファ値は使用しない
+	blendDescList[blendModeIndex].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;					// アルファブレンド演算は加算
 
 	// kBlendModeMultiplicativeのBlendDescの設定
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeMultiplicative)].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeMultiplicative)].RenderTarget[0].BlendEnable = true;									// ブレンドを有効化
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeMultiplicative)].RenderTarget[0].SrcBlend = D3D12_BLEND_ZERO;							// ソースのアルファ値は使用しない
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeMultiplicative)].RenderTarget[0].DestBlend = D3D12_BLEND_SRC_COLOR;					// デスティネーションのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeMultiplicative)].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;							// ブレンド演算は加算
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeMultiplicative)].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;						// ソースのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeMultiplicative)].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;					// デスティネーションのアルファ値は使用しない
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeMultiplicative)].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;					// アルファブレンド演算は加算
+	blendModeIndex = static_cast<uint32_t>(BlendMode::kBlendModeMultiplicative);
+	blendDescList[blendModeIndex].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
+	blendDescList[blendModeIndex].RenderTarget[0].BlendEnable = true;									// ブレンドを有効化
+	blendDescList[blendModeIndex].RenderTarget[0].SrcBlend = D3D12_BLEND_ZERO;							// ソースのアルファ値は使用しない
+	blendDescList[blendModeIndex].RenderTarget[0].DestBlend = D3D12_BLEND_SRC_COLOR;					// デスティネーションのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;							// ブレンド演算は加算
+	blendDescList[blendModeIndex].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;						// ソースのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;					// デスティネーションのアルファ値は使用しない
+	blendDescList[blendModeIndex].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;					// アルファブレンド演算は加算
 
 	// kBlendModeScreenのBlendDescの設定
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeScreen)].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeScreen)].RenderTarget[0].BlendEnable = true;									// ブレンドを有効化
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeScreen)].RenderTarget[0].SrcBlend = D3D12_BLEND_INV_DEST_COLOR;				// ソースのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeScreen)].RenderTarget[0].DestBlend = D3D12_BLEND_ONE;							// デスティネーションのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeScreen)].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;							// ブレンド演算は加算
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeScreen)].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;						// ソースのアルファ値を使用
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeScreen)].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;					// デスティネーションのアルファ値は使用しない
-	blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeScreen)].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;					// アルファブレンド演算は加算
+	blendModeIndex = static_cast<uint32_t>(BlendMode::kBlendModeScreen);
+	blendDescList[blendModeIndex].RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;	// 全ての色要素を書き込む
+	blendDescList[blendModeIndex].RenderTarget[0].BlendEnable = true;									// ブレンドを有効化
+	blendDescList[blendModeIndex].RenderTarget[0].SrcBlend = D3D12_BLEND_INV_DEST_COLOR;				// ソースのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].DestBlend = D3D12_BLEND_ONE;							// デスティネーションのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;							// ブレンド演算は加算
+	blendDescList[blendModeIndex].RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;						// ソースのアルファ値を使用
+	blendDescList[blendModeIndex].RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;					// デスティネーションのアルファ値は使用しない
+	blendDescList[blendModeIndex].RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;					// アルファブレンド演算は加算
 
 	// RasterizerStateの設定
 	D3D12_RASTERIZER_DESC noCullingRasterizerDesc{};
@@ -179,6 +187,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	assert(object3dVSBlob);
 	Microsoft::WRL::ComPtr<IDxcBlob> object3dPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Object3d.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(object3dPSBlob);
+
+	// SkinningObject3dのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> skinningObject3dVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/SkinningObject3d.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(skinningObject3dVSBlob);
 
 	// Particleのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> instance3dVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Instance3d.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -259,18 +271,48 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// Mesh用パイプラインステートの生成
 	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
 		for (size_t j = 0; j < static_cast<size_t>(BlendMode::kCountOfBlendMode); j++) {
-			meshPipelineState_[i][j] = PipelineState()
-				.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
-				.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)		// テクスチャ座標
-				.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-				.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)									// RTVのフォーマット
-				.SetBlendState(blendDescList[j])														// BlendState
-				.SetRasterizer(backCullingRasterizerDesc)												// RasterizerState
-				.SetDepthState(writeLessEqualDepthStencilDesc)											// DepthStencilState
-				.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())	// 頂点シェーダー
-				.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())	// ピクセルシェーダー
-				.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)						// プリミティブトポロジー
-				.Create(device_->GetDevice(), static_cast<MeshType>(i) == MeshType::kRing ? ringObject3dRootSignature_ : object3dRootSignature_);
+			if (static_cast<MeshType>(i) == MeshType::kRing) {
+				meshPipelineState_[i][j] = PipelineState()
+					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
+					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+					.SetBlendState(blendDescList[j])															// BlendState
+					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
+					.SetDepthState(writeLessEqualDepthStencilDesc)												// DepthStencilState
+					.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
+					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
+					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+					.Create(device_->GetDevice(), ringObject3dRootSignature_);
+			} else if (static_cast<MeshType>(i) == MeshType::kSkinned) {
+				meshPipelineState_[i][j] = PipelineState()
+					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// 頂点座標
+					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)						// テクスチャ座標
+					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)					// 法線ベクトル
+					.AddInput("WEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D12_APPEND_ALIGNED_ELEMENT)					// 重み
+					.AddInput("INDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 1, D3D12_APPEND_ALIGNED_ELEMENT)					// インデックス
+					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)													// RTVのフォーマット
+					.SetBlendState(blendDescList[j])																		// BlendState
+					.SetRasterizer(backCullingRasterizerDesc)																// RasterizerState
+					.SetDepthState(writeLessEqualDepthStencilDesc)															// DepthStencilState
+					.SetVertexShader(skinningObject3dVSBlob->GetBufferPointer(), skinningObject3dVSBlob->GetBufferSize())	// 頂点シェーダー
+					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())					// ピクセルシェーダー
+					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)										// プリミティブトポロジー
+					.Create(device_->GetDevice(), skinningObject3dRootSignature_);
+			} else {
+				meshPipelineState_[i][j] = PipelineState()
+					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
+					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+					.SetBlendState(blendDescList[j])															// BlendState
+					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
+					.SetDepthState(writeLessEqualDepthStencilDesc)												// DepthStencilState
+					.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
+					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
+					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+					.Create(device_->GetDevice(), skinningObject3dRootSignature_);
+			}
 			const std::string logMessage = "Create MeshPipelineState : " + blendModeNames[j] + " " + meshTypeNames[i] + "\n";
 			Logger::Log(logStream, logMessage);
 			meshPipelineState_[i][j]->SetName(ConvertString(blendModeNames[j] + "Blend" + meshTypeNames[i] + "PipelineState").c_str());
@@ -281,9 +323,9 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
 		for (size_t j = 0; j < static_cast<size_t>(BlendMode::kCountOfBlendMode); j++) {
 			meshParticlePipelineState_[i][j] = PipelineState()
-				.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)		// 頂点座標
-				.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
-				.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)			// 法線ベクトル
+				.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+				.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
+				.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
 				.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 				.SetBlendState(blendDescList[j])															// BlendState
 				.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
@@ -301,16 +343,16 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// 各ブレンドモードのSprite用パイプラインステートの生成
 	for (uint32_t i = 0; i < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); i++) {
 		spritePipelineState_[i] = PipelineState()
-			.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
-			.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)		// テクスチャ座標
-			.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-			.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)									// RTVのフォーマット
-			.SetBlendState(blendDescList[i])														// BlendState
-			.SetRasterizer(noCullingRasterizerDesc)													// RasterizerState
-			.SetDepthState(noWriteLessEqualDepthStencilDesc)										// DepthStencilState
-			.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())	// 頂点シェーダー
-			.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())	// ピクセルシェーダー
-			.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)						// プリミティブトポロジー
+			.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+			.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
+			.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+			.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+			.SetBlendState(blendDescList[i])															// BlendState
+			.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
+			.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
+			.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
+			.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
+			.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
 			.Create(device_->GetDevice(), object3dRootSignature_);
 		const std::string logMessage = "Create SpritePipelineState : " + blendModeNames[i] + "\n";
 		Logger::Log(logStream, logMessage);
@@ -332,14 +374,14 @@ void Renderer::Initialize(std::ofstream &logStream) {
 
 	// Skybox用パイプラインステートの生成
 	skyboxPipelineState_ = PipelineState()
-		.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)									// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])			// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)													// RasterizerState
-		.SetDepthState(noWriteLessEqualDepthStencilDesc)										// DepthStencilState
-		.SetVertexShader(skyboxVSBlob->GetBufferPointer(), skyboxVSBlob->GetBufferSize())		// 頂点シェーダー
-		.SetPixelShader(skyboxPSBlob->GetBufferPointer(), skyboxPSBlob->GetBufferSize())		// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)						// プリミティブトポロジー
+		.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
+		.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
+		.SetVertexShader(skyboxVSBlob->GetBufferPointer(), skyboxVSBlob->GetBufferSize())			// 頂点シェーダー
+		.SetPixelShader(skyboxPSBlob->GetBufferPointer(), skyboxPSBlob->GetBufferSize())			// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
 		.Create(device_->GetDevice(), skyboxRootSignature_);
 	Logger::Log(logStream, "Create SkyboxPipelineState\n");
 	skyboxPipelineState_->SetName(L"SkyboxPipelineState");
@@ -497,7 +539,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	footprintMapPipelineState_->SetName(L"FootprintMapPipelineState");
 
 	// コマンドシグネチャの引数設定
-	D3D12_INDIRECT_ARGUMENT_DESC argumentDescList[6] = {};
+	D3D12_INDIRECT_ARGUMENT_DESC argumentDescList[8] = {};
 	argumentDescList[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW;
 	argumentDescList[0].ConstantBufferView.RootParameterIndex = 0;
 	argumentDescList[1].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW;
@@ -505,11 +547,17 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	argumentDescList[2].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
 	argumentDescList[2].Constant.RootParameterIndex = 5;
 	argumentDescList[2].Constant.DestOffsetIn32BitValues = 0;
-	argumentDescList[2].Constant.Num32BitValuesToSet = 2;
-	argumentDescList[3].Type = D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
-	argumentDescList[3].VertexBuffer.Slot = 0;
-	argumentDescList[4].Type = D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW;
-	argumentDescList[5].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+	argumentDescList[2].Constant.Num32BitValuesToSet = 1;
+	argumentDescList[3].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
+	argumentDescList[3].Constant.RootParameterIndex = 6;
+	argumentDescList[3].Constant.DestOffsetIn32BitValues = 0;
+	argumentDescList[3].Constant.Num32BitValuesToSet = 3;
+	argumentDescList[4].Type = D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
+	argumentDescList[4].VertexBuffer.Slot = 0;
+	argumentDescList[5].Type = D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
+	argumentDescList[5].VertexBuffer.Slot = 1;
+	argumentDescList[6].Type = D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW;
+	argumentDescList[7].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
 
 	// コマンドシグネチャの設定
 	D3D12_COMMAND_SIGNATURE_DESC commandSignatureDesc = {};
@@ -519,7 +567,11 @@ void Renderer::Initialize(std::ofstream &logStream) {
 
 	// コマンドシグネチャの生成
 	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
-		hr = device_->GetDevice()->CreateCommandSignature(&commandSignatureDesc, static_cast<MeshType>(i) == MeshType::kRing ? ringObject3dRootSignature_ : object3dRootSignature_, IID_PPV_ARGS(&meshCommandSignature_[i]));
+		if (static_cast<MeshType>(i) == MeshType::kRing) {
+			hr = device_->GetDevice()->CreateCommandSignature(&commandSignatureDesc, ringObject3dRootSignature_, IID_PPV_ARGS(&meshCommandSignature_[i]));
+		} else {
+			hr = device_->GetDevice()->CreateCommandSignature(&commandSignatureDesc, skinningObject3dRootSignature_, IID_PPV_ARGS(&meshCommandSignature_[i]));
+		}
 		assert(SUCCEEDED(hr));
 	}
 }
@@ -898,32 +950,41 @@ void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
 		PIX_COLOR(255, 255, 0),	// MeshType::kPlane
 		PIX_COLOR(255, 0, 255),	// MeshType::kBox
 		PIX_COLOR(0, 255, 0),	// MeshType::kRing
-		PIX_COLOR(0, 255, 255)	// MeshType::kCylinder
+		PIX_COLOR(0, 255, 255),	// MeshType::kCylinder
+		PIX_COLOR(0, 0, 255)	// MeshType::kSkinned
 	};
 
 	// メッシュタイプごとに描画
 	for (uint32_t i = 0; i < static_cast<uint32_t>(MeshType::kCountOfMeshType); i++) {
 		std::string label = "Draw" + meshTypeNames[i];
 		PIXBeginEvent(commandList_, pixColor[i], ConvertString(label).c_str());
-		commandList_->SetGraphicsRootSignature(static_cast<MeshType>(i) == MeshType::kRing ? ringObject3dRootSignature_ : object3dRootSignature_);
+		if (static_cast<MeshType>(i) == MeshType::kRing) {
+			commandList_->SetGraphicsRootSignature(ringObject3dRootSignature_);
+		} else if (static_cast<MeshType>(i) == MeshType::kSkinned) {
+			commandList_->SetGraphicsRootSignature(skinningObject3dRootSignature_);
+		} else {
+			commandList_->SetGraphicsRootSignature(skinningObject3dRootSignature_);
+		}
 
-		// メッシュの共通のCBVを設定
+		// メッシュの共通のCBV・SRVを設定
 		world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(1, cameraBufferLocationIndex);
 		world_->GetConstantBuffer(ConstantBufferType::kCameraPosition)->BindToGraphics(3, 0);
 		world_->GetConstantBuffer(ConstantBufferType::kDirectionalLight)->BindToGraphics(4, 0);
-		LightCount lightCount = {
+		LightData lightData = {
 			.pointLightCount = static_cast<uint32_t>(registry_->GetComponentCount<PointLight>()),
-			.spotLightCount = static_cast<uint32_t>(registry_->GetComponentCount<SpotLight>())
+			.spotLightCount = static_cast<uint32_t>(registry_->GetComponentCount<SpotLight>()),
+			.pointLightHandle = world_->GetPointLightHandle(),
+			.spotLightHandle = world_->GetSpotLightHandle()
 		};
-		commandList_->SetGraphicsRoot32BitConstants(6, 2, &lightCount, 0);
 
-		// メッシュの共通のSRVを設定
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetPointLightHandle());
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetSpotLightHandle());
-		registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, skybox->textureHandle);
-			}, exclude<Disabled>());
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, 0);
+		if (static_cast<MeshType>(i) == MeshType::kRing) {
+			commandList_->SetGraphicsRoot32BitConstants(6, 4, &lightData, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, 0);
+		} else {
+			commandList_->SetGraphicsRoot32BitConstants(7, 4, &lightData, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, 0);
+		}
 
 		// ブレンドモードごとに描画
 		for (uint32_t j = 0; j < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); j++) {
@@ -1000,11 +1061,17 @@ void Renderer::DrawSprite() {
 	// スプライトのビュープロジェクションのCBVを設定
 	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(1, 0);
 
-	// Object3dのテクスチャのSRVを設定
-	registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, skybox->textureHandle);
-		}, exclude<Disabled>());
-	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, 0);
+	// ライトの情報を設定
+	LightData lightData = {
+		.pointLightCount = static_cast<uint32_t>(registry_->GetComponentCount<PointLight>()),
+		.spotLightCount = static_cast<uint32_t>(registry_->GetComponentCount<SpotLight>()),
+		.pointLightHandle = world_->GetPointLightHandle(),
+		.spotLightHandle = world_->GetSpotLightHandle()
+	};
+	commandList_->SetGraphicsRoot32BitConstants(6, 4, &lightData, 0);
+
+	// Object3dのSRVを設定
+	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, 0);
 
 	// 各ブレンドモードのスプライトの描画
 	for (uint32_t i = 0; i < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); i++) {
@@ -1020,6 +1087,9 @@ void Renderer::DrawSprite() {
 					.textureHandle = sprite->textureHandle,
 					.enableMipMaps = sprite->enableMipMaps
 				};
+				registry_->ForEach<Skybox>([&](uint32_t skyEntity, Skybox *skybox) {
+					textureData.environmentMapHandle = skybox->textureHandle;
+					}, exclude<Disabled>());
 				commandList_->SetGraphicsRoot32BitConstants(5, 2, &textureData, 0);
 				meshManager_->Draw(sprite->meshHandle);
 			}

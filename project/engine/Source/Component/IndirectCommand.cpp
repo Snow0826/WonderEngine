@@ -3,6 +3,7 @@
 #include "World.h"
 #include "Resource.h"
 #include "ConstantBuffer.h"
+#include "SkinCluster.h"
 #include "BlendMode.h"
 #include "Model.h"
 #include "Plane.h"
@@ -10,12 +11,14 @@
 #include "Cylinder.h"
 #include "Ring.h"
 #include "Object.h"
+#include "Skybox.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
 
-IndirectCommandManager::IndirectCommandManager(Registry *registry, World *world, MeshManager *meshManager) : registry_(registry), world_(world), meshManager_(meshManager) {
+IndirectCommandManager::IndirectCommandManager(Registry *registry, World *world, MeshManager *meshManager, SkinClusterManager *skinClusterManager)
+	: registry_(registry), world_(world), meshManager_(meshManager), skinClusterManager_(skinClusterManager) {
 	world_->GetStructuredBuffer(StructuredBufferType::kObject)->Map(reinterpret_cast<void **>(&cullingObjectData_));
 	world_->GetStructuredBuffer(StructuredBufferType::kMesh)->Map(reinterpret_cast<void **>(&cullingMeshData_));
 	world_->GetCommandBufferUpload()->Map(reinterpret_cast<void **>(&meshLODData_));
@@ -41,9 +44,14 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 				entities_.emplace_back(entity);
 				meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
 				meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
+				meshLODData_[handle].indirectCommand.matrixPalettehandle = skinClusterManager_->GetPaletteSRVHandle(model->skinClusterHandle);
 				meshLODData_[handle].indirectCommand.textureData.textureHandle = model->textureHandle[mesh.materialIndex];
+				registry_->ForEach<Skybox>([&](uint32_t skyboxEntity, Skybox *skybox) {
+					meshLODData_[handle].indirectCommand.textureData.environmentMapHandle = skybox->textureHandle;
+					}, exclude<Disabled>());
 				meshLODData_[handle].indirectCommand.textureData.enableMipMaps = model->enableMipMaps[mesh.materialIndex];
 				meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(meshLODData.handle);
+				meshLODData_[handle].indirectCommand.influenceBufferView = skinClusterManager_->GetInfluenceBufferView(model->skinClusterHandle);
 				meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(meshLODData.handle);
 				meshLODData_[handle].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(meshLODData.handle);
 				meshLODData_[handle].indirectCommand.drawIndexedArguments.InstanceCount = 1;
@@ -61,6 +69,9 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 		meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.textureData.textureHandle = plane->textureHandle;
+		registry_->ForEach<Skybox>([&](uint32_t skyboxEntity, Skybox *skybox) {
+			meshLODData_[handle].indirectCommand.textureData.environmentMapHandle = skybox->textureHandle;
+			}, exclude<Disabled>());
 		meshLODData_[handle].indirectCommand.textureData.enableMipMaps = plane->enableMipMaps;
 		meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(plane->meshHandle);
 		meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(plane->meshHandle);
@@ -78,6 +89,9 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 		meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.textureData.textureHandle = box->textureHandle;
+		registry_->ForEach<Skybox>([&](uint32_t skyboxEntity, Skybox *skybox) {
+			meshLODData_[handle].indirectCommand.textureData.environmentMapHandle = skybox->textureHandle;
+			}, exclude<Disabled>());
 		meshLODData_[handle].indirectCommand.textureData.enableMipMaps = box->enableMipMaps;
 		meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(box->meshHandle);
 		meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(box->meshHandle);
@@ -95,6 +109,9 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 		meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.textureData.textureHandle = ring->textureHandle;
+		registry_->ForEach<Skybox>([&](uint32_t skyboxEntity, Skybox *skybox) {
+			meshLODData_[handle].indirectCommand.textureData.environmentMapHandle = skybox->textureHandle;
+			}, exclude<Disabled>());
 		meshLODData_[handle].indirectCommand.textureData.enableMipMaps = ring->enableMipMaps;
 		meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(ring->meshHandle);
 		meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(ring->meshHandle);
@@ -112,6 +129,9 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 		meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.textureData.textureHandle = cylinder->textureHandle;
+		registry_->ForEach<Skybox>([&](uint32_t skyboxEntity, Skybox *skybox) {
+			meshLODData_[handle].indirectCommand.textureData.environmentMapHandle = skybox->textureHandle;
+			}, exclude<Disabled>());
 		meshLODData_[handle].indirectCommand.textureData.enableMipMaps = cylinder->enableMipMaps;
 		meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(cylinder->meshHandle);
 		meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(cylinder->meshHandle);
@@ -167,7 +187,11 @@ void IndirectCommandManager::UpdateCullingData() {
 		} else {
 			cullingObjectData_[object->handle].worldMatrix = MakeIdentity4x4();
 		}
-		cullingObjectData_[object->handle].meshType = MeshType::kModel;
+		if (registry_->HasComponent<SkinMesh>(entity)) {
+			cullingObjectData_[object->handle].meshType = MeshType::kSkinned;
+		} else {
+			cullingObjectData_[object->handle].meshType = MeshType::kModel;
+		}
 		cullingObjectData_[object->handle].blendMode = *blendMode;
 		for (const MeshData &mesh : model->modelData.meshes) {
 			cullingMeshData_[cullingMeshDataOffset] = {

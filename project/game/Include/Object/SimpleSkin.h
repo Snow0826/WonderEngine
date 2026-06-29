@@ -23,8 +23,8 @@ public:
 	void Create();
 
 private:
-	Registry *registry_;								// レジストリ
-	IndirectCommandManager *indirectCommandManager_;	// 間接コマンドマネージャー
-	ModelManager *modelManager_;						// モデルマネージャー
-	ObjectManager *objectManager_;						// オブジェクトマネージャー
+	Registry *registry_ = nullptr;								// レジストリ
+	IndirectCommandManager *indirectCommandManager_ = nullptr;	// 間接コマンドマネージャー
+	ModelManager *modelManager_ = nullptr;						// モデルマネージャー
+	ObjectManager *objectManager_ = nullptr;					// オブジェクトマネージャー
 };

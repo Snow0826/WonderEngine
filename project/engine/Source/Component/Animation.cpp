@@ -58,15 +58,15 @@ void AnimationSystem::ApplyAnimationToRootNode() {
 
 		// ルートノードの変換が変更されたことを通知
 		transformSystem.MarkDirty(entity);
-		}, exclude<Skeleton>());
+		}, exclude<SkinMesh, Disabled>());
 }
 
 void AnimationSystem::ApplyAnimationToSkeleton() {
 	TransformSystem transformSystem{ registry_ };
-	registry_->ForEach<AnimationInterpolationMode, AnimationPlayer, Model, Skeleton>([&](uint32_t entity, AnimationInterpolationMode *mode, AnimationPlayer *player, Model *model, Skeleton *skeleton) {
+	registry_->ForEach<AnimationInterpolationMode, AnimationPlayer, Model, SkinMesh>([&](uint32_t entity, AnimationInterpolationMode *mode, AnimationPlayer *player, Model *model, SkinMesh *skinMesh) {
 		// ノードアニメーションの適用
 		const AnimationClip &animationClip = model->modelData.animations[player->animationIndex];
-		for (Joint &joint : skeleton->joints) {
+		for (Joint &joint : model->modelData.skeleton.joints) {
 			if (auto it = animationClip.nodeAnimations.find(joint.name); it != animationClip.nodeAnimations.end()) {
 				const NodeAnimation &nodeAnimation = (*it).second;
 				switch (*mode) {
@@ -100,11 +100,11 @@ void AnimationSystem::ApplyAnimationToSkeleton() {
 		}
 
 		// スケルトンの更新
-		ModelManager::UpdateSkeleton(*skeleton);
+		ModelManager::UpdateSkeleton(model->modelData.skeleton);
 
 		// スケルトンの変換が変更されたことを通知
 		transformSystem.MarkDirty(entity);
-		}, exclude<>());
+		}, exclude<Disabled>());
 }
 
 Vector3 AnimationSystem::SampleLinearVector3(const std::vector<KeyFrameVector3> &keyframes, float time) {

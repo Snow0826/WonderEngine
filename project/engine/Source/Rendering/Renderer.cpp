@@ -72,6 +72,7 @@ Renderer::Renderer(Device *device)
 	, depthBasedOutlineRootSignature_(device->GetDepthBasedOutlineRootSignature())
 	, radialBlurRootSignature_(device->GetRadialBlurRootSignature())
 	, dissolveRootSignature_(device->GetDissolveRootSignature())
+	, noiseRootSignature_(device->GetNoiseRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
@@ -247,6 +248,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// Dissolveのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> dissolvePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Dissolve.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(dissolvePSBlob);
+	
+	// Noiseのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> noisePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Noise.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(noisePSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -502,6 +507,19 @@ void Renderer::Initialize(std::ofstream &logStream) {
 		.Create(device_->GetDevice(), dissolveRootSignature_);
 	Logger::Log(logStream, "Create DissolvePipelineState\n");
 	dissolvePipelineState_->SetName(L"DissolvePipelineState");
+
+	// Noise用パイプラインステートの生成
+	noisePipelineState_ = PipelineState()
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
+		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
+		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
+		.SetPixelShader(noisePSBlob->GetBufferPointer(), noisePSBlob->GetBufferSize())				// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+		.Create(device_->GetDevice(), noiseRootSignature_);
+	Logger::Log(logStream, "Create NoisePipelineState\n");
+	noisePipelineState_->SetName(L"NoisePipelineState");
 
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
@@ -1179,6 +1197,12 @@ void Renderer::CopyImage() {
 			world_->GetConstantBuffer(ConstantBufferType::kDissolveParam)->BindToGraphics(0, 0);
 			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
 			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, textureManager_->GetTextureReadHandle("noise0.png"));
+			break;
+		case PostEffect::kNoise:
+			commandList_->SetGraphicsRootSignature(noiseRootSignature_);
+			commandList_->SetPipelineState(noisePipelineState_.Get());
+			world_->GetConstantBuffer(ConstantBufferType::kNoiseParam)->BindToGraphics(0, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
 			break;
 		case PostEffect::kCountOfPostEffect:
 			break;

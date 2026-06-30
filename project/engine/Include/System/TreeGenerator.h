@@ -1,5 +1,23 @@
 #pragma once
-#include <cstdint>
+#include "Vector3.h"
+#include <vector>
+#include <memory>
+
+/// @brief 葉（AttractionPoint）
+struct Leaf final {
+	Vector3 position;		// 位置
+	bool reached = false;	// 到達フラグ
+};
+
+/// @brief 枝（Branch）
+struct Branch final {
+	Vector3 position;				// 位置
+	Vector3 direction;				// 方向
+	Branch* parent = nullptr;		// 親の枝
+	std::vector<Branch*> children;	// 子の枝
+	Vector3 growDirection;			// 成長方向
+	uint32_t growCount = 0;			// 成長カウント
+};
 
 class Registry;
 class CylinderGenerator;
@@ -24,17 +42,13 @@ public:
 	}
 
 	/// @brief 木の生成
-	/// @param parent 親エンティティID
-	/// @param start 開始位置
-	/// @param direction 方向
-	/// @param parentWorldRotate 親のワールド回転
-	/// @param divide 分割数
-	/// @param topRadius 上面の半径
-	/// @param bottomRadius 下面の半径
-	/// @param length 長さ
-	/// @param depth 深さ
+	/// @param leafRadius 葉の半径
+	/// @param leafCount 葉の数
+	/// @param influenceRadius 影響半径
+	/// @param killRadius 消滅半径
+	/// @param branchLength 枝の長さ
 	/// @return 生成された木のエンティティID
-	uint32_t Generate(uint32_t parent, const Vector3 &start, const Vector3 &direction, const Quaternion &parentWorldRotate, uint32_t divide, float topRadius, float bottomRadius, float length, int32_t depth);
+	uint32_t Generate(float leafRadius, uint32_t leafCount, float influenceRadius, float killRadius, float branchLength);
 
 	/// @brief 木の削除
 	/// @param entity 削除する木のエンティティID
@@ -45,4 +59,28 @@ private:
 	CylinderGenerator *cylinderGenerator_ = nullptr;			// 円柱ジェネレーター
 	ObjectManager *objectManager_ = nullptr;					// オブジェクトマネージャー
 	IndirectCommandManager *indirectCommandManager_ = nullptr;	// 間接コマンドマネージャー
+	std::vector<Leaf> leaves_;									// 葉のリスト
+	std::vector<std::unique_ptr<Branch>> branches_;				// 枝のリスト
+
+	/// @brief 葉の生成
+	/// @param leafRadius 葉の半径
+	/// @param leafCount 葉の数
+	void GenerateLeaves(float leafRadius, uint32_t leafCount);
+
+	/// @brief 根の枝の生成
+	/// @param influenceRadius 影響半径
+	/// @param branchLength 枝の長さ
+	void GenerateRootBranch(float influenceRadius, float branchLength);
+
+	/// @brief 最も近い枝を見つける
+	/// @param influenceRadius 影響半径
+	/// @param killRadius 消滅半径
+	void FindClosestBranch(float influenceRadius, float killRadius);
+
+	/// @brief 枝を成長させる
+	/// @param branchLength 枝の長さ
+	void GrowBranches(float branchLength);
+
+	/// @brief 葉を削除する
+	void RemoveLeaves();
 };

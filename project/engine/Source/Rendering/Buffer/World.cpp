@@ -38,12 +38,16 @@ namespace {
 		"DepthBasedOutline",
 		"RadialBlur",
 		"Dissolve",
+		"Noise"
 	};
 }
 
 World::World(Device *device, std::ofstream &logStream) {
 	DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device->GetGpuCbvSrvUavDescriptorHeap();
 	DescriptorHeap *cpuCbvSrvUavDescriptorHeap = device->GetCpuCbvSrvUavDescriptorHeap();
+
+	// CPUタイマーの開始
+	cpuTimer_.Begin();
 
 	// 定数バッファの初期化
 	for (auto &constantBuffer : constantBuffers_) {
@@ -78,6 +82,8 @@ World::World(Device *device, std::ofstream &logStream) {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kRadialBlurParam)]->SetName("RadialBlurParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDissolveParam)]->Initialize(device, sizeof(DissolveParam), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDissolveParam)]->SetName("DissolveParam");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kNoiseParam)]->Initialize(device, sizeof(NoiseParam), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kNoiseParam)]->SetName("NoiseParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->Initialize(device, sizeof(FootprintMap), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->SetName("FootprintMap");
 
@@ -407,6 +413,7 @@ void World::Update() {
 	TransferDepthBasedOutlineData();
 	TransferRadialBlurParam();
 	TransferDissolveParam();
+	TransferNoiseParam();
 	TransferFootprint();
 	TransferFootprintMap();
 }
@@ -518,6 +525,11 @@ void World::Edit() {
 			dissolveParam_.edgeWidth = 0.03f;
 			dissolveParam_.edgeColor = { 1.0f, 1.0f, 1.0f };
 		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Noise")) {
+		ImGui::Text("Time: %.2f", noiseParam_.time);
 		ImGui::TreePop();
 	}
 #endif // USE_IMGUI
@@ -635,6 +647,12 @@ void World::TransferRadialBlurParam() {
 
 void World::TransferDissolveParam() {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDissolveParam)]->CopyData(&dissolveParam_, sizeof(DissolveParam), 0);
+}
+
+void World::TransferNoiseParam() {
+	cpuTimer_.End();
+	noiseParam_.time = static_cast<float>(cpuTimer_.GetMs());
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kNoiseParam)]->CopyData(&noiseParam_, sizeof(NoiseParam), 0);
 }
 
 void World::TransferFootprint() {

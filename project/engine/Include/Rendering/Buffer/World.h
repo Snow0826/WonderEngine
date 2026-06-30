@@ -5,6 +5,7 @@
 #include "Vector3.h"
 #include "Vector4.h"
 #include "Matrix4x4.h"
+#include "CPUTimer.h"
 #include <array>
 #include <vector>
 #include <memory>
@@ -87,6 +88,11 @@ struct DissolveParam final {
 	Vector3 edgeColor = { 1.0f, 1.0f, 1.0f };	// エッジカラー
 };
 
+/// @brief ノイズのパラメータ
+struct NoiseParam final {
+	float time = 0.0f;	// 時間
+};
+
 /// @brief int型4要素ベクトル
 struct Int4 final {
 	int32_t x = 0;
@@ -118,6 +124,7 @@ enum class ConstantBufferType {
 	kDepthMaterial,				// 深度マテリアル
 	kRadialBlurParam,			// ラジアルブラーのパラメータ
 	kDissolveParam,				// ディゾルブのパラメータ
+	kNoiseParam,				// ノイズのパラメータ
 	kFootprintMap,				// フットプリントマップ
 	kCountOfConstantBufferType	// 定数バッファの種類の数
 };
@@ -145,6 +152,7 @@ enum class PostEffect {
 	kDepthBasedOutline,		// 深度ベースの輪郭抽出
 	kRadialBlur,			// ラジアルブラー
 	kDissolve,				// ディゾルブ
+	kNoise,					// ノイズ
 	kCountOfPostEffect		// ポストエフェクトの数
 };
 
@@ -382,6 +390,7 @@ private:
 	DepthMaterial depthMaterial_;										// 深度マテリアル
 	RadialBlurParam radialBlurParam_;									// ラジアルブラーのパラメータ
 	DissolveParam dissolveParam_;										// ディゾルブのパラメータ
+	NoiseParam noiseParam_;												// ノイズのパラメータ
 	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
 	Int4 *colorData_ = nullptr;											// 色データ
 	Rendering::Line *lineData_ = nullptr;								// ラインデータ
@@ -413,6 +422,7 @@ private:
 	PostEffect postEffect_ = PostEffect::kNone;							// ポストエフェクト
 	bool isCulling_ = false;											// カリング有効フラグ
 	bool isResult_ = false;												// 結果表示フラグ
+	CPUTimer cpuTimer_;													// CPUタイマー
 
 	/// @brief 平行光源の転送
 	void TransferDirectionalLight();
@@ -455,6 +465,9 @@ private:
 
 	/// @brief ディゾルブのパラメータの転送
 	void TransferDissolveParam();
+
+	/// @brief ノイズのパラメータの転送
+	void TransferNoiseParam();
 
 	/// @brief フットプリントの転送
 	void TransferFootprint();

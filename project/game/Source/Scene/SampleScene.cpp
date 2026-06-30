@@ -122,7 +122,7 @@ void SampleScene::OnUpdate() {
 		TreeGenerator treeGenerator{ registry_.get(), &cylinderGenerator, objectManager_.get(), indirectCommandManager_.get() };
 		if (ImGui::Button("Generate")) {
 			for (size_t i = 0; i < count; i++) {
-				uint32_t treeEntity = treeGenerator.Generate(UINT_MAX, start + Random::generate(positionRange.min, positionRange.max), direction, Quaternion::IdentityQuaternion(), divide, topRadius, bottomRadius, length, depth);
+				uint32_t treeEntity = treeGenerator.Generate(5.0f, 1000, 2.5f, 0.6f, 0.3f);
 				treeEntities_.emplace_back(treeEntity);
 			}
 		}

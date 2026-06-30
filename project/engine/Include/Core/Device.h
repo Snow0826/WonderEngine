@@ -146,6 +146,10 @@ public:
 	/// @return Dissolve用ルートシグネチャ
 	ID3D12RootSignature *GetDissolveRootSignature() const { return dissolveRootSignature_.Get(); }
 
+	/// @brief Noise用ルートシグネチャを取得
+	/// @return Noise用ルートシグネチャ
+	ID3D12RootSignature *GetNoiseRootSignature() const { return noiseRootSignature_.Get(); }
+
 	/// @brief 深度ステンシルテクスチャコピー用ルートシグネチャを取得
 	/// @return 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *GetDepthStencilCopyRootSignature() const { return depthStencilCopyRootSignature_.Get(); }
@@ -206,6 +210,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthBasedOutlineRootSignature_ = nullptr;		// DepthBasedOutline用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> radialBlurRootSignature_ = nullptr;				// RadialBlur用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> dissolveRootSignature_ = nullptr;				// Dissolve用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> noiseRootSignature_ = nullptr;					// Noise用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthStencilCopyRootSignature_ = nullptr;		// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> generateHiZMipMapRootSignature_ = nullptr;		// HiZミップマップ生成用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> occlusionCullingRootSignature_ = nullptr;		// オクルージョンカリング用ルートシグネチャ

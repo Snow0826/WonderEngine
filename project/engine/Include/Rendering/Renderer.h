@@ -101,6 +101,7 @@ private:
 	ID3D12RootSignature *depthBasedOutlineRootSignature_ = nullptr;								// DepthBasedOutline用ルートシグネチャ
 	ID3D12RootSignature *radialBlurRootSignature_ = nullptr;									// RadialBlur用ルートシグネチャ
 	ID3D12RootSignature *dissolveRootSignature_ = nullptr;										// Dissolve用ルートシグネチャ
+	ID3D12RootSignature *noiseRootSignature_ = nullptr;											// Noise用ルートシグネチャ
 	ID3D12RootSignature *depthStencilCopyRootSignature_ = nullptr;								// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *generateHiZMipMapRootSignature_ = nullptr;								// HiZミップマップ生成用ルートシグネチャ
 	ID3D12RootSignature *occlusionCullingRootSignature_ = nullptr;								// オクルージョンカリング用ルートシグネチャ
@@ -120,6 +121,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthBasedOutlinePipelineState_ = nullptr;		// DepthBasedOutline用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> radialBlurPipelineState_ = nullptr;				// RadialBlur用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> dissolvePipelineState_ = nullptr;				// Dissolve用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> noisePipelineState_ = nullptr;					// Noise用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthStencilCopyPipelineState_ = nullptr;		// 深度ステンシルテクスチャコピー用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> generateHiZMipMapPipelineState_ = nullptr;		// HiZミップマップ生成用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> occlusionCullingPipelineState_ = nullptr;		// オクルージョンカリング用パイプラインステート

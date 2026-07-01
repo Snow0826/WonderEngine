@@ -21,7 +21,7 @@ void SphereInspector::Draw([[maybe_unused]] uint32_t entity) {
 	if (ImGui::TreeNode("Sphere")) {
 		Collision::Sphere *sphere = registry_->GetComponent<Collision::Sphere>(entity);
 		if (sphere) {
-			ImGui::DragFloat3("Center", &sphere->center.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("Center", &sphere->center.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 			ImGui::DragFloat("Radius", &sphere->radius, 0.01f, 0.0f, std::numeric_limits<float>::max());
 		}
 		ImGui::TreePop();

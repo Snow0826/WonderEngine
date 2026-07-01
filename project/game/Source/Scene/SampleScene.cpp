@@ -9,6 +9,7 @@
 #include "SlashEffect.h"
 #include "HitRingEffect.h"
 #include "SlashRingEffect.h"
+#include "MagicCircleEffect.h"
 #include "LeafEffect.h"
 #include "AnimatedCube.h"
 #include "SimpleSkin.h"
@@ -47,6 +48,7 @@ void SampleScene::OnInitialize() {
 	TextureManager *textureManager = sceneManager_->GetTextureManager();
 	ParticleManager *particleManager = sceneManager_->GetParticleManager();
 	ModelManager *modelManager = sceneManager_->GetModelManager();
+	CylinderGenerator cylinderGenerator{ meshManager, textureManager };
 
 	// ジェネレーターの初期化
 	SkyboxGenerator skyboxGenerator{ meshManager, textureManager };
@@ -85,17 +87,11 @@ void SampleScene::OnInitialize() {
 	// ヒューマンの作成
 	Human human{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
 	human.Create("walk.gltf", { 0.0f, 0.0f, 5.0f });
-	human.Create("sneakWalk.gltf", { 5.0f, 0.0f, 5.0f });
+	human.Create("sneakWalk.gltf", { 3.0f, 0.0f, 5.0f });
 
-	Field field{
-		.area = {.min = { -100.0f, 0.0f, -100.0f }, .max = { 100.0f, 100.0f, 100.0f } },
-		.acceleration = { 0.0f, 1.0f, 0.0f },
-		.angularVelocity = std::numbers::pi_v<float> / 4.0f,
-		.radius = 0.2f
-	};
-
-	uint32_t entity = registry_->GenerateEntity();
-	registry_->AddComponent(entity, field);
+	// 魔法陣エフェクトの初期化
+	magicCircleEffect_ = std::make_unique<MagicCircleEffect>(registry_.get(), indirectCommandManager_.get(), &cylinderGenerator, objectManager_.get());
+	magicCircleEffect_->Initialize();
 }
 
 void SampleScene::OnUpdate() {
@@ -146,7 +142,10 @@ void SampleScene::OnUpdate() {
 
 	// スラッシュリングエフェクトの更新
 	slashRingEffect_->Update();
-
+	
+	// 魔法陣エフェクトの更新
+	magicCircleEffect_->Update();
+	
 	// メインカメラの更新
 	mainCamera_->Update();
 }

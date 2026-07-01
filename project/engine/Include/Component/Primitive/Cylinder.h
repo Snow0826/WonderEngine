@@ -32,9 +32,10 @@ public:
 	/// @param topRadius 上面の半径
 	/// @param bottomRadius 下面の半径
 	/// @param height 高さ
+	/// @param cap キャップの有無
 	/// @param textureFileName テクスチャファイル名
 	/// @return 円柱
-	Cylinder CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height, const std::string &textureFileName);
+	Cylinder CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height, bool cap, const std::string &textureFileName);
 
 private:
 	MeshManager *meshManager_ = nullptr;		// メッシュマネージャー

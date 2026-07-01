@@ -46,9 +46,6 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 				meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
 				meshLODData_[handle].indirectCommand.matrixPalettehandle = skinClusterManager_->GetPaletteSRVHandle(model->skinClusterHandle);
 				meshLODData_[handle].indirectCommand.textureData.textureHandle = model->textureHandle[mesh.materialIndex];
-				registry_->ForEach<Skybox>([&](uint32_t skyboxEntity, Skybox *skybox) {
-					meshLODData_[handle].indirectCommand.textureData.environmentMapHandle = skybox->textureHandle;
-					}, exclude<Disabled>());
 				meshLODData_[handle].indirectCommand.textureData.enableMipMaps = model->enableMipMaps[mesh.materialIndex];
 				meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(meshLODData.handle);
 				meshLODData_[handle].indirectCommand.influenceBufferView = skinClusterManager_->GetInfluenceBufferView(model->skinClusterHandle);
@@ -69,9 +66,6 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 		meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.textureData.textureHandle = plane->textureHandle;
-		registry_->ForEach<Skybox>([&](uint32_t skyboxEntity, Skybox *skybox) {
-			meshLODData_[handle].indirectCommand.textureData.environmentMapHandle = skybox->textureHandle;
-			}, exclude<Disabled>());
 		meshLODData_[handle].indirectCommand.textureData.enableMipMaps = plane->enableMipMaps;
 		meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(plane->meshHandle);
 		meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(plane->meshHandle);
@@ -89,9 +83,6 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 		meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.textureData.textureHandle = box->textureHandle;
-		registry_->ForEach<Skybox>([&](uint32_t skyboxEntity, Skybox *skybox) {
-			meshLODData_[handle].indirectCommand.textureData.environmentMapHandle = skybox->textureHandle;
-			}, exclude<Disabled>());
 		meshLODData_[handle].indirectCommand.textureData.enableMipMaps = box->enableMipMaps;
 		meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(box->meshHandle);
 		meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(box->meshHandle);
@@ -109,9 +100,6 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 		meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.textureData.textureHandle = ring->textureHandle;
-		registry_->ForEach<Skybox>([&](uint32_t skyboxEntity, Skybox *skybox) {
-			meshLODData_[handle].indirectCommand.textureData.environmentMapHandle = skybox->textureHandle;
-			}, exclude<Disabled>());
 		meshLODData_[handle].indirectCommand.textureData.enableMipMaps = ring->enableMipMaps;
 		meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(ring->meshHandle);
 		meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(ring->meshHandle);
@@ -129,9 +117,6 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 		meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
 		meshLODData_[handle].indirectCommand.textureData.textureHandle = cylinder->textureHandle;
-		registry_->ForEach<Skybox>([&](uint32_t skyboxEntity, Skybox *skybox) {
-			meshLODData_[handle].indirectCommand.textureData.environmentMapHandle = skybox->textureHandle;
-			}, exclude<Disabled>());
 		meshLODData_[handle].indirectCommand.textureData.enableMipMaps = cylinder->enableMipMaps;
 		meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(cylinder->meshHandle);
 		meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(cylinder->meshHandle);

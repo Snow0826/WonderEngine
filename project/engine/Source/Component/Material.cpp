@@ -13,37 +13,41 @@ void MaterialInspector::Draw([[maybe_unused]] uint32_t entity) {
 		Material *material = registry_->GetComponent<Material>(entity);
 		if (material) {
 			if (ImGui::ColorEdit4("color", &material->color.x)) {
-				registry_->AddComponent<DirtyMaterial>(entity, DirtyMaterial{});
+				registry_->AddComponent(entity, DirtyMaterial{});
 			}
 
 			if (ImGui::Checkbox("enableLighting", reinterpret_cast<bool *>(&material->enableLighting))) {
-				registry_->AddComponent<DirtyMaterial>(entity, DirtyMaterial{});
+				registry_->AddComponent(entity, DirtyMaterial{});
+			}
+
+			if (ImGui::Checkbox("enableFlipV", reinterpret_cast<bool *>(&material->enableFlipV))) {
+				registry_->AddComponent(entity, DirtyMaterial{});
 			}
 
 			if (ImGui::TreeNode("UVTransformMatrix")) {
 				for (size_t i = 0; i < 4; i++) {
-					if (ImGui::DragFloat4(("Row " + std::to_string(i)).c_str(), &material->uvTransformMatrix.m[i][0], 0.001f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max())) {
-						registry_->AddComponent<DirtyMaterial>(entity, DirtyMaterial{});
+					if (ImGui::DragFloat4(("Row " + std::to_string(i)).c_str(), &material->uvTransformMatrix.m[i][0], 0.001f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max())) {
+						registry_->AddComponent(entity, DirtyMaterial{});
 					}
 				}
 				ImGui::TreePop();
 			}
 
 			if (ImGui::DragFloat("shininess", &material->shininess, 0.1f, 0.0f, std::numeric_limits<float>::max())) {
-				registry_->AddComponent<DirtyMaterial>(entity, DirtyMaterial{});
+				registry_->AddComponent(entity, DirtyMaterial{});
 			}
 
 			if (ImGui::ColorEdit3("specular", &material->specular.x)) {
-				registry_->AddComponent<DirtyMaterial>(entity, DirtyMaterial{});
+				registry_->AddComponent(entity, DirtyMaterial{});
 			}
 
 			if (ImGui::DragFloat("environmentCoefficient", &material->environmentCoefficient, 0.1f, 0.0f, std::numeric_limits<float>::max())) {
-				registry_->AddComponent<DirtyMaterial>(entity, DirtyMaterial{});
+				registry_->AddComponent(entity, DirtyMaterial{});
 			}
 
 			if (ImGui::Button("Reset")) {
 				*material = Material{};
-				registry_->AddComponent<DirtyMaterial>(entity, DirtyMaterial{});
+				registry_->AddComponent(entity, DirtyMaterial{});
 			}
 		}
 		ImGui::TreePop();

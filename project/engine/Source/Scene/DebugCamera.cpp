@@ -73,8 +73,8 @@ void DebugCamera::Reset() {
 void DebugCamera::Edit([[maybe_unused]] const std::string &label) {
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode(label.c_str())) {
-		ImGui::DragFloat3("TargetPosition", &targetPosition_.x, 0.1f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-		ImGui::DragFloat3("SphericalPosition", &sphericalPosition_.x, 0.1f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+		ImGui::DragFloat3("TargetPosition", &targetPosition_.x, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		ImGui::DragFloat3("SphericalPosition", &sphericalPosition_.x, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		ImGui::TreePop();
 	}
 #endif // USE_IMGUI

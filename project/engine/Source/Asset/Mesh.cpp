@@ -258,7 +258,7 @@ uint32_t MeshManager::CreateRing(uint32_t divide, float outerRadius, float inner
 	return meshHandle;
 }
 
-uint32_t MeshManager::CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height) {
+uint32_t MeshManager::CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height, bool cap) {
 	// 頂点データの生成
 	std::vector<VertexData> vertices;
 	const float radianPerDivide = std::numbers::pi_v<float> *2.0f / static_cast<float>(divide);
@@ -281,42 +281,48 @@ uint32_t MeshManager::CreateCylinder(uint32_t divide, float topRadius, float bot
 			});
 	}
 
-	// 円柱の上面の頂点データの生成
-	uint32_t topCenterIndex = static_cast<uint32_t>(vertices.size());
-	vertices.emplace_back(VertexData{
-		.position = { 0.0f, height, 0.0f, 1.0f },
-		.texcoord = { 0.5f, 0.5f },
-		.normal = { 0.0f, 1.0f, 0.0f }
-		});
-
-	uint32_t topBaseIndex = static_cast<uint32_t>(vertices.size());
-	for (uint32_t index = 0; index <= divide; ++index) {
-		float sin = std::sin(radianPerDivide * index);
-		float cos = std::cos(radianPerDivide * index);
+	uint32_t topCenterIndex = 0;
+	uint32_t topBaseIndex = 0;
+	uint32_t bottomCenterIndex = 0;
+	uint32_t bottomBaseIndex = 0;
+	if (cap) {
+		// 円柱の上面の頂点データの生成
+		topCenterIndex = static_cast<uint32_t>(vertices.size());
 		vertices.emplace_back(VertexData{
-			.position = { -sin * topRadius, height, cos * topRadius, 1.0f },
-			.texcoord = { -sin * 0.5f + 0.5f, -cos * 0.5f + 0.5f },
+			.position = { 0.0f, height, 0.0f, 1.0f },
+			.texcoord = { 0.5f, 0.5f },
 			.normal = { 0.0f, 1.0f, 0.0f }
 			});
-	}
 
-	// 円柱の下面の頂点データの生成
-	uint32_t bottomCenterIndex = static_cast<uint32_t>(vertices.size());
-	vertices.emplace_back(VertexData{
-		.position = { 0.0f, 0.0f, 0.0f, 1.0f },
-		.texcoord = { 0.5f, 0.5f },
-		.normal = { 0.0f, -1.0f, 0.0f }
-		});
+		topBaseIndex = static_cast<uint32_t>(vertices.size());
+		for (uint32_t index = 0; index <= divide; ++index) {
+			float sin = std::sin(radianPerDivide * index);
+			float cos = std::cos(radianPerDivide * index);
+			vertices.emplace_back(VertexData{
+				.position = { -sin * topRadius, height, cos * topRadius, 1.0f },
+				.texcoord = { -sin * 0.5f + 0.5f, -cos * 0.5f + 0.5f },
+				.normal = { 0.0f, 1.0f, 0.0f }
+				});
+		}
 
-	uint32_t bottomBaseIndex = static_cast<uint32_t>(vertices.size());
-	for (uint32_t index = 0; index <= divide; ++index) {
-		float sin = std::sin(radianPerDivide * index);
-		float cos = std::cos(radianPerDivide * index);
+		// 円柱の下面の頂点データの生成
+		bottomCenterIndex = static_cast<uint32_t>(vertices.size());
 		vertices.emplace_back(VertexData{
-			.position = { -sin * bottomRadius, 0.0f, cos * bottomRadius, 1.0f },
-			.texcoord = { -sin * 0.5f + 0.5f, cos * 0.5f + 0.5f },
+			.position = { 0.0f, 0.0f, 0.0f, 1.0f },
+			.texcoord = { 0.5f, 0.5f },
 			.normal = { 0.0f, -1.0f, 0.0f }
 			});
+
+		bottomBaseIndex = static_cast<uint32_t>(vertices.size());
+		for (uint32_t index = 0; index <= divide; ++index) {
+			float sin = std::sin(radianPerDivide * index);
+			float cos = std::cos(radianPerDivide * index);
+			vertices.emplace_back(VertexData{
+				.position = { -sin * bottomRadius, 0.0f, cos * bottomRadius, 1.0f },
+				.texcoord = { -sin * 0.5f + 0.5f, cos * 0.5f + 0.5f },
+				.normal = { 0.0f, -1.0f, 0.0f }
+				});
+		}
 	}
 
 	// インデックスデータの生成
@@ -335,18 +341,20 @@ uint32_t MeshManager::CreateCylinder(uint32_t divide, float topRadius, float bot
 		indices.emplace_back(baseVertex + 3);	// 次の下面の頂点
 	}
 
-	// 円柱の上面のインデックスデータの生成
-	for (uint32_t i = 0; i < divide; i++) {
-		indices.emplace_back(topCenterIndex);		// 上面の中心の頂点
-		indices.emplace_back(topBaseIndex + i);		// 上面の周囲の頂点
-		indices.emplace_back(topBaseIndex + i + 1);	// 上面の周囲の頂点
-	}
+	if (cap) {
+		// 円柱の上面のインデックスデータの生成
+		for (uint32_t i = 0; i < divide; i++) {
+			indices.emplace_back(topCenterIndex);		// 上面の中心の頂点
+			indices.emplace_back(topBaseIndex + i);		// 上面の周囲の頂点
+			indices.emplace_back(topBaseIndex + i + 1);	// 上面の周囲の頂点
+		}
 
-	// 円柱の下面のインデックスデータの生成
-	for (uint32_t i = 0; i < divide; i++) {
-		indices.emplace_back(bottomCenterIndex);		// 下面の中心の頂点
-		indices.emplace_back(bottomBaseIndex + i + 1);	// 下面の周囲の頂点
-		indices.emplace_back(bottomBaseIndex + i);		// 下面の周囲の頂点
+		// 円柱の下面のインデックスデータの生成
+		for (uint32_t i = 0; i < divide; i++) {
+			indices.emplace_back(bottomCenterIndex);		// 下面の中心の頂点
+			indices.emplace_back(bottomBaseIndex + i + 1);	// 下面の周囲の頂点
+			indices.emplace_back(bottomBaseIndex + i);		// 下面の周囲の頂点
+		}
 	}
 
 	// メッシュの生成

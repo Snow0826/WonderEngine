@@ -144,10 +144,10 @@ void RigidBodyInspector::Draw([[maybe_unused]] uint32_t entity) {
 	if (ImGui::TreeNode("RigidBody")) {
 		RigidBody *rigidBody = registry_->GetComponent<RigidBody>(entity);
 		if (rigidBody) {
-			ImGui::DragFloat3("Force", &rigidBody->force.x, 0.1f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("Velocity", &rigidBody->velocity.x, 0.1f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("AngularMomentum", &rigidBody->angularMomentum.x, 0.1f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("AngularVelocity", &rigidBody->angularVelocity.x, 0.1f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("Force", &rigidBody->force.x, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("Velocity", &rigidBody->velocity.x, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("AngularMomentum", &rigidBody->angularMomentum.x, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("AngularVelocity", &rigidBody->angularVelocity.x, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 			ImGui::DragFloat("Mass", &rigidBody->mass, 0.1f, 0.01f, std::numeric_limits<float>::max());
 			ImGui::DragFloat("Radius", &rigidBody->radius, 0.1f, 0.01f, std::numeric_limits<float>::max());
 

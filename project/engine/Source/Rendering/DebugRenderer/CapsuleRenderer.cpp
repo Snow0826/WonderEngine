@@ -21,8 +21,8 @@ void CapsuleInspector::Draw([[maybe_unused]] uint32_t entity) {
 	if (ImGui::TreeNode("Capsule")) {
 		Collision::Capsule *capsule = registry_->GetComponent<Collision::Capsule>(entity);
 		if (capsule) {
-			ImGui::DragFloat3("segment.origin", &capsule->segment.origin.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("segment.diff", &capsule->segment.diff.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("segment.origin", &capsule->segment.origin.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("segment.diff", &capsule->segment.diff.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 			ImGui::DragFloat("radius", &capsule->radius, 0.01f, 0.0f, std::numeric_limits<float>::max());
 		}
 		ImGui::TreePop();

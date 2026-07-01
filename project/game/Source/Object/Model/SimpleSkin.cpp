@@ -5,11 +5,12 @@
 #include "Object.h"
 #include "Material.h"
 #include "SkeletonRenderer.h"
+#include <numbers>
 
 void SimpleSkin::Create() {
 	uint32_t entity = registry_->GenerateEntity();
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
-	registry_->AddComponent(entity, QuaternionTransform{ .translate = {-5.0f, 0.0f, 5.0f} });
+	registry_->AddComponent(entity, QuaternionTransform{ .rotate = Quaternion::MakeRotateAxisAngleQuaternion({ 0.0f, 1.0f, 0.0f }, std::numbers::pi_v<float>), .translate = {-3.0f, 0.0f, 5.0f} });
 	registry_->AddComponent(entity, Relationship{});
 	registry_->AddComponent(entity, Material{});
 	registry_->AddComponent(entity, DirtyTransform{});

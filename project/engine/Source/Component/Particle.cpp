@@ -46,7 +46,7 @@ void ParticleManager::CreateParticleGroup(const std::string &name, MeshType mesh
 			particleGroup.meshHandle = meshManager_->CreateRing(32, 0.5f, 0.1f);
 			break;
 		case MeshType::kCylinder:
-			particleGroup.meshHandle = meshManager_->CreateCylinder(32, 1.0f, 1.0f, 3.0f);
+			particleGroup.meshHandle = meshManager_->CreateCylinder(32, 1.0f, 1.0f, 3.0f, false);
 			break;
 		case MeshType::kCountOfMeshType:
 			break;
@@ -201,13 +201,13 @@ void EmitterInspector::Draw([[maybe_unused]] uint32_t entity) {
 	if (ImGui::TreeNode("Emitter")) {
 		Emitter *emitter = registry_->GetComponent<Emitter>(entity);
 		if (emitter) {
-			ImGui::DragFloat3("Translate", &emitter->transform.translate.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("Translate", &emitter->transform.translate.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 			ImGui::SliderAngle("RotateX", &emitter->transform.rotate.x, -360.0f, 360.0f);
 			ImGui::SliderAngle("RotateY", &emitter->transform.rotate.y, -360.0f, 360.0f);
 			ImGui::SliderAngle("RotateZ", &emitter->transform.rotate.z, -360.0f, 360.0f);
 			ImGui::DragFloat3("Scale", &emitter->transform.scale.x, 0.01f, 0.0f, std::numeric_limits<float>::max());
-			ImGui::DragFloat3("AreaMin", &emitter->area.min.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("AreaMax", &emitter->area.max.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("AreaMin", &emitter->area.min.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("AreaMax", &emitter->area.max.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 			ImGui::DragFloat3("ScaleMin", &emitter->scale.min.x, 0.01f, 0.0f, std::numeric_limits<float>::max());
 			ImGui::DragFloat3("ScaleMax", &emitter->scale.max.x, 0.01f, 0.0f, std::numeric_limits<float>::max());
 			ImGui::SliderAngle("RotateMinX", &emitter->rotate.min.x, -360.0f, 360.0f);
@@ -216,8 +216,8 @@ void EmitterInspector::Draw([[maybe_unused]] uint32_t entity) {
 			ImGui::SliderAngle("RotateMaxX", &emitter->rotate.max.x, -360.0f, 360.0f);
 			ImGui::SliderAngle("RotateMaxY", &emitter->rotate.max.y, -360.0f, 360.0f);
 			ImGui::SliderAngle("RotateMaxZ", &emitter->rotate.max.z, -360.0f, 360.0f);
-			ImGui::DragFloat3("VelocityMin", &emitter->velocity.min.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("VelocityMax", &emitter->velocity.max.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("VelocityMin", &emitter->velocity.min.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("VelocityMax", &emitter->velocity.max.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 			ImGui::ColorEdit4("ColorMin", &emitter->color.min.x);
 			ImGui::ColorEdit4("ColorMax", &emitter->color.max.x);
 			ImGui::DragFloat("LifeTimeMin", &emitter->lifeTime.min, 0.01f, 0.0f, std::numeric_limits<float>::max());
@@ -235,10 +235,10 @@ void FieldInspector::Draw([[maybe_unused]] uint32_t entity) {
 	if (ImGui::TreeNode("Field")) {
 		Field *field = registry_->GetComponent<Field>(entity);
 		if (field) {
-			ImGui::DragFloat3("AreaMin", &field->area.min.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("AreaMax", &field->area.max.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("Acceleration", &field->acceleration.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-			ImGui::DragFloat("AngularVelocity", &field->angularVelocity, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("AreaMin", &field->area.min.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("AreaMax", &field->area.max.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("Acceleration", &field->acceleration.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			ImGui::DragFloat("AngularVelocity", &field->angularVelocity, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 			ImGui::DragFloat("Radius", &field->radius, 0.01f, 0.0f, std::numeric_limits<float>::max());
 		}
 		ImGui::TreePop();

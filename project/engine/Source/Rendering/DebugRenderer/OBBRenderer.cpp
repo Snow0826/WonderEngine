@@ -35,7 +35,7 @@ void OBBInspector::Draw([[maybe_unused]] uint32_t entity) {
 	if (ImGui::TreeNode("OBB")) {
 		Collision::OBB *obb = registry_->GetComponent<Collision::OBB>(entity);
 		if (obb) {
-			ImGui::DragFloat3("center", &obb->center.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("center", &obb->center.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 			ImGui::DragFloat3("size", &obb->size.x, 0.01f, 0.0f, std::numeric_limits<float>::max());
 		}
 

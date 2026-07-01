@@ -21,8 +21,8 @@ void AABBInspector::Draw([[maybe_unused]] uint32_t entity) {
 	if (ImGui::TreeNode("AABB")) {
 		Collision::AABB *aabb = registry_->GetComponent<Collision::AABB>(entity);
 		if (aabb) {
-			ImGui::DragFloat3("min", &aabb->min.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("max", &aabb->max.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("min", &aabb->min.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("max", &aabb->max.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		}
 		ImGui::TreePop();
 	}

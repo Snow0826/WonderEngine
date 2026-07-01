@@ -72,8 +72,9 @@ public:
 	/// @param topRadius 上面の半径
 	/// @param bottomRadius 下面の半径
 	/// @param height 高さ
+	/// @param cap キャップの有無
 	/// @return メッシュハンドル
-	uint32_t CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height);
+	uint32_t CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height, bool cap = true);
 
 	/// @brief 描画
 	/// @param meshHandle メッシュハンドル

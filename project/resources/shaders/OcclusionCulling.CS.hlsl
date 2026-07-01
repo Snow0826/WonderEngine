@@ -33,7 +33,6 @@ struct UVAABB
 struct TextureData
 {
     uint textureHandle;
-    uint environmentMapHandle;
     uint enableMipmaps;
 };
 

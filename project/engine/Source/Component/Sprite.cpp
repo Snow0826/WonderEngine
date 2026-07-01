@@ -79,7 +79,7 @@ void SpriteInspector::Draw([[maybe_unused]] uint32_t entity) {
 	if (ImGui::TreeNode("Sprite")) {
 		Sprite *sprite = registry_->GetComponent<Sprite>(entity);
 		if (sprite) {
-			ImGui::DragFloat2("Position", &sprite->spriteData.position.x, 0.1f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.1f");
+			ImGui::DragFloat2("Position", &sprite->spriteData.position.x, 0.1f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max(), "%.1f");
 			ImGui::DragFloat2("Size", &sprite->spriteData.size.x, 1.0f, 0.0f, std::numeric_limits<float>::max());
 			ImGui::SliderAngle("Rotation", &sprite->spriteData.rotation);
 			ImGui::DragFloat2("AnchorPoint", &sprite->spriteData.anchorPoint.x, 0.01f, -1.0f, 1.0f);

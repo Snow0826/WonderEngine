@@ -31,7 +31,6 @@ struct CullingMeshData final {
 /// @brief テクスチャデータ
 struct TextureData final {
 	uint32_t textureHandle = 0;			// テクスチャハンドル
-	uint32_t environmentMapHandle = 0;	// 環境マップハンドル
 	bool enableMipMaps = true;			// ミップマップ有効フラグ
 };
 

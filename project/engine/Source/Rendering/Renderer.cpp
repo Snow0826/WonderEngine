@@ -289,6 +289,19 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
 					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
 					.Create(device_->GetDevice(), ringObject3dRootSignature_);
+			} else if (static_cast<MeshType>(i) == MeshType::kCylinder) {
+				meshPipelineState_[i][j] = PipelineState()
+					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
+					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+					.SetBlendState(blendDescList[j])															// BlendState
+					.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
+					.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
+					.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
+					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
+					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+					.Create(device_->GetDevice(), skinningObject3dRootSignature_);
 			} else if (static_cast<MeshType>(i) == MeshType::kSkinned) {
 				meshPipelineState_[i][j] = PipelineState()
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// 頂点座標
@@ -327,18 +340,46 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// MeshParticle用パイプラインステートの生成
 	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
 		for (size_t j = 0; j < static_cast<size_t>(BlendMode::kCountOfBlendMode); j++) {
-			meshParticlePipelineState_[i][j] = PipelineState()
-				.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
-				.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
-				.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-				.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-				.SetBlendState(blendDescList[j])															// BlendState
-				.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
-				.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
-				.SetVertexShader(instance3dVSBlob->GetBufferPointer(), instance3dVSBlob->GetBufferSize())	// 頂点シェーダー
-				.SetPixelShader(instance3dPSBlob->GetBufferPointer(), instance3dPSBlob->GetBufferSize())	// ピクセルシェーダー
-				.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-				.Create(device_->GetDevice(), static_cast<MeshType>(i) == MeshType::kRing ? ringInstance3dRootSignature_ : instance3dRootSignature_);
+			if (static_cast<MeshType>(i) == MeshType::kRing) {
+				meshParticlePipelineState_[i][j] = PipelineState()
+					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
+					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+					.SetBlendState(blendDescList[j])															// BlendState
+					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
+					.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
+					.SetVertexShader(instance3dVSBlob->GetBufferPointer(), instance3dVSBlob->GetBufferSize())	// 頂点シェーダー
+					.SetPixelShader(instance3dPSBlob->GetBufferPointer(), instance3dPSBlob->GetBufferSize())	// ピクセルシェーダー
+					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+					.Create(device_->GetDevice(), ringInstance3dRootSignature_);
+			} else if (static_cast<MeshType>(i) == MeshType::kCylinder) {
+				meshParticlePipelineState_[i][j] = PipelineState()
+					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
+					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+					.SetBlendState(blendDescList[j])															// BlendState
+					.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
+					.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
+					.SetVertexShader(instance3dVSBlob->GetBufferPointer(), instance3dVSBlob->GetBufferSize())	// 頂点シェーダー
+					.SetPixelShader(instance3dPSBlob->GetBufferPointer(), instance3dPSBlob->GetBufferSize())	// ピクセルシェーダー
+					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+					.Create(device_->GetDevice(), instance3dRootSignature_);
+			} else {
+				meshParticlePipelineState_[i][j] = PipelineState()
+					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
+					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+					.SetBlendState(blendDescList[j])															// BlendState
+					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
+					.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
+					.SetVertexShader(instance3dVSBlob->GetBufferPointer(), instance3dVSBlob->GetBufferSize())	// 頂点シェーダー
+					.SetPixelShader(instance3dPSBlob->GetBufferPointer(), instance3dPSBlob->GetBufferSize())	// ピクセルシェーダー
+					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+					.Create(device_->GetDevice(), instance3dRootSignature_);
+			}
 			const std::string logMessage = "Create ParticlePipelineState : " + blendModeNames[j] + " " + meshTypeNames[i] + "\n";
 			Logger::Log(logStream, logMessage);
 			meshParticlePipelineState_[i][j]->SetName(ConvertString(blendModeNames[j] + "Blend" + meshTypeNames[i] + "ParticlePipelineState").c_str());
@@ -569,7 +610,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	argumentDescList[3].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
 	argumentDescList[3].Constant.RootParameterIndex = 6;
 	argumentDescList[3].Constant.DestOffsetIn32BitValues = 0;
-	argumentDescList[3].Constant.Num32BitValuesToSet = 3;
+	argumentDescList[3].Constant.Num32BitValuesToSet = 2;
 	argumentDescList[4].Type = D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
 	argumentDescList[4].VertexBuffer.Slot = 0;
 	argumentDescList[5].Type = D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
@@ -990,18 +1031,26 @@ void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
 		world_->GetConstantBuffer(ConstantBufferType::kDirectionalLight)->BindToGraphics(4, 0);
 		LightData lightData = {
 			.pointLightCount = static_cast<uint32_t>(registry_->GetComponentCount<PointLight>()),
-			.spotLightCount = static_cast<uint32_t>(registry_->GetComponentCount<SpotLight>()),
-			.pointLightHandle = world_->GetPointLightHandle(),
-			.spotLightHandle = world_->GetSpotLightHandle()
+			.spotLightCount = static_cast<uint32_t>(registry_->GetComponentCount<SpotLight>())
 		};
 
 		if (static_cast<MeshType>(i) == MeshType::kRing) {
-			commandList_->SetGraphicsRoot32BitConstants(6, 4, &lightData, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, 0);
+			commandList_->SetGraphicsRoot32BitConstants(6, 2, &lightData, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetPointLightHandle());
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetSpotLightHandle());
+			registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
+				gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, skybox->textureHandle);
+				}, exclude<Disabled>());
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, 0);
 		} else {
-			commandList_->SetGraphicsRoot32BitConstants(7, 4, &lightData, 0);
+			commandList_->SetGraphicsRoot32BitConstants(7, 2, &lightData, 0);
 			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, 0);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, world_->GetPointLightHandle());
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, world_->GetSpotLightHandle());
+			registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
+				gpuCbvSrvUavDescriptorHeap_->BindToGraphics(11, skybox->textureHandle);
+				}, exclude<Disabled>());
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(12, 0);
 		}
 
 		// ブレンドモードごとに描画
@@ -1079,15 +1128,6 @@ void Renderer::DrawSprite() {
 	// スプライトのビュープロジェクションのCBVを設定
 	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(1, 0);
 
-	// ライトの情報を設定
-	LightData lightData = {
-		.pointLightCount = static_cast<uint32_t>(registry_->GetComponentCount<PointLight>()),
-		.spotLightCount = static_cast<uint32_t>(registry_->GetComponentCount<SpotLight>()),
-		.pointLightHandle = world_->GetPointLightHandle(),
-		.spotLightHandle = world_->GetSpotLightHandle()
-	};
-	commandList_->SetGraphicsRoot32BitConstants(6, 4, &lightData, 0);
-
 	// Object3dのSRVを設定
 	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, 0);
 
@@ -1105,9 +1145,6 @@ void Renderer::DrawSprite() {
 					.textureHandle = sprite->textureHandle,
 					.enableMipMaps = sprite->enableMipMaps
 				};
-				registry_->ForEach<Skybox>([&](uint32_t skyEntity, Skybox *skybox) {
-					textureData.environmentMapHandle = skybox->textureHandle;
-					}, exclude<Disabled>());
 				commandList_->SetGraphicsRoot32BitConstants(5, 2, &textureData, 0);
 				meshManager_->Draw(sprite->meshHandle);
 			}

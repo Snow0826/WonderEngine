@@ -12,7 +12,7 @@ void SpotLightInspector::Draw([[maybe_unused]] uint32_t entity) {
 		SpotLight *spotLight = registry_->GetComponent<SpotLight>(entity);
 		if (spotLight) {
 			ImGui::ColorEdit4("color", &spotLight->color.x);
-			ImGui::DragFloat3("position", &spotLight->position.x, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max());
+			ImGui::DragFloat3("position", &spotLight->position.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 			ImGui::DragFloat("intensity", &spotLight->intensity, 0.01f, 0.0f, std::numeric_limits<float>::max());
 			ImGui::DragFloat3("direction", &spotLight->direction.x, 0.01f, -1.0f, 1.0f);
 			ImGui::DragFloat("distance", &spotLight->distance, 0.01f, 0.0f, std::numeric_limits<float>::max());

@@ -8,7 +8,8 @@ struct PixelShaderOutput
 struct Material
 {
     float4 color;
-    int enableLighting;
+    uint enableLighting;
+    uint enableFlipV;
     float4x4 uvTransform;
     float shininess;
     float3 specular;
@@ -34,7 +35,6 @@ ConstantBuffer<DirectionalLight> gDirectionalLight : register(b2);
 cbuffer TextureData : register(b3)
 {
     uint textureHandle;
-    uint environmentMapHandle;
     uint enableMipmaps;
 };
 
@@ -42,8 +42,6 @@ cbuffer LightData : register(b4)
 {
     uint gPointLightCount;
     uint gSpotLightCount;
-    uint gPointLightHandle;
-    uint gSpotLightHandle;
 };
 
 struct PointLight
@@ -67,10 +65,10 @@ struct SpotLight
     float cosFalloffStart;
 };
 
-Texture2D<float4> gTextures[] : register(t0, space0);
-TextureCube<float4> gEnvironmentMaps[] : register(t0, space1);
-StructuredBuffer<PointLight> gPointLights[] : register(t0, space2);
-StructuredBuffer<SpotLight> gSpotLights[] : register(t0, space3);
+StructuredBuffer<PointLight> gPointLight : register(t0);
+StructuredBuffer<SpotLight> gSpotLight : register(t1);
+TextureCube<float4> gEnvironmentMap : register(t2);
+Texture2D<float4> gTextures[] : register(t3);
 SamplerState gSampler : register(s0);
 SamplerState gSamplerMip0 : register(s1);
 
@@ -83,7 +81,12 @@ float3 ApplyLightCommon(float3 lightDirection, VertexShaderOutput input, float4 
 PixelShaderOutput main(VertexShaderOutput input)
 {
     PixelShaderOutput output;
-    float4 transformedUV = mul(float4(input.texcoord, 0.0f, 1.0f), gMaterial.uvTransform);
+    float2 texcoord = input.texcoord;
+    if (gMaterial.enableFlipV != 0)
+    {
+        texcoord.y = 1.0f - texcoord.y; // Flip the y-coordinate for texture sampling
+    }
+    float4 transformedUV = mul(float4(texcoord, 0.0f, 1.0f), gMaterial.uvTransform);
     float4 textureColor;
     if (enableMipmaps != 0)
     {
@@ -101,7 +104,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         
         for (uint i = 0; i < gPointLightCount; ++i)
         {
-            PointLight light = gPointLights[gPointLightHandle][i];
+            PointLight light = gPointLight[i];
             float3 direction = CalculateDirection(light.position, input.worldPosition);
             float attenuation = CalculateAttenuation(light.position, input.worldPosition, light.radius, light.decay);
             output.color.rgb += ApplyLightCommon(direction, input, textureColor) * light.color.rgb * light.intensity * attenuation;
@@ -109,7 +112,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         
         for (uint j = 0; j < gSpotLightCount; ++j)
         {
-            SpotLight light = gSpotLights[gSpotLightHandle][j];
+            SpotLight light = gSpotLight[j];
             float3 direction = CalculateDirection(light.position, input.worldPosition);
             float attenuation = CalculateAttenuation(light.position, input.worldPosition, light.distance, light.decay);
             float cosAngle = dot(direction, light.direction);
@@ -119,7 +122,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         
         float3 cameraToPosition = normalize(input.worldPosition - gCamera.worldPosition);
         float3 reflectedVector = reflect(cameraToPosition, normalize(input.normal));
-        float4 environmentColor = gEnvironmentMaps[environmentMapHandle].Sample(gSampler, reflectedVector);
+        float4 environmentColor = gEnvironmentMap.Sample(gSampler, reflectedVector);
         output.color.rgb += environmentColor.rgb * gMaterial.environmentCoefficient;
     }
     else

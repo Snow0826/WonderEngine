@@ -33,8 +33,6 @@ struct CullingConstantsData final {
 struct LightData final {
 	uint32_t pointLightCount = 0;	// 点光源の数
 	uint32_t spotLightCount = 0;	// スポットライトの数
-	uint32_t pointLightHandle = 0;	// 点光源のSRVハンドル
-	uint32_t spotLightHandle = 0;	// スポットライトのSRVハンドル
 };
 
 /// @brief グレースケールカラー

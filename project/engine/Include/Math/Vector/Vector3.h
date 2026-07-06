@@ -14,8 +14,10 @@ struct Vector3 final {
 			this->x * other.y - this->y * other.x
 		};
 	}
+
+	/// @brief 正規化されたベクトルを求める関数
+	/// @return 正規化されたベクトル
 	Vector3 normalized() const;
-	Vector3 normalized(const Vector3 &other) const;
 
 	/// @brief 垂直なベクトルを求める関数
 	/// @return 垂直なベクトル

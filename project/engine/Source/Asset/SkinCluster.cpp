@@ -69,7 +69,7 @@ uint32_t SkinClusterManager::CreateSkinCluster(const ModelData &modelData) {
 }
 
 void SkinClusterManager::Update() {
-	registry_->ForEach<Model>([this](uint32_t entity, Model *model) {
+	registry_->ForEach<Model, SkinMesh>([this](uint32_t entity, Model *model, SkinMesh *skinMesh) {
 		SkinCluster *skinCluster = skinClusters_[model->skinClusterHandle].get();
 		for (size_t jointIndex = 0; jointIndex < model->modelData.skeleton.joints.size(); ++jointIndex) {
 			assert(jointIndex < skinCluster->inverseBindPoseMatrices.size());

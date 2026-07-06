@@ -405,7 +405,7 @@ void GameScene::PopEnemy() {
 		.max = { 64.0f, 0.0f, 64.0f }
 	};
 	Vector3 spawnPosition = Random::generate(spawnArea.min, spawnArea.max);
-	spawnPosition += worldPosition + worldPosition.normalized(spawnPosition) * 100.0f;
+	spawnPosition += worldPosition + (spawnPosition - worldPosition).normalized() * 100.0f;
 	spawnPosition.x = Wrap(spawnPosition.x, -256.0f, 256.0f);
 	spawnPosition.z = Wrap(spawnPosition.z, -256.0f, 256.0f);
 	enemy->Initialize(spawnPosition);

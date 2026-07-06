@@ -30,17 +30,17 @@ void Window::Initialize() {
 
 	// ウィンドウの作成
 	hwnd_ = CreateWindow(
-		wndclass_.lpszClassName,		// ウィンドウクラス名
-		L"LE3A_05_クラタ_ユウキ_染め戦",	// タイトルバーの文字列
-		WS_OVERLAPPEDWINDOW,			// ウィンドウスタイル
-		CW_USEDEFAULT,					// ウィンドウのX座標
-		CW_USEDEFAULT,					// ウィンドウのY座標
-		wrc.right - wrc.left,			// ウィンドウの幅
-		wrc.bottom - wrc.top,			// ウィンドウの高さ
-		nullptr,						// 親ウィンドウハンドル
-		nullptr,						// メニューハンドル
-		wndclass_.hInstance,			// インスタンスハンドル
-		nullptr);						// その他のパラメータ
+		wndclass_.lpszClassName,				// ウィンドウクラス名
+		L"LE3A_05_クラタ_ユウキ_TreeGenerator",	// タイトルバーの文字列
+		WS_OVERLAPPEDWINDOW,					// ウィンドウスタイル
+		CW_USEDEFAULT,							// ウィンドウのX座標
+		CW_USEDEFAULT,							// ウィンドウのY座標
+		wrc.right - wrc.left,					// ウィンドウの幅
+		wrc.bottom - wrc.top,					// ウィンドウの高さ
+		nullptr,								// 親ウィンドウハンドル
+		nullptr,								// メニューハンドル
+		wndclass_.hInstance,					// インスタンスハンドル
+		nullptr);								// その他のパラメータ
 
 	// ウィンドウを表示
 	ShowWindow(hwnd_, SW_SHOW);

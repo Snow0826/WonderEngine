@@ -61,16 +61,9 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	// モデルの読み込み
 	modelManager_ = std::make_unique<ModelManager>(textureManager_.get(), meshManager_.get(), skinClusterManager_.get(), logStream_);
 	modelManager_->LoadModel("AnimatedCube.gltf");
-	modelManager_->LoadModel("simpleSkin.gltf");
-	modelManager_->LoadModel("walk.gltf");
-	modelManager_->LoadModel("sneakWalk.gltf");
 
 	// パーティクルグループの作成
 	particleManager_ = std::make_unique<ParticleManager>(device_, textureManager_.get(), meshManager_.get(), logStream_);
-	particleManager_->CreateParticleGroup("hitEffect", MeshType::kPlane, "circle2.png");
-	particleManager_->CreateParticleGroup("slashEffect", MeshType::kPlane, "circle2.png");
-	particleManager_->CreateParticleGroup("hitRingEffect", MeshType::kRing, "gradationLine.png");
-	particleManager_->CreateParticleGroup("slashRingEffect", MeshType::kRing, "gradationLine.png");
 
 	// 現在のシーンの初期化
 	currentScene_ = new SampleScene;

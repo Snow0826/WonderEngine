@@ -9,7 +9,7 @@
 
 void TransformSystem::Update() {
 	registry_->ForEach<Relationship>([&](uint32_t entity, Relationship *relationship) {
-		if (relationship->parent == UINT_MAX) {
+		if (relationship->parent == std::numeric_limits<uint32_t>::max()) {
 			UpdateWorldMatrix(entity, MakeIdentity4x4());
 		}
 		}, exclude<Disabled>());

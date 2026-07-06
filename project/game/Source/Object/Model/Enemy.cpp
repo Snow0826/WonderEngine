@@ -43,7 +43,9 @@ void Enemy::Update() {
 	}
 
 	TransformSystem transformSystem{ registry_ };
-	Vector3 toPlayer = transformSystem.GetWorldPosition(enemyEntity_).normalized(transformSystem.GetWorldPosition(playerEntity_));
+	Vector3 playerPosition = transformSystem.GetWorldPosition(playerEntity_);
+	Vector3 enemyPosition = transformSystem.GetWorldPosition(enemyEntity_);
+	Vector3 toPlayer = (playerPosition - enemyPosition).normalized();
 
 	RigidBody *rigidBody = registry_->GetComponent<RigidBody>(enemyEntity_);
 	if (rigidBody) {

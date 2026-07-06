@@ -13,6 +13,7 @@ struct Leaf final {
 struct Branch final {
 	Vector3 position;				// 位置
 	Vector3 direction;				// 方向
+	float radius = 0.0f;			// 半径
 	Branch* parent = nullptr;		// 親の枝
 	std::vector<Branch*> children;	// 子の枝
 	Vector3 growDirection;			// 成長方向
@@ -83,4 +84,17 @@ private:
 
 	/// @brief 葉を削除する
 	void RemoveLeaves();
+
+	/// @brief 枝の半径を計算する
+	/// @param branch 枝
+	/// @return 枝の半径
+	float CalculateRadius(Branch *branch);
+
+	/// @brief 枝を再帰的に作成する
+	/// @param branch 枝
+	/// @param parentEntity 親のエンティティID
+	/// @param parentWorldRotation 親のワールド回転
+	/// @param branchLength 枝の長さ
+	/// @return 作成された枝のエンティティID
+	uint32_t CreateBranchRecursive(Branch *branch, uint32_t parentEntity, const Quaternion &parentWorldRotation, float branchLength);
 };

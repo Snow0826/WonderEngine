@@ -164,7 +164,7 @@ Vector3 ClosestPoint(const Collision::Sphere &sphere1, const Collision::Sphere &
 
 Vector3 Normal(const Vector3 &point, const Collision::AABB &aabb) {
 	Vector3 closestPoint = ClosestPoint(point, aabb);
-	Vector3 normal = closestPoint.normalized(point);
+	Vector3 normal = (point - closestPoint).normalized();
 	if (normal.isZero()) {
 		Vector3 center = (aabb.min + aabb.max) * 0.5f;
 		Vector3 toMin = point - aabb.min;

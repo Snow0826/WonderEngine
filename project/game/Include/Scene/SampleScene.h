@@ -2,11 +2,7 @@
 #include "BaseScene.h"
 #include <vector>
 
-class HitEffect;
-class SlashEffect;
-class HitRingEffect;
-class SlashRingEffect;
-class MagicCircleEffect;
+class AnimatedCube;
 
 /// @brief サンプルシーン
 class SampleScene : public BaseScene {
@@ -24,11 +20,7 @@ public:
 	void OnUpdate() override;
 
 private:
-	std::unique_ptr<HitEffect> hitEffect_ = nullptr;					// ヒットエフェクト
-	std::unique_ptr<SlashEffect> slashEffect_ = nullptr;				// スラッシュエフェクト
-	std::unique_ptr<HitRingEffect> hitRingEffect_ = nullptr;			// ヒットリングエフェクト
-	std::unique_ptr<SlashRingEffect> slashRingEffect_ = nullptr;		// スラッシュリングエフェクト
-	std::unique_ptr<MagicCircleEffect> magicCircleEffect_ = nullptr;	// 魔法陣エフェクト
-	std::unique_ptr<DebugCamera> mainCamera_ = nullptr;					// メインカメラ
-	std::vector<uint32_t> treeEntities_;								// 木のエンティティIDのリスト
+	std::unique_ptr<AnimatedCube> animatedCube_;	// アニメーションするキューブ
+	std::unique_ptr<DebugCamera> mainCamera_;	// メインカメラ
+	std::vector<uint32_t> treeEntities_;		// 木のエンティティIDのリスト
 };

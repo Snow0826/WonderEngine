@@ -11,14 +11,6 @@ Vector3 Vector3::normalized() const {
 	return *this / len;
 }
 
-Vector3 Vector3::normalized(const Vector3 &other) const {
-	float distance = distanceFrom(other);
-	if (distance == 0.0f) {
-		return Vector3{};
-	}
-	return (other - *this) / distance;
-}
-
 Vector3 Vector3::perpendicular() const {
 	if (x != 0.0f || y != 0.0f) {
 		return { -y, x, 0.0f };

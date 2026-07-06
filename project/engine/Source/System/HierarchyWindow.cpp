@@ -16,7 +16,7 @@ void HierarchyWindow::Draw() {
 	if (ImGui::Begin("Hierarchy", &isOpen_)) {
 		for (uint32_t e = 0; e < registry_->GetEntityCount(); ++e) {
 			auto relationship = registry_->GetComponent<Relationship>(e);
-			if (relationship && relationship->parent == UINT_MAX) {
+			if (relationship && relationship->parent == std::numeric_limits<uint32_t>::max()) {
 				DrawEntity(e);
 			}
 		}

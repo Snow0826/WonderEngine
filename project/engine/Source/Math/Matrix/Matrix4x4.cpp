@@ -352,7 +352,7 @@ Matrix4x4 DirectionToDirection(const Vector3 &from, const Vector3 &to) {
 }
 
 Matrix4x4 LookAt(const Vector3 &eye, const Vector3 &target, const Vector3 &up) {
-	Vector3 zAxis = eye.normalized(target);
+	Vector3 zAxis = (target - eye).normalized();
 	Vector3 xAxis = up.cross(zAxis).normalized();
 	Vector3 yAxis = zAxis.cross(xAxis).normalized();
 	Matrix4x4 result = MakeIdentity4x4();

@@ -42,13 +42,15 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 			for (const MeshLODData &meshLODData : mesh.lods) {
 				uint32_t handle = static_cast<uint32_t>(entities_.size());
 				entities_.emplace_back(entity);
+				if (registry_->HasComponent<SkinMesh>(entity)) {
+					meshLODData_[handle].indirectCommand.matrixPalettehandle = skinClusterManager_->GetPaletteSRVHandle(model->skinClusterHandle);
+					meshLODData_[handle].indirectCommand.influenceBufferView = skinClusterManager_->GetInfluenceBufferView(model->skinClusterHandle);
+				}
 				meshLODData_[handle].indirectCommand.cbv[0] = world_->GetConstantBuffer(ConstantBufferType::kTransform)->GetGPUVirtualAddress(object->handle);
 				meshLODData_[handle].indirectCommand.cbv[1] = world_->GetConstantBuffer(ConstantBufferType::kMaterial)->GetGPUVirtualAddress(object->handle);
-				meshLODData_[handle].indirectCommand.matrixPalettehandle = skinClusterManager_->GetPaletteSRVHandle(model->skinClusterHandle);
 				meshLODData_[handle].indirectCommand.textureData.textureHandle = model->textureHandle[mesh.materialIndex];
 				meshLODData_[handle].indirectCommand.textureData.enableMipMaps = model->enableMipMaps[mesh.materialIndex];
 				meshLODData_[handle].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(meshLODData.handle);
-				meshLODData_[handle].indirectCommand.influenceBufferView = skinClusterManager_->GetInfluenceBufferView(model->skinClusterHandle);
 				meshLODData_[handle].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(meshLODData.handle);
 				meshLODData_[handle].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(meshLODData.handle);
 				meshLODData_[handle].indirectCommand.drawIndexedArguments.InstanceCount = 1;
@@ -133,30 +135,33 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 
 void IndirectCommandManager::RemoveIndirectCommand(uint32_t entity) {
 	IndirectCommandHandle *indirectCommandHandle = registry_->GetComponent<IndirectCommandHandle>(entity);
-	IndirectCommandHandle *lastIndirectCommandHandle = registry_->GetComponent<IndirectCommandHandle>(entities_.back());
-	if (!indirectCommandHandle || !lastIndirectCommandHandle) {
+	if (!indirectCommandHandle) {
 		return;
 	}
-	uint32_t lastIndex = static_cast<uint32_t>(entities_.size() - 1);
-	for (uint32_t removeIndex : indirectCommandHandle->handles) {
+
+	while (!indirectCommandHandle->handles.empty()) {
+		uint32_t removeIndex = indirectCommandHandle->handles.back();
+		indirectCommandHandle->handles.pop_back();
+
+		uint32_t lastIndex = static_cast<uint32_t>(entities_.size() - 1);
 		if (removeIndex != lastIndex) {
-			// 最後尾のコマンドと入れ替える
+			uint32_t movedEntity = entities_[lastIndex];
 			cullingObjectData_[removeIndex] = cullingObjectData_[lastIndex];
 			cullingMeshData_[removeIndex] = cullingMeshData_[lastIndex];
 			meshLODData_[removeIndex] = meshLODData_[lastIndex];
-			entities_[removeIndex] = entities_.back();
-
-			// 入れ替えた間接コマンドのハンドルを更新する
-			for (uint32_t &swappedIndex : lastIndirectCommandHandle->handles) {
-				if (swappedIndex == lastIndex) {
-					swappedIndex = removeIndex;
-					break;
+			entities_[removeIndex] = movedEntity;
+			if (auto *movedHandle = registry_->GetComponent<IndirectCommandHandle>(movedEntity)) {
+				for (uint32_t &index : movedHandle->handles) {
+					if (index == lastIndex) {
+						index = removeIndex;
+						break;
+					}
 				}
 			}
 		}
+
 		entities_.pop_back();
 	}
-	indirectCommandHandle->handles.clear();
 }
 
 void IndirectCommandManager::UpdateCullingData() {

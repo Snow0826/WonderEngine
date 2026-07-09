@@ -30,6 +30,7 @@ void Ground::Create(Registry *registry, IndirectCommandManager *indirectCommandM
 
 	// 地面の追加
 	uint32_t entity = registry->GenerateEntity();
+	registry->AddComponent(entity, MeshType::kModel);
 	registry->AddComponent(entity, BlendMode::kBlendModeNormal);
 	registry->AddComponent(entity, EulerTransform{});
 	registry->AddComponent(entity, Material{ .environmentCoefficient = 0.0f });

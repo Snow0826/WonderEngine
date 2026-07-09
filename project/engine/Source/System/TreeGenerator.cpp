@@ -2,7 +2,7 @@
 #include "TreeGenerator.h"
 #include "EntityComponentSystem.h"
 #include "IndirectCommand.h"
-#include "Cylinder.h"
+#include "Primitive.h"
 #include "Object.h"
 #include "Transform.h"
 #include "Material.h"
@@ -150,13 +150,14 @@ uint32_t TreeGenerator::CreateBranchRecursive(Branch *branch, uint32_t parentEnt
 	//-----------------------------------
 
 	uint32_t currentEntity = registry_->GenerateEntity();
+	registry_->AddComponent(currentEntity, MeshType::kCylinder);
 	registry_->AddComponent(currentEntity, BlendMode::kBlendModeNone);
 	registry_->AddComponent(currentEntity, QuaternionTransform{ .rotate = localRotation, .translate = localPosition });
 	registry_->AddComponent(currentEntity, Material{ .environmentCoefficient = 0.0f });
 	registry_->AddComponent(currentEntity, DirtyTransform{});
 	registry_->AddComponent(currentEntity, DirtyMaterial{});
 	registry_->AddComponent(currentEntity, objectManager_->CreateObject(currentEntity));
-	registry_->AddComponent(currentEntity, cylinderGenerator_->CreateCylinder(32, branch->radius, bottomRadius, branchLength, true, "Bark001_1K-JPG_Color.jpg"));
+	registry_->AddComponent(currentEntity, primitiveGenerator_->CreateCylinder(32, branch->radius, bottomRadius, branchLength, true, "Bark001_1K-JPG_Color.jpg"));
 	registry_->AddComponent(currentEntity, UseCulling{});
 	registry_->AddComponent(currentEntity, indirectCommandManager_->AddIndirectCommand(currentEntity));
 

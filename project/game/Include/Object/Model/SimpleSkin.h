@@ -4,6 +4,7 @@ class Registry;
 class IndirectCommandManager;
 class ModelManager;
 class ObjectManager;
+struct Vector3;
 
 class SimpleSkin {
 public:
@@ -20,7 +21,8 @@ public:
 	}
 
 	/// @brief シンプルスキンの作成
-	void Create();
+	/// @param position 位置
+	void Create(const Vector3 &position);
 
 private:
 	Registry *registry_ = nullptr;								// レジストリ

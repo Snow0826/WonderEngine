@@ -1,4 +1,4 @@
-static const uint kMaxMeshType = 6; // Number of mesh types (Model, Plane, Box, Ring, Cylinder, Skinned)
+static const uint kMaxMeshType = 5; // Number of mesh types (Model, Plane, Box, Ring, Cylinder)
 static const uint kMaxBlendMode = 6; // Number of blend modes (None, Normal, Additive, Subtractive, Multiplicative, Screen)
 
 struct Object
@@ -36,11 +36,6 @@ struct TextureData
     uint enableMipmaps;
 };
 
-struct MatrixPaletteData
-{
-    uint handle;
-};
-
 struct VertexBufferView
 {
     uint2 bufferLocation;
@@ -68,9 +63,7 @@ struct IndirectCommand
 {
     uint2 cbvAddress[2];
     TextureData textureData;
-    MatrixPaletteData matrixPaletteData;
     VertexBufferView vertexBufferView;
-    VertexBufferView influenceBufferView;
     IndexBufferView indexBufferView;
     DrawIndexedArguments drawIndexedArguments;
 };

@@ -4,6 +4,7 @@
 #include "Resource.h"
 #include "PipelineState.h"
 #include "Texture.h"
+#include "SkinCluster.h"
 #include "Object.h"
 #include "Model.h"
 #include "Sprite.h"
@@ -34,7 +35,6 @@ namespace {
 		"Box",
 		"Ring",
 		"Cylinder",
-		"Skinned"
 	};
 
 	// ブレンドモード名リスト
@@ -58,7 +58,6 @@ Renderer::Renderer(Device *device)
 	, commandList_(device->GetCommandList())
 	, object3dRootSignature_(device->GetObject3dRootSignature())
 	, ringObject3dRootSignature_(device->GetRingObject3dRootSignature())
-	, skinningObject3dRootSignature_(device->GetSkinningObject3dRootSignature())
 	, instance3dRootSignature_(device->GetInstance3dRootSignature())
 	, ringInstance3dRootSignature_(device->GetRingInstance3dRootSignature())
 	, lineRootSignature_(device->GetLineRootSignature())
@@ -73,6 +72,7 @@ Renderer::Renderer(Device *device)
 	, radialBlurRootSignature_(device->GetRadialBlurRootSignature())
 	, dissolveRootSignature_(device->GetDissolveRootSignature())
 	, noiseRootSignature_(device->GetNoiseRootSignature())
+	, skinningRootSignature_(device->GetSkinningRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
@@ -189,10 +189,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> object3dPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Object3d.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(object3dPSBlob);
 
-	// SkinningObject3dのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> skinningObject3dVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/SkinningObject3d.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(skinningObject3dVSBlob);
-
 	// Particleのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> instance3dVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Instance3d.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(instance3dVSBlob);
@@ -248,10 +244,14 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// Dissolveのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> dissolvePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Dissolve.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(dissolvePSBlob);
-	
+
 	// Noiseのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> noisePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Noise.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(noisePSBlob);
+
+	// スキニングのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> skinningCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Skinning.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(skinningCSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -301,22 +301,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
 					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
 					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-					.Create(device_->GetDevice(), skinningObject3dRootSignature_);
-			} else if (static_cast<MeshType>(i) == MeshType::kSkinned) {
-				meshPipelineState_[i][j] = PipelineState()
-					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// 頂点座標
-					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)						// テクスチャ座標
-					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)					// 法線ベクトル
-					.AddInput("WEIGHT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D12_APPEND_ALIGNED_ELEMENT)					// 重み
-					.AddInput("INDEX", 0, DXGI_FORMAT_R32G32B32A32_SINT, 1, D3D12_APPEND_ALIGNED_ELEMENT)					// インデックス
-					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)													// RTVのフォーマット
-					.SetBlendState(blendDescList[j])																		// BlendState
-					.SetRasterizer(backCullingRasterizerDesc)																// RasterizerState
-					.SetDepthState(writeLessEqualDepthStencilDesc)															// DepthStencilState
-					.SetVertexShader(skinningObject3dVSBlob->GetBufferPointer(), skinningObject3dVSBlob->GetBufferSize())	// 頂点シェーダー
-					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())					// ピクセルシェーダー
-					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)										// プリミティブトポロジー
-					.Create(device_->GetDevice(), skinningObject3dRootSignature_);
+					.Create(device_->GetDevice(), object3dRootSignature_);
 			} else {
 				meshPipelineState_[i][j] = PipelineState()
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
@@ -329,7 +314,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
 					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
 					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-					.Create(device_->GetDevice(), skinningObject3dRootSignature_);
+					.Create(device_->GetDevice(), object3dRootSignature_);
 			}
 			const std::string logMessage = "Create MeshPipelineState : " + blendModeNames[j] + " " + meshTypeNames[i] + "\n";
 			Logger::Log(logStream, logMessage);
@@ -562,6 +547,13 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create NoisePipelineState\n");
 	noisePipelineState_->SetName(L"NoisePipelineState");
 
+	// スキニング用パイプラインステートの生成
+	skinningPipelineState_ = PipelineState()
+		.SetComputeShader(skinningCSBlob->GetBufferPointer(), skinningCSBlob->GetBufferSize())	// コンピュートシェーダー
+		.Create(device_->GetDevice(), skinningRootSignature_);
+	Logger::Log(logStream, "Create SkinningPipelineState\n");
+	skinningPipelineState_->SetName(L"SkinningPipelineState");
+
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
 		.SetComputeShader(depthStencilCopyCSBlob->GetBufferPointer(), depthStencilCopyCSBlob->GetBufferSize())	// コンピュートシェーダー
@@ -598,7 +590,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	footprintMapPipelineState_->SetName(L"FootprintMapPipelineState");
 
 	// コマンドシグネチャの引数設定
-	D3D12_INDIRECT_ARGUMENT_DESC argumentDescList[8] = {};
+	D3D12_INDIRECT_ARGUMENT_DESC argumentDescList[6] = {};
 	argumentDescList[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW;
 	argumentDescList[0].ConstantBufferView.RootParameterIndex = 0;
 	argumentDescList[1].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW;
@@ -606,17 +598,11 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	argumentDescList[2].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
 	argumentDescList[2].Constant.RootParameterIndex = 5;
 	argumentDescList[2].Constant.DestOffsetIn32BitValues = 0;
-	argumentDescList[2].Constant.Num32BitValuesToSet = 1;
-	argumentDescList[3].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
-	argumentDescList[3].Constant.RootParameterIndex = 6;
-	argumentDescList[3].Constant.DestOffsetIn32BitValues = 0;
-	argumentDescList[3].Constant.Num32BitValuesToSet = 2;
-	argumentDescList[4].Type = D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
-	argumentDescList[4].VertexBuffer.Slot = 0;
-	argumentDescList[5].Type = D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
-	argumentDescList[5].VertexBuffer.Slot = 1;
-	argumentDescList[6].Type = D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW;
-	argumentDescList[7].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+	argumentDescList[2].Constant.Num32BitValuesToSet = 2;
+	argumentDescList[3].Type = D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
+	argumentDescList[3].VertexBuffer.Slot = 0;
+	argumentDescList[4].Type = D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW;
+	argumentDescList[5].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
 
 	// コマンドシグネチャの設定
 	D3D12_COMMAND_SIGNATURE_DESC commandSignatureDesc = {};
@@ -629,13 +615,16 @@ void Renderer::Initialize(std::ofstream &logStream) {
 		if (static_cast<MeshType>(i) == MeshType::kRing) {
 			hr = device_->GetDevice()->CreateCommandSignature(&commandSignatureDesc, ringObject3dRootSignature_, IID_PPV_ARGS(&meshCommandSignature_[i]));
 		} else {
-			hr = device_->GetDevice()->CreateCommandSignature(&commandSignatureDesc, skinningObject3dRootSignature_, IID_PPV_ARGS(&meshCommandSignature_[i]));
+			hr = device_->GetDevice()->CreateCommandSignature(&commandSignatureDesc, object3dRootSignature_, IID_PPV_ARGS(&meshCommandSignature_[i]));
 		}
 		assert(SUCCEEDED(hr));
 	}
 }
 
 void Renderer::Render() {
+	// スキニングの実行
+	Skinning();
+
 	// オクルージョンカリングの実行
 	CopyDepthToHiZ();
 	GenerateHiZMipMap();
@@ -699,9 +688,29 @@ void Renderer::SetTextureManager(TextureManager *textureManager) {
 	textureManager_ = textureManager;
 }
 
+void Renderer::SetSkinClusterManager(SkinClusterManager *skinClusterManager) {
+	assert(skinClusterManager);
+	skinClusterManager_ = skinClusterManager;
+}
+
 void Renderer::SetFootprintManager(FootprintManager *footprintManager) {
 	assert(footprintManager);
 	footprintManager_ = footprintManager;
+}
+
+void Renderer::Skinning() {
+	commandList_->SetComputeRootSignature(skinningRootSignature_);
+	commandList_->SetPipelineState(skinningPipelineState_.Get());
+
+	registry_->ForEach<Model, SkinMesh>([&](uint32_t entity, Model *model, SkinMesh *skinMesh) {
+		size_t vertexCount = model->modelData.meshes.back().lods.back().vertices.size();
+		commandList_->SetComputeRoot32BitConstants(0, 1, &vertexCount, 0);
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, skinClusterManager_->GetPaletteSRVHandle(model->skinClusterHandle));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, skinClusterManager_->GetVertexSRVHandle(model->skinClusterHandle));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, skinClusterManager_->GetInfluenceSRVHandle(model->skinClusterHandle));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, skinClusterManager_->GetVertexUAVHandle(model->skinClusterHandle));
+		commandList_->Dispatch((static_cast<uint32_t>(vertexCount) + 1023) / 1024, 1, 1);
+		}, exclude<Disabled>());
 }
 
 void Renderer::CopyDepthToHiZ() {
@@ -778,9 +787,9 @@ void Renderer::OcclusionCulling() {
 	commandList_->SetComputeRoot32BitConstants(3, sizeof(CullingConstantsData) / sizeof(uint32_t), &cullingConstantsData, 0);
 
 	// 各種バッファのSRV/UAVを設定
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetCullingObjectHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetCullingMeshHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetMeshLODHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetStructuredBufferHandle(StructuredBufferType::kCullingObjectData));
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetStructuredBufferHandle(StructuredBufferType::kCullingMeshData));
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetStructuredBufferHandle(StructuredBufferType::kMeshLOD));
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetHiZTextureSRVHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetProcessedCommandHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetCommandCounterHandle());
@@ -822,7 +831,7 @@ void Renderer::Footprint() {
 	commandList_->SetPipelineState(footprintPipelineState_.Get());
 
 	// 各種バッファのSRV/UAVを設定
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetFootprintHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetStructuredBufferHandle(StructuredBufferType::kFootprint));
 	uint32_t groupsZ = footprintManager_->GetCurrentIndex();
 	footprintManager_->RemoveOnceFootprint();
 
@@ -1010,7 +1019,6 @@ void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
 		PIX_COLOR(255, 0, 255),	// MeshType::kBox
 		PIX_COLOR(0, 255, 0),	// MeshType::kRing
 		PIX_COLOR(0, 255, 255),	// MeshType::kCylinder
-		PIX_COLOR(0, 0, 255)	// MeshType::kSkinned
 	};
 
 	// メッシュタイプごとに描画
@@ -1019,10 +1027,8 @@ void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
 		PIXBeginEvent(commandList_, pixColor[i], ConvertString(label).c_str());
 		if (static_cast<MeshType>(i) == MeshType::kRing) {
 			commandList_->SetGraphicsRootSignature(ringObject3dRootSignature_);
-		} else if (static_cast<MeshType>(i) == MeshType::kSkinned) {
-			commandList_->SetGraphicsRootSignature(skinningObject3dRootSignature_);
 		} else {
-			commandList_->SetGraphicsRootSignature(skinningObject3dRootSignature_);
+			commandList_->SetGraphicsRootSignature(object3dRootSignature_);
 		}
 
 		// メッシュの共通のCBV・SRVを設定
@@ -1033,25 +1039,13 @@ void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
 			.pointLightCount = static_cast<uint32_t>(registry_->GetComponentCount<PointLight>()),
 			.spotLightCount = static_cast<uint32_t>(registry_->GetComponentCount<SpotLight>())
 		};
-
-		if (static_cast<MeshType>(i) == MeshType::kRing) {
-			commandList_->SetGraphicsRoot32BitConstants(6, 2, &lightData, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetPointLightHandle());
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetSpotLightHandle());
-			registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
-				gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, skybox->textureHandle);
-				}, exclude<Disabled>());
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, 0);
-		} else {
-			commandList_->SetGraphicsRoot32BitConstants(7, 2, &lightData, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, world_->GetPointLightHandle());
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, world_->GetSpotLightHandle());
-			registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
-				gpuCbvSrvUavDescriptorHeap_->BindToGraphics(11, skybox->textureHandle);
-				}, exclude<Disabled>());
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(12, 0);
-		}
+		commandList_->SetGraphicsRoot32BitConstants(6, 2, &lightData, 0);
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetStructuredBufferHandle(StructuredBufferType::kPointLight));
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetStructuredBufferHandle(StructuredBufferType::kSpotLight));
+		registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, skybox->textureHandle);
+			}, exclude<Disabled>());
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, 0);
 
 		// ブレンドモードごとに描画
 		for (uint32_t j = 0; j < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); j++) {
@@ -1266,7 +1260,7 @@ void Renderer::DrawLine(uint32_t cameraBufferLocationIndex) {
 	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(0, cameraBufferLocationIndex);
 
 	// ラインのSRVを設定
-	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetLineHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetStructuredBufferHandle(StructuredBufferType::kLine));
 
 	// ラインの描画
 	uint32_t instanceCount = debugRenderer_->GetLineCount();

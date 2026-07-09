@@ -98,14 +98,10 @@
     <ClCompile Include="game\Source\Object\Model\Title.cpp" />
     <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
-    <ClCompile Include="engine\Source\Component\Primitive\Cylinder.cpp" />
     <ClCompile Include="engine\Source\System\TreeGenerator.cpp" />
     <ClCompile Include="game\Source\Object\Effect\Particle\HitEffect.cpp" />
     <ClCompile Include="game\Source\Object\Effect\Particle\SlashEffect.cpp" />
     <ClCompile Include="game\Source\Object\Model\AnimatedCube.cpp" />
-    <ClCompile Include="engine\Source\Component\Primitive\Ring.cpp" />
-    <ClCompile Include="engine\Source\Component\Primitive\Box.cpp" />
-    <ClCompile Include="engine\Source\Component\Primitive\Plane.cpp" />
     <ClCompile Include="game\Source\Object\Effect\Particle\SlashRingEffect.cpp" />
     <ClCompile Include="game\Source\Object\Effect\Particle\HitRingEffect.cpp" />
     <ClCompile Include="engine\Source\System\HierarchyWindow.cpp" />
@@ -120,6 +116,7 @@
     <ClCompile Include="engine\Source\System\TransformManipulator.cpp" />
     <ClCompile Include="engine\Source\Asset\SkinCluster.cpp" />
     <ClCompile Include="game\Source\Object\Effect\MagicCircleEffect.cpp" />
+    <ClCompile Include="engine\Source\Component\Primitive.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -230,15 +227,11 @@
     <ClInclude Include="engine\Include\Utilities\CPUTimer.h" />
     <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />
-    <ClInclude Include="engine\Include\Component\Primitive\Cylinder.h" />
     <ClInclude Include="engine\Include\System\TreeGenerator.h" />
     <ClInclude Include="game\Include\Object\Effect\Particle\HitEffect.h" />
     <ClInclude Include="game\Include\Object\Effect\Particle\SlashEffect.h" />
     <ClInclude Include="game\Include\Object\Model\AnimatedCube.h" />
-    <ClInclude Include="engine\Include\Component\Primitive\Ring.h" />
     <ClInclude Include="engine\Include\Component\MeshType.h" />
-    <ClInclude Include="engine\Include\Component\Primitive\Plane.h" />
-    <ClInclude Include="engine\Include\Component\Primitive\Box.h" />
     <ClInclude Include="game\Include\Object\Effect\Particle\SlashRingEffect.h" />
     <ClInclude Include="game\Include\Object\Effect\Particle\HitRingEffect.h" />
     <ClInclude Include="engine\Include\System\ComponentDrawerRegistry.h" />
@@ -255,6 +248,7 @@
     <ClInclude Include="engine\Include\System\TransformManipulator.h" />
     <ClInclude Include="engine\Include\Asset\SkinCluster.h" />
     <ClInclude Include="game\Include\Object\Effect\MagicCircleEffect.h" />
+    <ClInclude Include="engine\Include\Component\Primitive.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

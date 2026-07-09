@@ -187,27 +187,6 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create RingObject3dRootSignature\n");
 	ringObject3dRootSignature_->SetName(L"RingObject3dRootSignature");
 
-	// SkinningObject3d用ルートシグネチャの作成
-	skinningObject3dRootSignature_ = RootSignature()
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																				// 0:Transform
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 1)																				// 1:ViewProjection
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)																				// 2:Material
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)																				// 3:Camera
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 2)																				// 4:DirectionalLight
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_VERTEX, 2, 1)																		// 5:MatrixPaletteData
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 3, 2)																		// 6:TextureData
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 4, 2)																		// 7:LightData
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_VERTEX, 0)		// 8:DescriptorTable
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)									// 9:PointLight
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)									// 10:SpotLight
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 2)									// 11:EnvironmentTexture
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_PIXEL, 3)		// 12:Texture
-		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
-		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL)	// MipMap0のSamplerを追加
-		.Create(logStream, device_);
-	Logger::Log(logStream, "Create SkinningObject3dRootSignature\n");
-	skinningObject3dRootSignature_->SetName(L"SkinningObject3dRootSignature");
-
 	// Instance3d用ルートシグネチャの作成
 	instance3dRootSignature_ = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:ViewProjection
@@ -342,6 +321,17 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create NoiseRootSignature\n");
 	noiseRootSignature_->SetName(L"NoiseRootSignature");
 
+	// スキニング用ルートシグネチャの作成
+	skinningRootSignature_ = RootSignature()
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)	// 0:SkinningInformation
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:MatrixPalette
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 2:InputVertices
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 3:Influences
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 4:OutputVertices
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create SkinningRootSignature\n");
+	skinningRootSignature_->SetName(L"SkinningRootSignature");
+
 	// 深度ステンシルテクスチャコピー用ルートシグネチャの作成
 	depthStencilCopyRootSignature_ = RootSignature()
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 0:DepthStencil
@@ -363,7 +353,7 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 0)												// 0:Frustum
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 1)												// 1:ViewProjection
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 2)												// 2:CameraPosition
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 3, 40)									// 3:Constant
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 3, 36)									// 3:Constant
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 4:Object
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 5:Mesh
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 6:MeshLOD

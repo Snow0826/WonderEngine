@@ -19,6 +19,7 @@ void Enemy::Initialize(const Vector3 &position) {
 	enemyEntity_ = registry_->GenerateEntity();
 
 	// コンポーネントの追加
+	registry_->AddComponent(enemyEntity_, MeshType::kModel);
 	registry_->AddComponent(enemyEntity_, BlendMode::kBlendModeNone);
 	registry_->AddComponent(enemyEntity_, EulerTransform{ .translate = position });
 	registry_->AddComponent(enemyEntity_, Material{});

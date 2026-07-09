@@ -9,6 +9,7 @@
 void Wall::Create(const Vector3 &rotate, const Vector3 &translate) {
 	Model model = modelManager_->FindModel("wall.gltf");
 	uint32_t entity = registry_->GenerateEntity();
+	registry_->AddComponent(entity, MeshType::kModel);
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
 	registry_->AddComponent(entity, EulerTransform{ .scale = {2.0f, 2.0f, 2.0f}, .rotate = rotate, .translate = translate });
 	registry_->AddComponent(entity, Material{});

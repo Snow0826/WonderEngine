@@ -21,7 +21,7 @@ struct Branch final {
 };
 
 class Registry;
-class CylinderGenerator;
+class PrimitiveGenerator;
 class ObjectManager;
 class IndirectCommandManager;
 struct Vector3;
@@ -32,12 +32,12 @@ class TreeGenerator {
 public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
-	/// @param cylinderGenerator 円柱ジェネレーター
+	/// @param primitiveGenerator プリミティブジェネレーター
 	/// @param objectManager オブジェクトマネージャー
 	/// @param indirectCommandManager 間接コマンドマネージャー
-	TreeGenerator(Registry *registry, CylinderGenerator *cylinderGenerator, ObjectManager *objectManager, IndirectCommandManager *indirectCommandManager)
+	TreeGenerator(Registry *registry, PrimitiveGenerator *primitiveGenerator, ObjectManager *objectManager, IndirectCommandManager *indirectCommandManager)
 		: registry_(registry),
-		cylinderGenerator_(cylinderGenerator),
+		primitiveGenerator_(primitiveGenerator),
 		objectManager_(objectManager),
 		indirectCommandManager_(indirectCommandManager) {
 	}
@@ -57,7 +57,7 @@ public:
 
 private:
 	Registry *registry_ = nullptr;								// レジストリ
-	CylinderGenerator *cylinderGenerator_ = nullptr;			// 円柱ジェネレーター
+	PrimitiveGenerator *primitiveGenerator_ = nullptr;			// プリミティブジェネレーター
 	ObjectManager *objectManager_ = nullptr;					// オブジェクトマネージャー
 	IndirectCommandManager *indirectCommandManager_ = nullptr;	// 間接コマンドマネージャー
 	std::vector<Leaf> leaves_;									// 葉のリスト

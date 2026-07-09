@@ -9,6 +9,7 @@
 void AngelStatue::Create(const Vector3 &rotate, const Vector3 &translate) {
 	Model model = modelManager_->FindModel("angel_statue.gltf");
 	uint32_t entity = registry_->GenerateEntity();
+	registry_->AddComponent(entity, MeshType::kModel);
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
 	registry_->AddComponent(entity, EulerTransform{ .scale = {8.0f, 8.0f, 8.0f}, .rotate = rotate, .translate = translate });
 	registry_->AddComponent(entity, Material{});

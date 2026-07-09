@@ -4,7 +4,9 @@
 #include "Skybox.h"
 #include "SkyboxEntity.h"
 #include "AnimatedCube.h"
-#include "Cylinder.h"
+#include "SimpleSkin.h"
+#include "Human.h"
+#include "Primitive.h"
 #include "TreeGenerator.h"
 #include "DebugCamera.h"
 
@@ -36,8 +38,17 @@ void SampleScene::OnInitialize() {
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator, objectManager_.get());
 
 	// アニメーションするキューブの作成
-	animatedCube_ = std::make_unique<AnimatedCube>(registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get());
-	animatedCube_->Create();
+	AnimatedCube animatedCube{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
+	animatedCube.Create();
+
+	// シンプルスキンの作成
+	SimpleSkin simpleSkin{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
+	simpleSkin.Create({ -3.0f, 0.0f, 5.0f });
+
+	// ヒューマンの作成
+	Human human{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
+	human.Create("walk.gltf", { 0.0f, 0.0f, 5.0f });
+	human.Create("sneakWalk.gltf", { 3.0f, 0.0f, 5.0f });
 
 	// メインカメラの作成
 	mainCamera_ = std::make_unique<DebugCamera>(registry_.get(), sceneManager_->GetInput());
@@ -54,8 +65,8 @@ void SampleScene::OnUpdate() {
 		ImGui::DragFloat("BranchLength", &branchLength, 0.01f, 0.1f, 1.0f);
 		MeshManager *meshManager = sceneManager_->GetMeshManager();
 		TextureManager *textureManager = sceneManager_->GetTextureManager();
-		CylinderGenerator cylinderGenerator{ meshManager, textureManager };
-		TreeGenerator treeGenerator{ registry_.get(), &cylinderGenerator, objectManager_.get(), indirectCommandManager_.get() };
+		PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };
+		TreeGenerator treeGenerator{ registry_.get(), &primitiveGenerator, objectManager_.get(), indirectCommandManager_.get() };
 		if (ImGui::Button("Generate")) {
 			uint32_t treeEntity = treeGenerator.Generate(leafRadius, leafCount, influenceRadius, killRadius, branchLength);
 			treeEntities_.emplace_back(treeEntity);

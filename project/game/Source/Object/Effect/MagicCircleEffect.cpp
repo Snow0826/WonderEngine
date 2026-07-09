@@ -2,13 +2,14 @@
 #include "EntityComponentSystem.h"
 #include "IndirectCommand.h"
 #include "Object.h"
-#include "Cylinder.h"
+#include "Primitive.h"
 #include "Transform.h"
 #include "Material.h"
 #include "UVTransform.h"
 
 void MagicCircleEffect::Initialize() {
 	entity_ = registry_->GenerateEntity();
+	registry_->AddComponent(entity_, MeshType::kCylinder);
 	registry_->AddComponent(entity_, BlendMode::kBlendModeAdditive);
 	registry_->AddComponent(entity_, EulerTransform{.translate = { -3.0f, 0.0f, -3.0f } });
 	registry_->AddComponent(entity_, Relationship{});
@@ -17,7 +18,7 @@ void MagicCircleEffect::Initialize() {
 	registry_->AddComponent(entity_, DirtyTransform{});
 	registry_->AddComponent(entity_, DirtyMaterial{});
 	registry_->AddComponent(entity_, objectManager_->CreateObject(entity_));
-	registry_->AddComponent(entity_, cylinderGenerator_->CreateCylinder(32, 1.0f, 1.0f, 3.0f, false, "gradationLine.png"));
+	registry_->AddComponent(entity_, primitiveGenerator_->CreateCylinder(32, 1.0f, 1.0f, 3.0f, false, "gradationLine.png"));
 	registry_->AddComponent(entity_, UseCulling{});
 	registry_->AddComponent(entity_, indirectCommandManager_->AddIndirectCommand(entity_));
 }

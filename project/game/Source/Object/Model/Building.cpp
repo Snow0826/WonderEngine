@@ -9,6 +9,7 @@
 void Building::Create(const Vector3 &rotate, const Vector3 &translate) {
 	Model model = modelManager_->FindModel("historic_european_brick_building_roebuck.gltf");
 	uint32_t entity = registry_->GenerateEntity();
+	registry_->AddComponent(entity, MeshType::kModel);
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
 	registry_->AddComponent(entity, EulerTransform{ .scale = {4.0f, 4.0f, 4.0f}, .rotate = rotate, .translate = translate });
 	registry_->AddComponent(entity, Material{ .environmentCoefficient = 0.0f });

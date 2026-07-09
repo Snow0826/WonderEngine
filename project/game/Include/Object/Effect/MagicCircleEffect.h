@@ -3,7 +3,7 @@
 
 class Registry;
 class IndirectCommandManager;
-class CylinderGenerator;
+class PrimitiveGenerator;
 class ObjectManager;
 
 /// @brief 魔法陣エフェクト
@@ -12,10 +12,10 @@ public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
 	/// @param indirectCommandManager 間接コマンドマネージャー
-	/// @param cylinderGenerator 円柱ジェネレーター
+	/// @param primitiveGenerator プリミティブジェネレーター
 	/// @param objectManager オブジェクトマネージャー
-	MagicCircleEffect(Registry *registry, IndirectCommandManager *indirectCommandManager, CylinderGenerator *cylinderGenerator, ObjectManager *objectManager)
-		: registry_(registry), indirectCommandManager_(indirectCommandManager), cylinderGenerator_(cylinderGenerator), objectManager_(objectManager) {
+	MagicCircleEffect(Registry *registry, IndirectCommandManager *indirectCommandManager, PrimitiveGenerator *primitiveGenerator, ObjectManager *objectManager)
+		: registry_(registry), indirectCommandManager_(indirectCommandManager), primitiveGenerator_(primitiveGenerator), objectManager_(objectManager) {
 	}
 
 	/// @brief 初期化
@@ -27,7 +27,7 @@ public:
 private:
 	Registry *registry_ = nullptr;								// レジストリ
 	IndirectCommandManager *indirectCommandManager_ = nullptr;	// 間接コマンドマネージャー
-	CylinderGenerator *cylinderGenerator_ = nullptr;			// 円柱ジェネレーター
+	PrimitiveGenerator *primitiveGenerator_ = nullptr;			// プリミティブジェネレーター
 	ObjectManager *objectManager_ = nullptr;					// オブジェクトマネージャー
 	uint32_t entity_ = 0;										// エンティティ
 };

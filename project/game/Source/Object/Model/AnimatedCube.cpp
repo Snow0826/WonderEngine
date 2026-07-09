@@ -7,6 +7,7 @@
 
 void AnimatedCube::Create() {
 	uint32_t entity = registry_->GenerateEntity();
+	registry_->AddComponent(entity, MeshType::kModel);
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
 	registry_->AddComponent(entity, EulerTransform{});
 	registry_->AddComponent(entity, Relationship{});

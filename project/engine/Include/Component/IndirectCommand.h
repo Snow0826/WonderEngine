@@ -38,10 +38,8 @@ struct TextureData final {
 #pragma pack(push, 1)
 struct IndirectCommand final {
 	D3D12_GPU_VIRTUAL_ADDRESS cbv[2];					// CBV
-	uint32_t matrixPalettehandle = 0;					// 行列パレットハンドル
 	TextureData textureData;							// テクスチャデータ
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;			// 頂点バッファビュー
-	D3D12_VERTEX_BUFFER_VIEW influenceBufferView;		// 頂点影響バッファビュー
 	D3D12_INDEX_BUFFER_VIEW indexBufferView;			// インデックスバッファビュー
 	D3D12_DRAW_INDEXED_ARGUMENTS drawIndexedArguments;	// 描画コマンド引数
 };
@@ -101,8 +99,8 @@ private:
 	World *world_ = nullptr;							// ワールド
 	MeshManager *meshManager_ = nullptr;				// メッシュマネージャー
 	SkinClusterManager *skinClusterManager_ = nullptr;	// スキンクラスターマネージャー
-	CullingObjectData *cullingObjectData_ = nullptr;	// カリングオブジェクトデータ
 	CullingMeshData *cullingMeshData_ = nullptr;		// カリングメッシュデータ
+	CullingObjectData *cullingObjectData_ = nullptr;	// カリングオブジェクトデータ
 	MeshLOD *meshLODData_ = nullptr;					// メッシュLODデータ
 	std::vector<uint32_t> entities_;					// インデックスからエンティティへのマッピング
 	uint32_t meshCounter_ = 0;							// メッシュカウンター

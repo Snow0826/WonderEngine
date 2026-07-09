@@ -12,9 +12,10 @@ class DescriptorHeap;
 class Registry;
 class World;
 class DebugRenderer;
-class IndirectCommandManager;
 class MeshManager;
 class TextureManager;
+class SkinClusterManager;
+class IndirectCommandManager;
 class FootprintManager;
 
 /// @brief レンダラー
@@ -43,10 +44,6 @@ public:
 	/// @param debugRenderer デバッグレンダラー
 	void SetDebugRenderer(DebugRenderer *debugRenderer);
 
-	/// @brief 間接コマンドマネージャーをセットする
-	/// @param indirectCommandManager 間接コマンドマネージャー
-	void SetIndirectCommandManager(IndirectCommandManager *indirectCommandManager);
-
 	/// @brief メッシュマネージャーをセットする
 	/// @param meshManager メッシュマネージャー
 	void SetMeshManager(MeshManager *meshManager);
@@ -54,6 +51,14 @@ public:
 	/// @brief テクスチャマネージャーをセットする
 	/// @param textureManager テクスチャマネージャー
 	void SetTextureManager(TextureManager *textureManager);
+
+	/// @brief スキンクラスターマネージャーをセットする
+	/// @param skinClusterManager スキンクラスターマネージャー
+	void SetSkinClusterManager(SkinClusterManager *skinClusterManager);
+
+	/// @brief 間接コマンドマネージャーをセットする
+	/// @param indirectCommandManager 間接コマンドマネージャー
+	void SetIndirectCommandManager(IndirectCommandManager *indirectCommandManager);
 
 	/// @brief フットプリントマネージャーをセットする
 	/// @param footprintManager フットプリントマネージャー
@@ -81,13 +86,13 @@ private:
 	Registry *registry_ = nullptr;																// レジストリ
 	World *world_ = nullptr;																	// ワールド
 	DebugRenderer *debugRenderer_ = nullptr;													// デバッグレンダラー
-	IndirectCommandManager *indirectCommandManager_ = nullptr;									// 間接コマンドマネージャー
 	MeshManager *meshManager_ = nullptr;														// メッシュマネージャー
 	TextureManager *textureManager_ = nullptr;													// テクスチャマネージャー
+	SkinClusterManager *skinClusterManager_ = nullptr;											// スキンクラスターマネージャー
+	IndirectCommandManager *indirectCommandManager_ = nullptr;									// 間接コマンドマネージャー
 	FootprintManager *footprintManager_ = nullptr;												// フットプリントマネージャー
 	ID3D12RootSignature *object3dRootSignature_ = nullptr;										// Object3d用ルートシグネチャ
 	ID3D12RootSignature *ringObject3dRootSignature_ = nullptr;									// RingObject3d用ルートシグネチャ
-	ID3D12RootSignature *skinningObject3dRootSignature_ = nullptr;								// SkinningObject3d用ルートシグネチャ
 	ID3D12RootSignature *instance3dRootSignature_ = nullptr;									// Instance3d用ルートシグネチャ
 	ID3D12RootSignature *ringInstance3dRootSignature_ = nullptr;								// RingInstance3d用ルートシグネチャ
 	ID3D12RootSignature *lineRootSignature_ = nullptr;											// Line用ルートシグネチャ
@@ -102,6 +107,7 @@ private:
 	ID3D12RootSignature *radialBlurRootSignature_ = nullptr;									// RadialBlur用ルートシグネチャ
 	ID3D12RootSignature *dissolveRootSignature_ = nullptr;										// Dissolve用ルートシグネチャ
 	ID3D12RootSignature *noiseRootSignature_ = nullptr;											// Noise用ルートシグネチャ
+	ID3D12RootSignature *skinningRootSignature_ = nullptr;										// スキニング用ルートシグネチャ
 	ID3D12RootSignature *depthStencilCopyRootSignature_ = nullptr;								// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *generateHiZMipMapRootSignature_ = nullptr;								// HiZミップマップ生成用ルートシグネチャ
 	ID3D12RootSignature *occlusionCullingRootSignature_ = nullptr;								// オクルージョンカリング用ルートシグネチャ
@@ -122,6 +128,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> radialBlurPipelineState_ = nullptr;				// RadialBlur用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> dissolvePipelineState_ = nullptr;				// Dissolve用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> noisePipelineState_ = nullptr;					// Noise用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> skinningPipelineState_ = nullptr;				// スキニング用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthStencilCopyPipelineState_ = nullptr;		// 深度ステンシルテクスチャコピー用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> generateHiZMipMapPipelineState_ = nullptr;		// HiZミップマップ生成用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> occlusionCullingPipelineState_ = nullptr;		// オクルージョンカリング用パイプラインステート
@@ -131,6 +138,9 @@ private:
 	bool isSceneViewVisible_ = true;															// シーンビューの表示フラグ
 	bool isGameViewVisible_ = true;																// ゲームビューの表示フラグ
 	bool isGameFinished_ = false;																// ゲーム終了フラグ
+
+	/// @brief スキニング
+	void Skinning();
 
 	/// @brief 深度テクスチャをHiZテクスチャにコピー
 	void CopyDepthToHiZ();

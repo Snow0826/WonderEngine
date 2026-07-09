@@ -156,16 +156,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="engine\Source\Component\Primitive.cpp" />
     <ClCompile Include="engine\Source\System\CollisionSystem.cpp" />
     <ClCompile Include="engine\Source\System\HierarchyWindow.cpp" />
     <ClCompile Include="engine\Source\System\InspectorWindow.cpp" />
-    <ClCompile Include="engine\Source\Component\Primitive\Plane.cpp" />
-    <ClCompile Include="engine\Source\Component\Primitive\Box.cpp" />
-    <ClCompile Include="engine\Source\Component\Primitive\Ring.cpp" />
     <ClCompile Include="engine\Source\System\GameViewWindow.cpp" />
     <ClCompile Include="game\Source\Object\Model\AnimatedCube.cpp" />
     <ClCompile Include="engine\Source\System\TreeGenerator.cpp" />
-    <ClCompile Include="engine\Source\Component\Primitive\Cylinder.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
     <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
     <ClCompile Include="engine\Source\Component\BlendMode.cpp" />
@@ -284,11 +281,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Asset\SkinCluster.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="engine\Include\Component\Primitive.h" />
     <ClInclude Include="engine\Include\System\CollisionSystem.h" />
     <ClInclude Include="engine\Include\Component\MeshType.h" />
-    <ClInclude Include="engine\Include\Component\Primitive\Box.h" />
-    <ClInclude Include="engine\Include\Component\Primitive\Plane.h" />
-    <ClInclude Include="engine\Include\Component\Primitive\Ring.h" />
     <ClInclude Include="engine\Include\System\HierarchyWindow.h" />
     <ClInclude Include="engine\Include\System\ComponentDrawerRegistry.h" />
     <ClInclude Include="engine\Include\System\InspectorWindow.h" />
@@ -296,7 +291,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\System\GameViewWindow.h" />
     <ClInclude Include="game\Include\Object\Model\AnimatedCube.h" />
     <ClInclude Include="engine\Include\System\TreeGenerator.h" />
-    <ClInclude Include="engine\Include\Component\Primitive\Cylinder.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
     <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />

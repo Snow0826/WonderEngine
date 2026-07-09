@@ -280,6 +280,7 @@ void Player::AddParts(const std::string &partsName) {
 	Model model = modelManager_->FindModel(partsName + ".obj");
 	// エンティティの生成とコンポーネントの追加
 	uint32_t entity = registry_->GenerateEntity();
+	registry_->AddComponent(entity, MeshType::kModel);
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
 	registry_->AddComponent(entity, EulerTransform{});
 	registry_->AddComponent(entity, Material{});

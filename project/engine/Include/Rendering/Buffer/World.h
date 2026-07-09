@@ -132,8 +132,8 @@ enum class StructuredBufferType {
 	kLine,							// ライン
 	kPointLight,					// 点光源
 	kSpotLight,						// スポットライト
-	kObject,						// オブジェクト
-	kMesh,							// メッシュ
+	kCullingMeshData,				// カリングメッシュデータ
+	kCullingObjectData,				// カリングオブジェクトデータ
 	kMeshLOD,						// メッシュLOD
 	kFootprint,						// フットプリント
 	kCountOfStructuredBufferType	// 構造化バッファの種類の数
@@ -254,6 +254,11 @@ public:
 	/// @return ミップレベル数
 	uint32_t GetMipLevels() const { return mipLevels_; }
 
+	/// @brief 構造化バッファのハンドルを取得
+	/// @param type 構造化バッファの種類
+	/// @return 構造化バッファのハンドル
+	uint32_t GetStructuredBufferHandle(StructuredBufferType type) const { return structuredBufferHandles_[static_cast<size_t>(type)]; }
+
 	/// @brief シーンのレンダーテクスチャのRTVハンドルを取得
 	/// @return シーンのレンダーテクスチャのRTVハンドル
 	uint32_t GetSceneRenderTextureRTVHandle() const { return sceneRenderTextureRTVHandle_; }
@@ -304,37 +309,9 @@ public:
 	/// @return Hi-Zミップマップ書き込みハンドル
 	uint32_t GetHiZMipMapWriteHandle(uint32_t index) const { return hiZMipMapWriteHandles_[index]; }
 
-	/// @brief フットプリントハンドルを取得
-	/// @return フットプリントハンドル
-	uint32_t GetFootprintHandle() const { return footprintHandle_; }
-
 	/// @brief フットプリントマップハンドルを取得
 	/// @return フットプリントマップハンドル
 	uint32_t GetFootprintMapHandle() const { return footprintMapHandle_; }
-
-	/// @brief ラインハンドルを取得
-	/// @return ラインハンドル
-	uint32_t GetLineHandle() const { return lineHandle_; }
-
-	/// @brief 点光源ハンドルを取得
-	/// @return 点光源ハンドル
-	uint32_t GetPointLightHandle() const { return pointLightHandle_; }
-
-	/// @brief スポットライトハンドルを取得
-	/// @return スポットライトハンドル
-	uint32_t GetSpotLightHandle() const { return spotLightHandle_; }
-
-	/// @brief カリングオブジェクトハンドルを取得
-	/// @return カリングオブジェクトハンドル
-	uint32_t GetCullingObjectHandle() const { return cullingObjectHandle_; }
-
-	/// @brief カリングメッシュハンドルを取得
-	/// @return カリングメッシュハンドル
-	uint32_t GetCullingMeshHandle() const { return cullingMeshHandle_; }
-
-	/// @brief メッシュLODハンドルを取得
-	/// @return メッシュLODハンドル
-	uint32_t GetMeshLODHandle() const { return meshLODHandle_; }
 
 	/// @brief カリング済みコマンドハンドルを取得
 	/// @return カリング済みコマンドハンドル
@@ -359,6 +336,7 @@ public:
 private:
 	using ConstantBuffers = std::array<std::unique_ptr<ConstantBuffer>, static_cast<size_t>(ConstantBufferType::kCountOfConstantBufferType)>;
 	using StructuredBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
+	using StructuredBufferHandles = std::array<uint32_t, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
 	static inline constexpr uint32_t kMaxObject = 1048576;				// 最大オブジェクト数
 	static inline constexpr uint32_t kMaxLine = 65536;					// 最大ライン数
 	static inline constexpr uint32_t kMaxPointLight = 32;				// 最大点光源数
@@ -369,6 +347,7 @@ private:
 	Registry *registry_ = nullptr;										// レジストリ
 	ConstantBuffers constantBuffers_;									// 定数バッファリスト
 	StructuredBuffers structuredBuffers_;								// 構造化バッファリスト
+	StructuredBufferHandles structuredBufferHandles_;					// 構造化バッファハンドルリスト
 	std::unique_ptr<Resource> sceneRenderTexture_ = nullptr;			// シーンのレンダーテクスチャ
 	std::unique_ptr<Resource> gameRenderTexture_ = nullptr;				// ゲームのレンダーテクスチャ
 	std::unique_ptr<Resource> postEffectRenderTexture_ = nullptr;		// ポストエフェクトのレンダーテクスチャ
@@ -409,14 +388,7 @@ private:
 	std::vector<uint32_t> hiZMipMapWriteHandles_;						// Hi-Zミップマップ書き込みハンドル
 	uint32_t processedCommandHandle_ = 0;								// カリング済みコマンドハンドル
 	uint32_t commandCounterHandle_ = 0;									// コマンドカウンターハンドル
-	uint32_t footprintHandle_ = 0;										// フットプリントハンドル
 	uint32_t footprintMapHandle_ = 0;									// フットプリントマップハンドル
-	uint32_t lineHandle_ = 0;											// ラインハンドル
-	uint32_t pointLightHandle_ = 0;										// 点光源ハンドル
-	uint32_t spotLightHandle_ = 0;										// スポットライトハンドル
-	uint32_t cullingObjectHandle_ = 0;									// カリングオブジェクトハンドル
-	uint32_t cullingMeshHandle_ = 0;									// カリングメッシュハンドル
-	uint32_t meshLODHandle_ = 0;										// メッシュLODハンドル
 	PostEffect postEffect_ = PostEffect::kNone;							// ポストエフェクト
 	bool isCulling_ = false;											// カリング有効フラグ
 	bool isResult_ = false;												// 結果表示フラグ

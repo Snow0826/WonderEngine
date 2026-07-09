@@ -7,6 +7,7 @@
 
 void Title::Create(const std::string &fileName, const Vector3 &rotate, const Vector3 &translate, const Vector4 &color) {
 	uint32_t entity = registry_->GenerateEntity();
+	registry_->AddComponent(entity, MeshType::kModel);
 	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
 	registry_->AddComponent(entity, EulerTransform{ .rotate = rotate, .translate = translate });
 	registry_->AddComponent(entity, Material{ .color = color });

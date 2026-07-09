@@ -103,26 +103,6 @@ World::World(Device *device, std::ofstream &logStream) {
 	luminancePrewittFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
 	depthPrewittFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
 
-	// 構造化バッファの初期化
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kLine)] = Resource::CreateUploadBuffer(device, sizeof(Rendering::Line) * kMaxLine);
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kLine)]->SetName("Line");
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kLine)]->Map(reinterpret_cast<void **>(&lineData_));
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kPointLight)] = Resource::CreateUploadBuffer(device, sizeof(PointLight) * kMaxPointLight);
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kPointLight)]->SetName("PointLight");
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kPointLight)]->Map(reinterpret_cast<void **>(&pointLightData_));
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kSpotLight)] = Resource::CreateUploadBuffer(device, sizeof(SpotLight) * kMaxSpotLight);
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kSpotLight)]->SetName("SpotLight");
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kSpotLight)]->Map(reinterpret_cast<void **>(&spotLightData_));
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kObject)] = Resource::CreateUploadBuffer(device, sizeof(CullingObjectData) * kMaxObject);
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kObject)]->SetName("Object");
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMesh)] = Resource::CreateUploadBuffer(device, sizeof(CullingMeshData) * kMaxAABB);
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMesh)]->SetName("Mesh");
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMeshLOD)] = Resource::CreateBuffer(device, D3D12_HEAP_TYPE_DEFAULT, sizeof(MeshLOD) * kMaxAABB, D3D12_RESOURCE_STATE_COMMON);
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMeshLOD)]->SetName("MeshLOD");
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kFootprint)] = Resource::CreateUploadBuffer(device, sizeof(FootprintForGPU) * kMaxFootprint);
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kFootprint)]->SetName("Footprint");
-	structuredBuffers_[static_cast<size_t>(StructuredBufferType::kFootprint)]->Map(reinterpret_cast<void **>(&footprintData_));
-
 	// コマンドバッファ転送用中間バッファの作成
 	commandBufferUpload_ = Resource::CreateUploadBuffer(device, sizeof(MeshLOD) * kMaxAABB);
 	commandBufferUpload_->SetName("CommandBufferUpload");
@@ -145,7 +125,14 @@ World::World(Device *device, std::ofstream &logStream) {
 		queueOffsets_[i].w = (queueIndex + 3) * kMaxCommandPerQueue;
 	}
 
-	// Line用SRVの設定
+	// Line用StructuredBufferの作成
+	size_t structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kLine);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(Rendering::Line) * kMaxLine);
+	structuredBuffers_[structuredBufferIndex]->SetName("Line");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&lineData_));
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	
+	// Line用SRVの作成
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvBufferDesc{};
 	srvBufferDesc.Format = DXGI_FORMAT_UNKNOWN;											// バッファなのでフォーマットなし
 	srvBufferDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;							// バッファビュー
@@ -154,55 +141,82 @@ World::World(Device *device, std::ofstream &logStream) {
 	srvBufferDesc.Buffer.NumElements = kMaxLine;										// 要素数
 	srvBufferDesc.Buffer.StructureByteStride = sizeof(Rendering::Line);					// 構造体のサイズ
 	srvBufferDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;							// 特になし
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+	Logger::Log(logStream, "Line SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
-	// Line用SRVの作成
-	lineHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kLine)]->GetResource(), srvBufferDesc, lineHandle_);
-	Logger::Log(logStream, "Line SRVDescriptorIndex: " + std::to_string(lineHandle_) + "\n");
-
-	// PointLight用SRVの設定
-	srvBufferDesc.Buffer.NumElements = kMaxPointLight;				// 要素数
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(PointLight);	// 構造体のサイズ
+	// PointLight用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kPointLight);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(PointLight) * kMaxPointLight);
+	structuredBuffers_[structuredBufferIndex]->SetName("PointLight");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&pointLightData_));
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// PointLight用SRVの作成
-	pointLightHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kPointLight)]->GetResource(), srvBufferDesc, pointLightHandle_);
-	Logger::Log(logStream, "PointLight SRVDescriptorIndex: " + std::to_string(pointLightHandle_) + "\n");
+	srvBufferDesc.Buffer.NumElements = kMaxPointLight;				// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(PointLight);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+	Logger::Log(logStream, "PointLight SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
-	// SpotLight用SRVの設定
-	srvBufferDesc.Buffer.NumElements = kMaxSpotLight;				// 要素数
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(SpotLight);	// 構造体のサイズ
+	// SpotLight用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kSpotLight);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(SpotLight) * kMaxSpotLight);
+	structuredBuffers_[structuredBufferIndex]->SetName("SpotLight");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&spotLightData_));
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// SpotLight用SRVの作成
-	spotLightHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kSpotLight)]->GetResource(), srvBufferDesc, spotLightHandle_);
-	Logger::Log(logStream, "SpotLight SRVDescriptorIndex: " + std::to_string(spotLightHandle_) + "\n");
+	srvBufferDesc.Buffer.NumElements = kMaxSpotLight;				// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(SpotLight);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+	Logger::Log(logStream, "SpotLight SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
-	// カリングオブジェクト用SRVの設定
-	srvBufferDesc.Buffer.NumElements = kMaxAABB;							// 要素数
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(CullingObjectData);	// 構造体のサイズ
+	// CullingMeshData用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kCullingMeshData);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(CullingMeshData) * kMaxAABB);
+	structuredBuffers_[structuredBufferIndex]->SetName("CullingMeshData");
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
-	// カリングオブジェクト用SRVの作成
-	cullingObjectHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kObject)]->GetResource(), srvBufferDesc, cullingObjectHandle_);
-	Logger::Log(logStream, "CullingObject SRVDescriptorIndex: " + std::to_string(cullingObjectHandle_) + "\n");
-
-	// カリングメッシュ用SRVの設定
+	// CullingMeshData用SRVの作成
 	srvBufferDesc.Buffer.NumElements = kMaxAABB;						// 要素数
 	srvBufferDesc.Buffer.StructureByteStride = sizeof(CullingMeshData);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+	Logger::Log(logStream, "CullingMeshData SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
-	// カリングメッシュ用SRVの作成
-	cullingMeshHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMesh)]->GetResource(), srvBufferDesc, cullingMeshHandle_);
-	Logger::Log(logStream, "CullingMesh SRVDescriptorIndex: " + std::to_string(cullingMeshHandle_) + "\n");
+	// CullingObjectData用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kCullingObjectData);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(CullingObjectData) * kMaxObject);
+	structuredBuffers_[structuredBufferIndex]->SetName("CullingObjectData");
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
-	// メッシュLOD用SRVの設定
+	// CullingObjectData用SRVの作成
+	srvBufferDesc.Buffer.NumElements = kMaxAABB;							// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(CullingObjectData);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+	Logger::Log(logStream, "CullingObjectData SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
+
+	// MeshLOD用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kMeshLOD);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateBuffer(device, D3D12_HEAP_TYPE_DEFAULT, sizeof(MeshLOD) * kMaxAABB, D3D12_RESOURCE_STATE_COMMON);
+	structuredBuffers_[structuredBufferIndex]->SetName("MeshLOD");
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// MeshLOD用SRVの作成
 	srvBufferDesc.Buffer.StructureByteStride = sizeof(MeshLOD);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+	Logger::Log(logStream, "MeshLOD SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
-	// メッシュLOD用SRVの作成
-	meshLODHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kMeshLOD)]->GetResource(), srvBufferDesc, meshLODHandle_);
-	Logger::Log(logStream, "MeshLOD SRVDescriptorIndex: " + std::to_string(meshLODHandle_) + "\n");
+	// Footprint用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kFootprint);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(FootprintForGPU) * kMaxFootprint);
+	structuredBuffers_[structuredBufferIndex]->SetName("Footprint");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&footprintData_));
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// Footprint用SRVの作成
+	srvBufferDesc.Buffer.NumElements = kMaxFootprint;					// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(FootprintForGPU);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+	Logger::Log(logStream, "Footprint SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
 	// シーンのレンダーテクスチャの作成
 	D3D12_CLEAR_VALUE clearValue{};
@@ -366,15 +380,6 @@ World::World(Device *device, std::ofstream &logStream) {
 	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(commandCounterBuffer_->GetResource(), uavCounterBufferDesc, commandCounterHandle_);
 	cpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(commandCounterBuffer_->GetResource(), uavCounterBufferDesc, commandCounterHandle_);
 	Logger::Log(logStream, "CommandCounter UAVDescriptorIndex: " + std::to_string(commandCounterHandle_) + "\n");
-
-	// フットプリント用SRVの設定
-	srvBufferDesc.Buffer.NumElements = kMaxFootprint;					// 要素数
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(FootprintForGPU);	// 構造体のサイズ
-
-	// フットプリント用SRVの作成
-	footprintHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[static_cast<size_t>(StructuredBufferType::kFootprint)]->GetResource(), srvBufferDesc, footprintHandle_);
-	Logger::Log(logStream, "Footprint SRVDescriptorIndex: " + std::to_string(footprintHandle_) + "\n");
 
 	// フットプリントマップ用バッファの作成
 	footprintMapBuffer_ = Resource::CreateRWBuffer(device, sizeof(Int4));

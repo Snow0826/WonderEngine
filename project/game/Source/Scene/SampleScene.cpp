@@ -6,6 +6,7 @@
 #include "AnimatedCube.h"
 #include "SimpleSkin.h"
 #include "Human.h"
+#include "ParticleObject.h"
 #include "Primitive.h"
 #include "TreeGenerator.h"
 #include "DebugCamera.h"
@@ -30,6 +31,7 @@ void SampleScene::OnInitialize() {
 	MeshManager *meshManager = sceneManager_->GetMeshManager();
 	TextureManager *textureManager = sceneManager_->GetTextureManager();
 	ModelManager *modelManager = sceneManager_->GetModelManager();
+	ParticleManager *particleManager = sceneManager_->GetParticleManager();
 
 	// ジェネレーターの初期化
 	SkyboxGenerator skyboxGenerator{ meshManager, textureManager };
@@ -39,7 +41,7 @@ void SampleScene::OnInitialize() {
 
 	// アニメーションするキューブの作成
 	AnimatedCube animatedCube{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
-	animatedCube.Create();
+	animatedCube.Create({ 0.0f, 0.0f, 20.0f });
 
 	// シンプルスキンの作成
 	SimpleSkin simpleSkin{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
@@ -49,6 +51,10 @@ void SampleScene::OnInitialize() {
 	Human human{ registry_.get(), indirectCommandManager_.get(), modelManager, objectManager_.get() };
 	human.Create("walk.gltf", { 0.0f, 0.0f, 5.0f });
 	human.Create("sneakWalk.gltf", { 3.0f, 0.0f, 5.0f });
+
+	// パーティクルオブジェクトの作成
+	ParticleObject particleObject{ registry_.get(), particleManager };
+	particleObject.Create();
 
 	// メインカメラの作成
 	mainCamera_ = std::make_unique<DebugCamera>(registry_.get(), sceneManager_->GetInput());

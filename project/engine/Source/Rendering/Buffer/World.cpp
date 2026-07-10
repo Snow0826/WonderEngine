@@ -58,6 +58,8 @@ World::World(Device *device, std::ofstream &logStream) {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kTransform)]->SetName("Transform");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kViewProjection)]->Initialize(device, sizeof(ViewProjectionData), 3);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kViewProjection)]->SetName("ViewProjection");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kParticlePerView)]->Initialize(device, sizeof(ParticlePerViewData), 2);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kParticlePerView)]->SetName("ParticlePerView");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kMaterial)]->Initialize(device, sizeof(Material), kMaxObject);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kMaterial)]->SetName("Material");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kCameraPosition)]->Initialize(device, sizeof(CameraPosition), 2);
@@ -580,16 +582,24 @@ void World::TransferCamera() {
 	uint32_t cameraIndex = 0;
 	registry_->ForEach<Camera, QuaternionTransform>([&](uint32_t entity, Camera *camera, QuaternionTransform *transform) {
 		ViewProjectionData viewProjection = MakeViewProjection(*camera, *transform);
-		Frustum frustum = MakeFrustum(viewProjection);
+		ParticlePerViewData particlePerViewData = {
+			.viewProjection = viewProjection,
+			.billboardMatrix = transform->worldMatrix
+		};
+		particlePerViewData.billboardMatrix.m[3][0] = 0.0f;
+		particlePerViewData.billboardMatrix.m[3][1] = 0.0f;
+		particlePerViewData.billboardMatrix.m[3][2] = 0.0f;
 		CameraPosition cameraPosition = {
 			.worldPosition = transformSystem.GetWorldPosition(entity)
 		};
+		Frustum frustum = MakeFrustum(viewProjection);
 		if (registry_->HasComponent<MainCamera>(entity)) {
 			depthMaterial_.projectionInverse = viewProjection.projection.inverse();
 		}
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kViewProjection)]->CopyData(&viewProjection, sizeof(ViewProjectionData), cameraIndex + 1);
-		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), cameraIndex);
+		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kParticlePerView)]->CopyData(&particlePerViewData, sizeof(ParticlePerViewData), cameraIndex);
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCameraPosition)]->CopyData(&cameraPosition, sizeof(CameraPosition), cameraIndex);
+		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), cameraIndex);
 		cameraIndex++;
 		}, exclude<Disabled>());
 }

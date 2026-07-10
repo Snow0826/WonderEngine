@@ -3,40 +3,26 @@
 #include "Transform.h"
 #include "Collision.h"
 #include "MeshType.h"
-#include <list>
 #include <unordered_map>
 #include <memory>
 
-/// @brief パーティクル(GPU)
-struct ParticleForGPU final {
-	Matrix4x4 worldMatrix;	// ワールド行列
-	Vector4 color;			// 色
-};
-
 /// @brief パーティクル
 struct Particle final {
-	EulerTransform transform;	// SRTデータ
-	Vector3 orbitCenter;		// 軌道中心
-	Vector3 velocity;			// 速度
-	Vector4 color;				// 色
-	float lifeTime = 0.0f;		// 寿命
-	float age = 0.0f;			// 経過時間
-	float angle = 0.0f;			// 角度
-	bool collidedField = false;	// 場と衝突したかどうか
+	Vector3 translate;	// 平行移動
+	Vector3 scale;		// スケール
+	float lifeTime;		// 寿命
+	Vector3 velocity;	// 速度
+	float currentTime;	// 経過時間
+	Vector4 color;		// 色
 };
 
 /// @brief パーティクルグループ
 struct ParticleGroup final {
-	std::list<Particle> particles;			// パーティクルリスト
-	MeshType meshType = MeshType::kPlane;	// メッシュタイプ
-	bool isBillboard = true;				// ビルボード有効フラグ
-	bool canCollideField = false;			// 場と衝突するかどうか
-	uint32_t meshHandle = 0;				// メッシュハンドル
-	uint32_t textureHandle = 0;				// テクスチャハンドル
-	uint32_t instanceHandle = 0;			// インスタンスハンドル
-	uint32_t numInstance = 0;				// インスタンス数
-	std::string textureFileName;			// テクスチャファイル名
-	std::string particleDataName;			// パーティクルデータ名
+	uint32_t meshHandle = 0;		// メッシュハンドル
+	uint32_t textureHandle = 0;		// テクスチャハンドル
+	uint32_t srvHandle = 0;			// SRVハンドル
+	uint32_t uavHandle = 0;			// UAVハンドル
+	std::string textureFileName;	// テクスチャファイル名
 };
 
 template<typename T>
@@ -68,14 +54,15 @@ struct Field final {
 };
 
 class Device;
-class Resource;
 class TextureManager;
 class MeshManager;
-class Registry;
+class Resource;
 
 /// @brief パーティクルマネージャー
 class ParticleManager final {
 public:
+	static inline constexpr uint32_t kMaxParticle = 1024;	// 最大パーティクル数
+
 	/// @brief コンストラクタ
 	/// @param device デバイス
 	/// @param textureManager テクスチャマネージャー
@@ -97,34 +84,16 @@ public:
 	/// @return パーティクルグループ
 	ParticleGroup FindParticleGroup(const std::string &name);
 
-	/// @brief パーティクルの発生
-	/// @param entity エンティティ
-	void Emit(uint32_t entity);
-
-	/// @brief パーティクルの更新
-	void UpdateParticle();
-
-	/// @brief レジストリの設定
-	/// @param registry レジストリ
-	void SetRegistry(Registry *registry) { registry_ = registry; }
-
 private:
-	static inline constexpr uint32_t kMaxParticle = 4096;							// 最大パーティクル数
 	Device *device_ = nullptr;														// デバイス
 	TextureManager *textureManager_ = nullptr;										// テクスチャマネージャー
 	MeshManager *meshManager_ = nullptr;											// メッシュマネージャー
-	Registry *registry_ = nullptr;													// レジストリ
 	std::ofstream *logStream_ = nullptr;											// ログ出力用のストリーム
-	std::unordered_map<std::string, ParticleGroup> particleGroups_;					// パーティクルグループマップ
 	std::unordered_map<std::string, std::unique_ptr<Resource>> particleResources_;	// パーティクルリソースマップ
-	std::unordered_map<std::string, ParticleForGPU *> particleDataList_;			// パーティクルデータマップ
-	static inline constexpr float kDeltaTime = 1.0f / 60.0f;						// デルタタイム
-
-	/// @brief パーティクルの生成
-	/// @param entity エンティティ
-	/// @return パーティクル
-	Particle CreateParticle(uint32_t entity);
+	std::unordered_map<std::string, ParticleGroup> particleGroups_;					// パーティクルグループマップ
 };
+
+class Registry;
 
 /// @brief パーティクルグループインスペクター
 class ParticleGroupInspector final {

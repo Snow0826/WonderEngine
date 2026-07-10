@@ -29,6 +29,9 @@ public:
 	/// @param logStream ログストリーム
 	void Initialize(std::ofstream &logStream);
 
+	/// @brief パーティクルの初期化
+	void InitializeParticle();
+
 	/// @brief 描画
 	void Render();
 
@@ -93,8 +96,8 @@ private:
 	FootprintManager *footprintManager_ = nullptr;												// フットプリントマネージャー
 	ID3D12RootSignature *object3dRootSignature_ = nullptr;										// Object3d用ルートシグネチャ
 	ID3D12RootSignature *ringObject3dRootSignature_ = nullptr;									// RingObject3d用ルートシグネチャ
-	ID3D12RootSignature *instance3dRootSignature_ = nullptr;									// Instance3d用ルートシグネチャ
-	ID3D12RootSignature *ringInstance3dRootSignature_ = nullptr;								// RingInstance3d用ルートシグネチャ
+	ID3D12RootSignature *particleRootSignature_ = nullptr;										// Particle用ルートシグネチャ
+	ID3D12RootSignature *ringParticleRootSignature_ = nullptr;									// RingParticle用ルートシグネチャ
 	ID3D12RootSignature *lineRootSignature_ = nullptr;											// Line用ルートシグネチャ
 	ID3D12RootSignature *skyboxRootSignature_ = nullptr;										// Skybox用ルートシグネチャ
 	ID3D12RootSignature *fullscreenRootSignature_ = nullptr;									// Fullscreen用ルートシグネチャ
@@ -108,6 +111,7 @@ private:
 	ID3D12RootSignature *dissolveRootSignature_ = nullptr;										// Dissolve用ルートシグネチャ
 	ID3D12RootSignature *noiseRootSignature_ = nullptr;											// Noise用ルートシグネチャ
 	ID3D12RootSignature *skinningRootSignature_ = nullptr;										// スキニング用ルートシグネチャ
+	ID3D12RootSignature *initializeParticleRootSignature_ = nullptr;							// パーティクル初期化用ルートシグネチャ
 	ID3D12RootSignature *depthStencilCopyRootSignature_ = nullptr;								// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *generateHiZMipMapRootSignature_ = nullptr;								// HiZミップマップ生成用ルートシグネチャ
 	ID3D12RootSignature *occlusionCullingRootSignature_ = nullptr;								// オクルージョンカリング用ルートシグネチャ
@@ -129,6 +133,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> dissolvePipelineState_ = nullptr;				// Dissolve用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> noisePipelineState_ = nullptr;					// Noise用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> skinningPipelineState_ = nullptr;				// スキニング用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> initializeParticlePipelineState_ = nullptr;		// パーティクル初期化用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthStencilCopyPipelineState_ = nullptr;		// 深度ステンシルテクスチャコピー用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> generateHiZMipMapPipelineState_ = nullptr;		// HiZミップマップ生成用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> occlusionCullingPipelineState_ = nullptr;		// オクルージョンカリング用パイプラインステート

@@ -83,7 +83,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>$(ProjectDir)externals\assimp\include;$(ProjectDir)engine\Include\Asset;$(ProjectDir)engine\Include\Component;$(ProjectDir)engine\Include\Core;$(ProjectDir)game\Include\System;$(ProjectDir)engine\Include\MapChip;$(ProjectDir)engine\Include\Math;$(ProjectDir)engine\Include\Math\Matrix;$(ProjectDir)engine\Include\Math\Vector;$(ProjectDir)engine\Include\Rendering;$(ProjectDir)engine\Include\Rendering\Buffer;$(ProjectDir)engine\Include\Scene;$(ProjectDir)engine\Include\System;$(ProjectDir)engine\Include\Utilities;$(ProjectDir)game\Include\Scene;%(AdditionalIncludeDirectories);$(ProjectDir)engine\Include\Physics;$(ProjectDir)game\Include\UI;$(ProjectDir)engine\Include\Rendering\DebugRenderer;$(ProjectDir)game\Include\Scene\Phase;$(ProjectDir)game\Include\Object\Model\Player\Behavior;$(ProjectDir)game\Include\Object\Model\Player;$(ProjectDir)game\Include\Object\Model\Player\Behavior\AttackBehavior;$(ProjectDir)game\Include\Scene\GameScene;$(ProjectDir)game\Include\Scene\GameScene\Phase;$(ProjectDir)game\Include\Scene\TitleScene;$(ProjectDir)game\Include\Scene\TitleScene\Phase;$(ProjectDir)engine\Include\Component\Light;$(ProjectDir)engine\Include\Component\Primitive;$(ProjectDir)game\Include\Object\Model;$(ProjectDir)game\Include\Object\Effect\Particle;$(ProjectDir)game\Include\Object\Sprite;$(ProjectDir)game\Include\Object\Effect</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)externals\assimp\include;$(ProjectDir)engine\Include\Asset;$(ProjectDir)engine\Include\Component;$(ProjectDir)engine\Include\Component\Light;$(ProjectDir)engine\Include\Core;$(ProjectDir)engine\Include\MapChip;$(ProjectDir)engine\Include\Math;$(ProjectDir)engine\Include\Math\Matrix;$(ProjectDir)engine\Include\Math\Vector;$(ProjectDir)engine\Include\Physics;$(ProjectDir)engine\Include\Rendering;$(ProjectDir)engine\Include\Rendering\Buffer;$(ProjectDir)engine\Include\Rendering\DebugRenderer;$(ProjectDir)engine\Include\Scene;$(ProjectDir)engine\Include\System;$(ProjectDir)engine\Include\Utilities;$(ProjectDir)game\Include\Model;$(ProjectDir)game\Include\Scene</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -109,7 +109,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <AdditionalOptions>/utf-8 /D _AMD64_ %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(ProjectDir)externals\assimp\include;$(ProjectDir)engine\Include\Asset;$(ProjectDir)engine\Include\Component;$(ProjectDir)engine\Include\Core;$(ProjectDir)game\Include\System;$(ProjectDir)engine\Include\Culling;$(ProjectDir)engine\Include\MapChip;$(ProjectDir)engine\Include\Math;$(ProjectDir)engine\Include\Math\Matrix;$(ProjectDir)engine\Include\Math\Vector;$(ProjectDir)engine\Include\Rendering;$(ProjectDir)engine\Include\Rendering\Buffer;$(ProjectDir)engine\Include\Rendering\Drawer;$(ProjectDir)engine\Include\Scene;$(ProjectDir)engine\Include\System;$(ProjectDir)engine\Include\Utilities;%(AdditionalIncludeDirectories);$(ProjectDir)game\Include\Scene;$(ProjectDir)engine\Include\Physics;$(ProjectDir)game\Include\UI;$(ProjectDir)engine\Include\Rendering\DebugRenderer;$(ProjectDir)game\Include\Scene\Phase;$(ProjectDir)game\Include\Object\Model\Player\Behavior;$(ProjectDir)game\Include\Object\Model\Player;$(ProjectDir)game\Include\Object\Model\Player\Behavior\AttackBehavior;$(ProjectDir)game\Include\Scene\GameScene;$(ProjectDir)game\Include\Scene\GameScene\Phase;$(ProjectDir)game\Include\Scene\TitleScene;$(ProjectDir)game\Include\Scene\TitleScene\Phase;$(ProjectDir)engine\Include\Component\Light;$(ProjectDir)engine\Include\Component\Primitive;$(ProjectDir)game\Include\Object\Model;$(ProjectDir)game\Include\Object\Effect\Particle;$(ProjectDir)game\Include\Object\Sprite;$(ProjectDir)game\Include\Object\Effect</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)externals\assimp\include;$(ProjectDir)engine\Include\Asset;$(ProjectDir)engine\Include\Component;$(ProjectDir)engine\Include\Component\Light;$(ProjectDir)engine\Include\Core;$(ProjectDir)engine\Include\MapChip;$(ProjectDir)engine\Include\Math;$(ProjectDir)engine\Include\Math\Matrix;$(ProjectDir)engine\Include\Math\Vector;$(ProjectDir)engine\Include\Physics;$(ProjectDir)engine\Include\Rendering;$(ProjectDir)engine\Include\Rendering\Buffer;$(ProjectDir)engine\Include\Rendering\DebugRenderer;$(ProjectDir)engine\Include\Scene;$(ProjectDir)engine\Include\System;$(ProjectDir)engine\Include\Utilities;$(ProjectDir)game\Include\Model;$(ProjectDir)game\Include\Scene</AdditionalIncludeDirectories>
       <Optimization>MinSpace</Optimization>
     </ClCompile>
     <Link>
@@ -137,7 +137,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <AdditionalOptions>/utf-8 /D _AMD64_ %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(ProjectDir)externals\assimp\include;$(ProjectDir)engine\Include\Asset;$(ProjectDir)engine\Include\Component;$(ProjectDir)engine\Include\Core;$(ProjectDir)game\Include\System;$(ProjectDir)engine\Include\Culling;$(ProjectDir)engine\Include\MapChip;$(ProjectDir)engine\Include\Math;$(ProjectDir)engine\Include\Math\Matrix;$(ProjectDir)engine\Include\Math\Vector;$(ProjectDir)engine\Include\Rendering;$(ProjectDir)engine\Include\Rendering\Buffer;$(ProjectDir)engine\Include\Rendering\Drawer;$(ProjectDir)engine\Include\Scene;$(ProjectDir)engine\Include\System;$(ProjectDir)engine\Include\Utilities;%(AdditionalIncludeDirectories);$(ProjectDir)game\Include\Scene;$(ProjectDir)engine\Include\Physics;$(ProjectDir)game\Include\UI;$(ProjectDir)engine\Include\Rendering\DebugRenderer;$(ProjectDir)game\Include\Scene\Phase;$(ProjectDir)game\Include\Object\Model\Player\Behavior;$(ProjectDir)game\Include\Object\Model\Player;$(ProjectDir)game\Include\Object\Model\Player\Behavior\AttackBehavior;$(ProjectDir)game\Include\Scene\GameScene;$(ProjectDir)game\Include\Scene\GameScene\Phase;$(ProjectDir)game\Include\Scene\TitleScene;$(ProjectDir)game\Include\Scene\TitleScene\Phase;$(ProjectDir)engine\Include\Component\Light;$(ProjectDir)engine\Include\Component\Primitive;$(ProjectDir)game\Include\Object\Model;$(ProjectDir)game\Include\Object\Effect\Particle;$(ProjectDir)game\Include\Object\Sprite;$(ProjectDir)game\Include\Object\Effect</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)externals\assimp\include;$(ProjectDir)engine\Include\Asset;$(ProjectDir)engine\Include\Component;$(ProjectDir)engine\Include\Component\Light;$(ProjectDir)engine\Include\Core;$(ProjectDir)engine\Include\MapChip;$(ProjectDir)engine\Include\Math;$(ProjectDir)engine\Include\Math\Matrix;$(ProjectDir)engine\Include\Math\Vector;$(ProjectDir)engine\Include\Physics;$(ProjectDir)engine\Include\Rendering;$(ProjectDir)engine\Include\Rendering\Buffer;$(ProjectDir)engine\Include\Rendering\DebugRenderer;$(ProjectDir)engine\Include\Scene;$(ProjectDir)engine\Include\System;$(ProjectDir)engine\Include\Utilities;$(ProjectDir)game\Include\Model;$(ProjectDir)game\Include\Scene</AdditionalIncludeDirectories>
       <Optimization>Disabled</Optimization>
       <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
@@ -161,14 +161,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\System\HierarchyWindow.cpp" />
     <ClCompile Include="engine\Source\System\InspectorWindow.cpp" />
     <ClCompile Include="engine\Source\System\GameViewWindow.cpp" />
-    <ClCompile Include="game\Source\Object\Model\AnimatedCube.cpp" />
+    <ClCompile Include="game\Source\Model\AnimatedCube.cpp" />
     <ClCompile Include="engine\Source\System\TreeGenerator.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
     <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
     <ClCompile Include="engine\Source\Component\BlendMode.cpp" />
-    <ClCompile Include="game\Source\Object\Sprite\Button.cpp" />
-    <ClCompile Include="game\Source\Object\Model\AngelStatue.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Building.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer.cpp" />
     <ClCompile Include="engine\Source\Component\Animation.cpp" />
     <ClCompile Include="engine\Source\Component\Object.cpp" />
@@ -177,16 +174,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Component\Footprint.cpp" />
     <ClCompile Include="engine\Source\Component\Light\SpotLight.cpp" />
     <ClCompile Include="engine\Source\Scene\Text.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Player\Behavior\AttackBehavior\PlayerAttackBehaviorEnd.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Player\Behavior\AttackBehavior\PlayerAttackBehaviorStart.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Player\Behavior\AttackBehavior\PlayerAttackBehaviorSwing.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Player\Behavior\PlayerBehaviorJump.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Player\Behavior\PlayerBehaviorRoot.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Player\Behavior\PlayerBehaviorDash.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Player\Behavior\PlayerBehaviorAttack.cpp" />
-    <ClCompile Include="game\Source\Object\Effect\Particle\ArmParticle.cpp" />
-    <ClCompile Include="game\Source\Object\Effect\Particle\DeathParticle.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Enemy.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\CapsuleRenderer.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\OBBRenderer.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\PlaneRenderer.cpp" />
@@ -237,44 +224,21 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Utilities\Logger.cpp" />
     <ClCompile Include="engine\Source\Utilities\StringConverter.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\FrustumRenderer.cpp" />
-    <ClCompile Include="game\Source\Scene\GameScene\GameScene.cpp" />
-    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhaseClear.cpp" />
-    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhaseClearFadeIn.cpp" />
-    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhaseClearFadeOut.cpp" />
-    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhaseDeath.cpp" />
-    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhasePlay.cpp" />
-    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhasePlayFadeIn.cpp" />
-    <ClCompile Include="game\Source\Scene\GameScene\Phase\GameScenePhasePlayFadeOut.cpp" />
+    <ClCompile Include="game\Source\Model\ParticleObject.cpp" />
     <ClCompile Include="game\Source\Scene\SampleScene.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Ground.cpp" />
-    <ClCompile Include="game\Source\System\CameraController.cpp" />
     <ClCompile Include="engine\Source\Component\IndirectCommand.cpp" />
-    <ClCompile Include="game\Source\Object\Effect\Particle\HitEffect.cpp" />
-    <ClCompile Include="game\Source\Object\Effect\Particle\HitRingEffect.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Human.cpp" />
-    <ClCompile Include="game\Source\Object\Effect\Particle\LeafEffect.cpp" />
-    <ClCompile Include="game\Source\Object\Effect\MagicCircleEffect.cpp" />
+    <ClCompile Include="game\Source\Model\Human.cpp" />
     <ClCompile Include="main.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">MaxSpeed</Optimization>
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">true</WholeProgramOptimization>
     </ClCompile>
     <ClCompile Include="engine\Source\Asset\Mesh.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Player\Player.cpp" />
     <ClCompile Include="engine\Source\Physics\RigidBody.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\SphereRenderer.cpp" />
-    <ClCompile Include="game\Source\Object\Model\SkyboxEntity.cpp" />
-    <ClCompile Include="game\Source\Object\Effect\Particle\AttackParticle.cpp" />
+    <ClCompile Include="game\Source\Model\SkyboxEntity.cpp" />
     <ClCompile Include="engine\Source\Component\Light\PointLight.cpp" />
     <ClCompile Include="engine\Source\Math\Quaternion.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Wall.cpp" />
-    <ClCompile Include="game\Source\Scene\TitleScene\TitleScene.cpp" />
-    <ClCompile Include="game\Source\Scene\TitleScene\Phase\TitleScenePhaseFadeIn.cpp" />
-    <ClCompile Include="game\Source\Scene\TitleScene\Phase\TitleScenePhaseFadeOut.cpp" />
-    <ClCompile Include="game\Source\Scene\TitleScene\Phase\TitleScenePhaseMain.cpp" />
-    <ClCompile Include="game\Source\Object\Model\Title.cpp" />
-    <ClCompile Include="game\Source\Object\Effect\Particle\SlashEffect.cpp" />
-    <ClCompile Include="game\Source\Object\Effect\Particle\SlashRingEffect.cpp" />
-    <ClCompile Include="game\Source\Object\Model\SimpleSkin.cpp" />
+    <ClCompile Include="game\Source\Model\SimpleSkin.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\SkeletonRenderer.cpp" />
     <ClCompile Include="engine\Source\System\SceneViewWindow.cpp" />
     <ClCompile Include="engine\Source\System\TransformManipulator.cpp" />
@@ -289,15 +253,12 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\System\InspectorWindow.h" />
     <ClInclude Include="engine\Include\System\SelectionContext.h" />
     <ClInclude Include="engine\Include\System\GameViewWindow.h" />
-    <ClInclude Include="game\Include\Object\Model\AnimatedCube.h" />
+    <ClInclude Include="game\Include\Model\AnimatedCube.h" />
     <ClInclude Include="engine\Include\System\TreeGenerator.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
     <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />
     <ClInclude Include="engine\Include\Utilities\CPUTimer.h" />
-    <ClInclude Include="game\Include\Object\Sprite\Button.h" />
-    <ClInclude Include="game\Include\Object\Model\AngelStatue.h" />
-    <ClInclude Include="game\Include\Object\Model\Building.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer.h" />
     <ClInclude Include="engine\Include\Component\Animation.h" />
     <ClInclude Include="engine\Include\Component\Object.h" />
@@ -308,31 +269,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\Component\Light\SpotLight.h" />
     <ClInclude Include="engine\Include\Component\BlendMode.h" />
     <ClInclude Include="engine\Include\Scene\Text.h" />
-    <ClInclude Include="game\Include\Object\Effect\Particle\ArmParticle.h" />
-    <ClInclude Include="game\Include\Object\Effect\Particle\DeathParticle.h" />
-    <ClInclude Include="game\Include\Object\Model\Enemy.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\CapsuleRenderer.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\OBBRenderer.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\PlaneRenderer.h" />
-    <ClInclude Include="game\Include\Object\Model\Player\Behavior\AttackBehavior\BasePlayerAttackBehavior.h" />
-    <ClInclude Include="game\Include\Object\Model\Player\Behavior\AttackBehavior\PlayerAttackBehaviorEnd.h" />
-    <ClInclude Include="game\Include\Object\Model\Player\Behavior\AttackBehavior\PlayerAttackBehaviorStart.h" />
-    <ClInclude Include="game\Include\Object\Model\Player\Behavior\AttackBehavior\PlayerAttackBehaviorSwing.h" />
-    <ClInclude Include="game\Include\Object\Model\Player\Behavior\BasePlayerBehavior.h" />
-    <ClInclude Include="game\Include\Object\Model\Player\Behavior\PlayerBehaviorAttack.h" />
-    <ClInclude Include="game\Include\Object\Model\Player\Behavior\PlayerBehaviorDash.h" />
-    <ClInclude Include="game\Include\Object\Model\Player\Behavior\PlayerBehaviorJump.h" />
-    <ClInclude Include="game\Include\Object\Model\Player\Behavior\PlayerBehaviorRoot.h" />
-    <ClInclude Include="game\Include\Scene\GameScene\Phase\BaseGameScenePhase.h" />
-    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhaseClear.h" />
-    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhaseClearFadeIn.h" />
-    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhaseClearFadeOut.h" />
-    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhaseDeath.h" />
-    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhasePlay.h" />
-    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhasePlayFadeIn.h" />
-    <ClInclude Include="game\Include\Scene\GameScene\Phase\GameScenePhasePlayFadeOut.h" />
-    <ClInclude Include="game\Include\Scene\TitleScene\Phase\BaseTitleScenePhase.h" />
-    <ClInclude Include="game\Include\System\CameraController.h" />
     <ClInclude Include="engine\Include\Component\Particle.h" />
     <ClInclude Include="engine\Include\Math\MathUtility.h" />
     <ClInclude Include="engine\Include\Rendering\Buffer\World.h" />
@@ -382,35 +321,20 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\Utilities\StringConverter.h" />
     <ClInclude Include="engine\Include\Asset\Mesh.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\FrustumRenderer.h" />
-    <ClInclude Include="game\Include\Scene\GameScene\GameScene.h" />
+    <ClInclude Include="game\Include\Model\ParticleObject.h" />
     <ClInclude Include="game\Include\Scene\SampleScene.h" />
-    <ClInclude Include="game\Include\Object\Model\Player\Player.h" />
     <ClInclude Include="engine\Include\Physics\RigidBody.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\SphereRenderer.h" />
-    <ClInclude Include="game\Include\Object\Model\Ground.h" />
-    <ClInclude Include="game\Include\Object\Model\SkyboxEntity.h" />
-    <ClInclude Include="game\Include\Object\Effect\Particle\AttackParticle.h" />
+    <ClInclude Include="game\Include\Model\SkyboxEntity.h" />
     <ClInclude Include="engine\Include\Component\Light\PointLight.h" />
     <ClInclude Include="engine\Include\Math\Quaternion.h" />
     <ClInclude Include="engine\Include\Component\IndirectCommand.h" />
-    <ClInclude Include="game\Include\Object\Model\Wall.h" />
-    <ClInclude Include="game\Include\Scene\TitleScene\TitleScene.h" />
-    <ClInclude Include="game\Include\Scene\TitleScene\Phase\TitleScenePhaseFadeIn.h" />
-    <ClInclude Include="game\Include\Scene\TitleScene\Phase\TitleScenePhaseFadeOut.h" />
-    <ClInclude Include="game\Include\Scene\TitleScene\Phase\TitleScenePhaseMain.h" />
-    <ClInclude Include="game\Include\Object\Model\Title.h" />
-    <ClInclude Include="game\Include\Object\Effect\Particle\HitEffect.h" />
-    <ClInclude Include="game\Include\Object\Effect\Particle\SlashEffect.h" />
-    <ClInclude Include="game\Include\Object\Effect\Particle\SlashRingEffect.h" />
-    <ClInclude Include="game\Include\Object\Effect\Particle\HitRingEffect.h" />
-    <ClInclude Include="game\Include\Object\Model\SimpleSkin.h" />
-    <ClInclude Include="game\Include\Object\Model\Human.h" />
+    <ClInclude Include="game\Include\Model\SimpleSkin.h" />
+    <ClInclude Include="game\Include\Model\Human.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\SkeletonRenderer.h" />
-    <ClInclude Include="game\Include\Object\Effect\Particle\LeafEffect.h" />
     <ClInclude Include="engine\Include\System\SceneViewWindow.h" />
     <ClInclude Include="engine\Include\System\TransformManipulator.h" />
     <ClInclude Include="engine\Include\Asset\SkinCluster.h" />
-    <ClInclude Include="game\Include\Object\Effect\MagicCircleEffect.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

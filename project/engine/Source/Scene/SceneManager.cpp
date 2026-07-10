@@ -1,7 +1,5 @@
 #include "SceneManager.h"
 #include "SampleScene.h"
-#include "TitleScene.h"
-#include "GameScene.h"
 #include "Renderer.h"
 #include "World.h"
 #include "Audio.h"
@@ -68,6 +66,7 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 
 	// パーティクルグループの作成
 	particleManager_ = std::make_unique<ParticleManager>(device_, textureManager_.get(), meshManager_.get(), logStream_);
+	particleManager_->CreateParticleGroup("Default", MeshType::kPlane, "circle2.png");
 
 	// 現在のシーンの初期化
 	currentScene_ = new SampleScene;

@@ -58,8 +58,8 @@ Renderer::Renderer(Device *device)
 	, commandList_(device->GetCommandList())
 	, object3dRootSignature_(device->GetObject3dRootSignature())
 	, ringObject3dRootSignature_(device->GetRingObject3dRootSignature())
-	, instance3dRootSignature_(device->GetInstance3dRootSignature())
-	, ringInstance3dRootSignature_(device->GetRingInstance3dRootSignature())
+	, particleRootSignature_(device->GetParticleRootSignature())
+	, ringParticleRootSignature_(device->GetRingParticleRootSignature())
 	, lineRootSignature_(device->GetLineRootSignature())
 	, skyboxRootSignature_(device->GetSkyboxRootSignature())
 	, fullscreenRootSignature_(device->GetFullscreenRootSignature())
@@ -73,6 +73,7 @@ Renderer::Renderer(Device *device)
 	, dissolveRootSignature_(device->GetDissolveRootSignature())
 	, noiseRootSignature_(device->GetNoiseRootSignature())
 	, skinningRootSignature_(device->GetSkinningRootSignature())
+	, initializeParticleRootSignature_(device->GetInitializeParticleRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
@@ -190,10 +191,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	assert(object3dPSBlob);
 
 	// Particleのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> instance3dVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Instance3d.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(instance3dVSBlob);
-	Microsoft::WRL::ComPtr<IDxcBlob> instance3dPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Instance3d.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(instance3dPSBlob);
+	Microsoft::WRL::ComPtr<IDxcBlob> particleVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Particle.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(particleVSBlob);
+	Microsoft::WRL::ComPtr<IDxcBlob> particlePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Particle.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(particlePSBlob);
 
 	// Lineのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> lineVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Line.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -252,6 +253,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// スキニングのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> skinningCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Skinning.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(skinningCSBlob);
+
+	// パーティクル初期化のシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> initializeParticleCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/InitializeParticle.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(initializeParticleCSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -334,10 +339,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
 					.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
-					.SetVertexShader(instance3dVSBlob->GetBufferPointer(), instance3dVSBlob->GetBufferSize())	// 頂点シェーダー
-					.SetPixelShader(instance3dPSBlob->GetBufferPointer(), instance3dPSBlob->GetBufferSize())	// ピクセルシェーダー
+					.SetVertexShader(particleVSBlob->GetBufferPointer(), particleVSBlob->GetBufferSize())		// 頂点シェーダー
+					.SetPixelShader(particlePSBlob->GetBufferPointer(), particlePSBlob->GetBufferSize())		// ピクセルシェーダー
 					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-					.Create(device_->GetDevice(), ringInstance3dRootSignature_);
+					.Create(device_->GetDevice(), ringParticleRootSignature_);
 			} else if (static_cast<MeshType>(i) == MeshType::kCylinder) {
 				meshParticlePipelineState_[i][j] = PipelineState()
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
@@ -347,10 +352,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
 					.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
-					.SetVertexShader(instance3dVSBlob->GetBufferPointer(), instance3dVSBlob->GetBufferSize())	// 頂点シェーダー
-					.SetPixelShader(instance3dPSBlob->GetBufferPointer(), instance3dPSBlob->GetBufferSize())	// ピクセルシェーダー
+					.SetVertexShader(particleVSBlob->GetBufferPointer(), particleVSBlob->GetBufferSize())		// 頂点シェーダー
+					.SetPixelShader(particlePSBlob->GetBufferPointer(), particlePSBlob->GetBufferSize())		// ピクセルシェーダー
 					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-					.Create(device_->GetDevice(), instance3dRootSignature_);
+					.Create(device_->GetDevice(), particleRootSignature_);
 			} else {
 				meshParticlePipelineState_[i][j] = PipelineState()
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
@@ -360,10 +365,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
 					.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
-					.SetVertexShader(instance3dVSBlob->GetBufferPointer(), instance3dVSBlob->GetBufferSize())	// 頂点シェーダー
-					.SetPixelShader(instance3dPSBlob->GetBufferPointer(), instance3dPSBlob->GetBufferSize())	// ピクセルシェーダー
+					.SetVertexShader(particleVSBlob->GetBufferPointer(), particleVSBlob->GetBufferSize())		// 頂点シェーダー
+					.SetPixelShader(particlePSBlob->GetBufferPointer(), particlePSBlob->GetBufferSize())		// ピクセルシェーダー
 					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-					.Create(device_->GetDevice(), instance3dRootSignature_);
+					.Create(device_->GetDevice(), particleRootSignature_);
 			}
 			const std::string logMessage = "Create ParticlePipelineState : " + blendModeNames[j] + " " + meshTypeNames[i] + "\n";
 			Logger::Log(logStream, logMessage);
@@ -554,6 +559,13 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create SkinningPipelineState\n");
 	skinningPipelineState_->SetName(L"SkinningPipelineState");
 
+	// パーティクル初期化用パイプラインステートの生成
+	initializeParticlePipelineState_ = PipelineState()
+		.SetComputeShader(initializeParticleCSBlob->GetBufferPointer(), initializeParticleCSBlob->GetBufferSize())	// コンピュートシェーダー
+		.Create(device_->GetDevice(), initializeParticleRootSignature_);
+	Logger::Log(logStream, "Create InitializeParticlePipelineState\n");
+	initializeParticlePipelineState_->SetName(L"InitializeParticlePipelineState");
+
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
 		.SetComputeShader(depthStencilCopyCSBlob->GetBufferPointer(), depthStencilCopyCSBlob->GetBufferSize())	// コンピュートシェーダー
@@ -619,6 +631,16 @@ void Renderer::Initialize(std::ofstream &logStream) {
 		}
 		assert(SUCCEEDED(hr));
 	}
+}
+
+void Renderer::InitializeParticle() {
+	commandList_->SetComputeRootSignature(initializeParticleRootSignature_);
+	commandList_->SetPipelineState(initializeParticlePipelineState_.Get());
+
+	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, particleGroup->uavHandle);
+		commandList_->Dispatch(1, 1, 1);
+		}, exclude<Disabled>());
 }
 
 void Renderer::Render() {
@@ -1083,11 +1105,11 @@ void Renderer::DrawParticle(uint32_t cameraBufferLocationIndex) {
 		std::string label = "Draw" + meshTypeNames[i] + "Particle";
 		PIXBeginEvent(commandList_, pixColor[i], ConvertString(label).c_str());
 
-		// Instance3d用ルートシグネチャの設定
-		commandList_->SetGraphicsRootSignature(static_cast<MeshType>(i) == MeshType::kRing ? ringInstance3dRootSignature_ : instance3dRootSignature_);
+		// Particle用ルートシグネチャの設定
+		commandList_->SetGraphicsRootSignature(static_cast<MeshType>(i) == MeshType::kRing ? ringParticleRootSignature_ : particleRootSignature_);
 
-		// パーティクルのビュープロジェクションのCBVを設定
-		world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(0, cameraBufferLocationIndex);
+		// パーティクルのビューごとのデータのCBVを設定
+		world_->GetConstantBuffer(ConstantBufferType::kParticlePerView)->BindToGraphics(0, cameraBufferLocationIndex);
 
 		// パーティクルのテクスチャのSRVを設定
 		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, 0);
@@ -1100,13 +1122,11 @@ void Renderer::DrawParticle(uint32_t cameraBufferLocationIndex) {
 			commandList_->SetPipelineState(meshParticlePipelineState_[i][j].Get());
 
 			// MeshParticleの描画
-			registry_->ForEach<BlendMode, ParticleGroup>([&](uint32_t entity, BlendMode *blendMode, ParticleGroup *particleGroup) {
-				if (particleGroup->meshType == static_cast<MeshType>(i)) {
-					if (*blendMode == static_cast<BlendMode>(j)) {
-						commandList_->SetGraphicsRoot32BitConstant(1, particleGroup->textureHandle, 0);
-						gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, particleGroup->instanceHandle);
-						meshManager_->Draw(particleGroup->meshHandle, particleGroup->numInstance);
-					}
+			registry_->ForEach<MeshType, BlendMode, ParticleGroup>([&](uint32_t entity, MeshType *meshType, BlendMode *blendMode, ParticleGroup *particleGroup) {
+				if (*meshType == static_cast<MeshType>(i) && *blendMode == static_cast<BlendMode>(j)) {
+					commandList_->SetGraphicsRoot32BitConstant(1, particleGroup->textureHandle, 0);
+					gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, particleGroup->srvHandle);
+					meshManager_->Draw(particleGroup->meshHandle, ParticleManager::kMaxParticle);
 				}
 				}, exclude<Disabled>());
 			PIXEndEvent(commandList_);

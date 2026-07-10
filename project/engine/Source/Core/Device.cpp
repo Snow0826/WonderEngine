@@ -20,7 +20,7 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	uint32_t height = window.GetClientHeight();	// ウィンドウの高さ
 
 #ifdef _DEBUG
-    EnableDebugLayer();
+	EnableDebugLayer();
 #endif	// _DEBUG
 
 	// DXGIファクトリの作成
@@ -187,27 +187,27 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create RingObject3dRootSignature\n");
 	ringObject3dRootSignature_->SetName(L"RingObject3dRootSignature");
 
-	// Instance3d用ルートシグネチャの作成
-	instance3dRootSignature_ = RootSignature()
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:ViewProjection
+	// Particle用ルートシグネチャの作成
+	particleRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:PerView
 		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1)																	// 1:TextureHandle
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 2:Instancing
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 2:Particle
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 3:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
-	Logger::Log(logStream, "Create Instance3dRootSignature\n");
-	instance3dRootSignature_->SetName(L"Instance3dRootSignature");
+	Logger::Log(logStream, "Create ParticleRootSignature\n");
+	particleRootSignature_->SetName(L"ParticleRootSignature");
 
-	// RingInstance3d用ルートシグネチャの作成
-	ringInstance3dRootSignature_ = RootSignature()
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:ViewProjection
+	// RingParticle用ルートシグネチャの作成
+	ringParticleRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:PerView
 		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 0, 1)																	// 1:TextureHandle
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 2:Instancing
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 2:Particle
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 3:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
-	Logger::Log(logStream, "Create RingInstance3dRootSignature\n");
-	ringInstance3dRootSignature_->SetName(L"RingInstance3dRootSignature");
+	Logger::Log(logStream, "Create RingParticleRootSignature\n");
+	ringParticleRootSignature_->SetName(L"RingParticleRootSignature");
 
 	// Line用ルートシグネチャの作成
 	lineRootSignature_ = RootSignature()
@@ -332,6 +332,13 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create SkinningRootSignature\n");
 	skinningRootSignature_->SetName(L"SkinningRootSignature");
 
+	// パーティクル初期化用ルートシグネチャの作成
+	initializeParticleRootSignature_ = RootSignature()
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 0:Particle
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create InitializeParticleRootSignature\n");
+	initializeParticleRootSignature_->SetName(L"InitializeParticleRootSignature");
+
 	// 深度ステンシルテクスチャコピー用ルートシグネチャの作成
 	depthStencilCopyRootSignature_ = RootSignature()
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 0:DepthStencil
@@ -424,6 +431,9 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 
 	// ImGuiの初期化
 	ImGuiManager::Initialize(hwnd, device_, commandQueue_, swapChainDesc, rtvDesc, dsvDesc, gpuCbvSrvUavDescriptorHeap_, logStream);
+	
+	// フレームの開始処理
+	NewFrame();
 }
 
 void Device::NewFrame() {
@@ -538,9 +548,9 @@ void Device::UpdateFixFPS() {
 }
 
 void Device::EnableDebugLayer() const {
-    Microsoft::WRL::ComPtr<ID3D12Debug1> debugController = nullptr;
-    if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
-        debugController->EnableDebugLayer();
-        debugController->SetEnableGPUBasedValidation(true);
-    }
+	Microsoft::WRL::ComPtr<ID3D12Debug1> debugController = nullptr;
+	if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)))) {
+		debugController->EnableDebugLayer();
+		debugController->SetEnableGPUBasedValidation(true);
+	}
 }

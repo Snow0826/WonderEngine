@@ -2,14 +2,19 @@
 #include "MeshType.h"
 #include "BlendMode.h"
 #include "Vector2.h"
-#include "Vector3.h"
 #include "Vector4.h"
-#include "Matrix4x4.h"
+#include "Camera.h"
 #include "CPUTimer.h"
 #include <array>
 #include <vector>
 #include <memory>
 #include <d3d12.h>
+
+/// @brief パーティクルのビューごとのデータ
+struct ParticlePerViewData final {
+	ViewProjectionData viewProjection;	// ビュープロジェクションデータ
+	Matrix4x4 billboardMatrix;	// ビルボード行列
+};
 
 /// @brief uint型4要素ベクトル
 struct Uint4 final {
@@ -110,6 +115,7 @@ struct FootprintForGPU final {
 enum class ConstantBufferType {
 	kTransform,					// ワールド変換データ
 	kViewProjection,			// ビュープロジェクション
+	kParticlePerView,			// パーティクルのビューごとのデータ
 	kMaterial,					// マテリアル
 	kCameraPosition,			// カメラ座標
 	kDirectionalLight,			// 平行光源

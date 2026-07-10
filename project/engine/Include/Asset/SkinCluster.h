@@ -34,10 +34,10 @@ struct SkinCluster final {
 	std::span<VertexData> mappedVertex;					// マッピングされた頂点データ
 	std::unique_ptr<Resource> outputVertexResource;		// 出力頂点リソース
 	D3D12_VERTEX_BUFFER_VIEW outputVertexBufferView;	// 出力頂点バッファビュー
-	uint32_t paletteSRVHandle;							// パレットSRVハンドル
-	uint32_t influenceSRVHandle;						// 頂点影響SRVハンドル
-	uint32_t vertexSRVHandle;							// 頂点SRVハンドル
-	uint32_t vertexUAVHandle;							// 頂点UAVハンドル
+	uint32_t paletteSRVHandle = 0;						// パレットSRVハンドル
+	uint32_t influenceSRVHandle = 0;					// 頂点影響SRVハンドル
+	uint32_t vertexSRVHandle = 0;						// 頂点SRVハンドル
+	uint32_t vertexUAVHandle = 0;						// 頂点UAVハンドル
 };
 
 class Device;

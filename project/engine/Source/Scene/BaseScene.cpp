@@ -67,7 +67,6 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	renderer->SetRegistry(registry_.get());
 	world->SetRegistry(registry_.get());
 	skinClusterManager->SetRegistry(registry_.get());
-	particleManager->SetRegistry(registry_.get());
 
 	// デバッグレンダラーの生成
 	debugRenderer_ = std::make_unique<DebugRenderer>(world);
@@ -216,6 +215,9 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 
 	// 派生クラスの初期化処理の呼び出し
 	OnInitialize();
+
+	// パーティクルの初期化
+	renderer->InitializeParticle();
 }
 
 void BaseScene::Update() {
@@ -314,9 +316,6 @@ void BaseScene::Update() {
 
 	// スキンクラスターの更新
 	skinClusterManager->Update();
-
-	// パーティクルの更新
-	particleManager->UpdateParticle();
 
 	// ワールド変換後処理の呼び出し
 	OnAfterTransform();

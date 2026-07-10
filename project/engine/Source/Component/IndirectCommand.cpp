@@ -26,9 +26,7 @@ IndirectCommandHandle IndirectCommandManager::AddIndirectCommand(uint32_t entity
 	Model *model = registry_->GetComponent<Model>(entity);
 	Primitive *primitive = registry_->GetComponent<Primitive>(entity);
 	Object *object = registry_->GetComponent<Object>(entity);
-	if (!object) {
-		return indirectCommandHandle;
-	}
+	assert((model || primitive) && object);
 
 	if (model) {
 		for (const MeshData &mesh : model->modelData.meshes) {

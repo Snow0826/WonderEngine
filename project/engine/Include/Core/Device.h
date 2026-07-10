@@ -90,13 +90,13 @@ public:
 	/// @return RingObject3d用ルートシグネチャ
 	ID3D12RootSignature *GetRingObject3dRootSignature() const { return ringObject3dRootSignature_.Get(); }
 
-	/// @brief Instance3d用ルートシグネチャを取得
-	/// @return Instance3d用ルートシグネチャ
-	ID3D12RootSignature *GetInstance3dRootSignature() const { return instance3dRootSignature_.Get(); }
+	/// @brief Particle用ルートシグネチャを取得
+	/// @return Particle用ルートシグネチャ
+	ID3D12RootSignature *GetParticleRootSignature() const { return particleRootSignature_.Get(); }
 
-	/// @brief RingInstance3d用ルートシグネチャを取得
-	/// @return RingInstance3d用ルートシグネチャ
-	ID3D12RootSignature *GetRingInstance3dRootSignature() const { return ringInstance3dRootSignature_.Get(); }
+	/// @brief RingParticle用ルートシグネチャを取得
+	/// @return RingParticle用ルートシグネチャ
+	ID3D12RootSignature *GetRingParticleRootSignature() const { return ringParticleRootSignature_.Get(); }
 
 	/// @brief Line用ルートシグネチャを取得
 	/// @return Line用ルートシグネチャ
@@ -150,6 +150,10 @@ public:
 	/// @return スキニング用ルートシグネチャ
 	ID3D12RootSignature *GetSkinningRootSignature() const { return skinningRootSignature_.Get(); }
 
+	/// @brief パーティクル初期化用ルートシグネチャを取得
+	/// @return パーティクル初期化用ルートシグネチャ
+	ID3D12RootSignature *GetInitializeParticleRootSignature() const { return initializeParticleRootSignature_.Get(); }
+
 	/// @brief 深度ステンシルテクスチャコピー用ルートシグネチャを取得
 	/// @return 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *GetDepthStencilCopyRootSignature() const { return depthStencilCopyRootSignature_.Get(); }
@@ -196,8 +200,8 @@ private:
 	std::unique_ptr<Resource> debugCameraDepthStencilTexture_ = nullptr;						// デバッグカメラ用深度ステンシルテクスチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> object3dRootSignature_ = nullptr;				// Object3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringObject3dRootSignature_ = nullptr;			// RingObject3d用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> instance3dRootSignature_ = nullptr;				// Instance3d用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringInstance3dRootSignature_ = nullptr;			// RingInstance3d用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> particleRootSignature_ = nullptr;				// Particle用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringParticleRootSignature_ = nullptr;			// RingParticle用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> lineRootSignature_ = nullptr;					// Line用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> skyboxRootSignature_ = nullptr;					// Skybox用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> fullscreenRootSignature_ = nullptr;				// Fullscreen用ルートシグネチャ
@@ -211,6 +215,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> dissolveRootSignature_ = nullptr;				// Dissolve用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> noiseRootSignature_ = nullptr;					// Noise用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> skinningRootSignature_ = nullptr;				// スキニング用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> initializeParticleRootSignature_ = nullptr;		// パーティクル初期化用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthStencilCopyRootSignature_ = nullptr;		// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> generateHiZMipMapRootSignature_ = nullptr;		// HiZミップマップ生成用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> occlusionCullingRootSignature_ = nullptr;		// オクルージョンカリング用ルートシグネチャ

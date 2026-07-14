@@ -30,12 +30,6 @@ struct UVAABB
     float minZ;
 };
 
-struct TextureData
-{
-    uint textureHandle;
-    uint enableMipmaps;
-};
-
 struct VertexBufferView
 {
     uint2 bufferLocation;
@@ -61,8 +55,7 @@ struct DrawIndexedArguments
     
 struct IndirectCommand
 {
-    uint2 cbvAddress[2];
-    TextureData textureData;
+    uint baseInstanceId;
     VertexBufferView vertexBufferView;
     IndexBufferView indexBufferView;
     DrawIndexedArguments drawIndexedArguments;
@@ -120,10 +113,11 @@ void main(uint3 DTid : SV_DispatchThreadID)
     }
     
     Mesh mesh = meshes[DTid.x]; // Get culling data for this thread
+    Object object = objects[mesh.objectHandle]; // Get object data for this mesh
     float3 center = (mesh.box.min.xyz + mesh.box.max.xyz) * 0.5f;
     float3 extent = (mesh.box.max.xyz - mesh.box.min.xyz) * 0.5f;
-    center = mul(float4(center, 1.0f), objects[mesh.objectHandle].world).xyz; // Transform center to world space
-    extent = mul(extent, abs((float3x3) objects[mesh.objectHandle].world)); // Transform extent to world space (ignore translation)
+    center = mul(float4(center, 1.0f), object.world).xyz; // Transform center to world space
+    extent = mul(extent, abs((float3x3) object.world)); // Transform extent to world space (ignore translation)
     AABB box;
     box.min.xyz = center - extent;
     box.min.w = 1.0f; // Set w to 1 for homogeneous coordinates
@@ -163,7 +157,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     }
     
     IndirectCommand command = meshLODs[mesh.lodOffset + selectedLOD].command;
-    uint queueIndex = objects[mesh.objectHandle].meshType * kMaxBlendMode + objects[mesh.objectHandle].blendMode;
+    uint queueIndex = object.meshType * kMaxBlendMode + object.blendMode;
     uint dstIndex;
     commandCounters.InterlockedAdd(queueIndex * 4, 1, dstIndex);
     uint queueOffset = queueOffsets[queueIndex / 4][queueIndex % 4];

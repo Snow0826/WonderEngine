@@ -145,7 +145,6 @@ private:
 };
 
 class Registry;
-class IndirectCommandManager;
 
 /// @brief モデルインスペクター
 class ModelInspector final {
@@ -153,19 +152,13 @@ public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
 	/// @param modelManager モデルマネージャー
-	/// @param indirectCommandManager 間接コマンドマネージャー
-	ModelInspector(Registry *registry, ModelManager *modelManager, IndirectCommandManager *indirectCommandManager)
-		: registry_(registry)
-		, modelManager_(modelManager)
-		, indirectCommandManager_(indirectCommandManager) {
-	}
+	ModelInspector(Registry *registry, ModelManager *modelManager) : registry_(registry) , modelManager_(modelManager) {}
 
 	/// @brief モデルインスペクターの描画
 	/// @param entity エンティティ
 	void Draw(uint32_t entity);
 
 private:
-	Registry *registry_ = nullptr;								// レジストリ
-	ModelManager *modelManager_ = nullptr;						// モデルマネージャー
-	IndirectCommandManager *indirectCommandManager_ = nullptr;	// 間接コマンドマネージャー
+	Registry *registry_ = nullptr;			// レジストリ
+	ModelManager *modelManager_ = nullptr;	// モデルマネージャー
 };

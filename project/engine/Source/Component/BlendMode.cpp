@@ -1,6 +1,5 @@
 #include "BlendMode.h"
 #include "EntityComponentSystem.h"
-#include "IndirectCommand.h"
 #include <string>
 
 #ifdef USE_IMGUI

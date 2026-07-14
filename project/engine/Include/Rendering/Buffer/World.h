@@ -34,6 +34,58 @@ struct CullingConstantsData final {
 	QueueOffsets queueOffsets;	// キューオフセットリスト
 };
 
+/// @brief カリングオブジェクトデータ(GPU)
+struct CullingObjectData final {
+	Matrix4x4 worldMatrix;	// ワールド行列
+	MeshType meshType;		// メッシュタイプ
+	BlendMode blendMode;	// ブレンドモード
+};
+
+/// @brief AABB(GPU)
+struct AABBForGPU final {
+	Vector4 min;	// 最小点
+	Vector4 max;	// 最大点
+};
+
+/// @brief カリングデータ(GPU)
+struct CullingMeshData final {
+	AABBForGPU aabb;			// AABB
+	uint32_t objectHandle = 0;	// オブジェクトハンドル
+	uint32_t lodOffset = 0;		// LODオフセット
+	uint32_t lodCount = 0;		// LOD数
+	uint32_t useCulling = 0;	// カリングを使用するか
+};
+
+/// @brief 間接コマンド
+#pragma pack(push, 1)
+struct IndirectCommand final {
+	uint32_t baseInstanceId = 0;						// ベースインスタンスID
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;			// 頂点バッファビュー
+	D3D12_INDEX_BUFFER_VIEW indexBufferView;			// インデックスバッファビュー
+	D3D12_DRAW_INDEXED_ARGUMENTS drawIndexedArguments;	// 描画コマンド引数
+};
+#pragma pack(pop)
+
+/// @brief メッシュLOD
+#pragma pack(push, 1)
+struct MeshLOD final {
+	IndirectCommand indirectCommand;	// 間接コマンド
+	float error = 0.0f;					// LODエラー
+};
+#pragma pack(pop)
+
+/// @brief カリングコンポーネント
+struct UseCulling final {};
+
+/// @brief テクスチャデータ
+struct TextureData final {
+	uint32_t textureHandle = 0;	// テクスチャハンドル
+	bool enableMipMaps = true;	// ミップマップ有効フラグ
+};
+
+/// @brief テクスチャデータが変更されたフラグ
+struct DirtyTextureData final {};
+
 /// @brief ライトデータ
 struct LightData final {
 	uint32_t pointLightCount = 0;	// 点光源の数
@@ -113,13 +165,12 @@ struct FootprintForGPU final {
 
 /// @brief 定数バッファの種類
 enum class ConstantBufferType {
-	kTransform,					// ワールド変換データ
 	kViewProjection,			// ビュープロジェクション
 	kParticlePerView,			// パーティクルのビューごとのデータ
-	kMaterial,					// マテリアル
 	kCameraPosition,			// カメラ座標
 	kDirectionalLight,			// 平行光源
 	kFrustum,					// 視錐台
+	kSkybox,					// スカイボックス
 	kGrayscaleColor,			// グレースケールカラー
 	kVignetteParam,				// ビネットパラメータ
 	kBoxFilterParam,			// ボックスフィルターパラメータ
@@ -145,6 +196,14 @@ enum class StructuredBufferType {
 	kCountOfStructuredBufferType	// 構造化バッファの種類の数
 };
 
+/// @brief メッシュ構造化バッファの種類
+enum class MeshStructuredBufferType {
+	kWorldTransform,					// ワールド変換
+	kMaterial,							// マテリアル
+	kTextureData,						// テクスチャデータ
+	kCountOfMeshStructuredBufferType	// メッシュ構造化バッファの種類の数
+};
+
 /// @brief ポストエフェクト
 enum class PostEffect {
 	kNone,					// なし
@@ -162,6 +221,8 @@ enum class PostEffect {
 
 class Device;
 class Registry;
+class MeshManager;
+class SkinClusterManager;
 class ConstantBuffer;
 class Resource;
 namespace Rendering {
@@ -169,14 +230,18 @@ namespace Rendering {
 }
 struct PointLight;
 struct SpotLight;
+struct TransformationMatrix;
+struct Material;
 
 /// @brief ワールド
 class World final {
 public:
 	/// @brief コンストラクタ
 	/// @param device デバイス
+	/// @param meshManager メッシュマネージャー
+	/// @param skinClusterManager スキンクラスター管理者
 	/// @param logStream ログストリーム
-	World(Device *device, std::ofstream &logStream);
+	World(Device *device, MeshManager *meshManager, SkinClusterManager *skinClusterManager, std::ofstream &logStream);
 
 	/// @brief デストラクタ
 	~World();
@@ -248,9 +313,9 @@ public:
 	/// @return フットプリントマップバッファ
 	Resource *GetFootprintMapBuffer() { return footprintMapBuffer_.get(); }
 
-	/// @brief キューオフセットリストを取得
-	/// @return キューオフセットリスト
-	QueueOffsets GetQueueOffsets() const { return queueOffsets_; }
+	/// @brief カリング定数データを取得
+	/// @return カリング定数データ
+	CullingConstantsData GetCullingConstantsData() const { return cullingConstantsData_; }
 
 	/// @brief フットプリントマップデータを取得
 	/// @return フットプリントマップデータ
@@ -264,6 +329,15 @@ public:
 	/// @param type 構造化バッファの種類
 	/// @return 構造化バッファのハンドル
 	uint32_t GetStructuredBufferHandle(StructuredBufferType type) const { return structuredBufferHandles_[static_cast<size_t>(type)]; }
+
+	/// @brief メッシュ構造化バッファのハンドルを取得
+	/// @param bufferType メッシュ構造化バッファの種類
+	/// @param meshType メッシュの種類
+	/// @param blendMode ブレンドモード
+	/// @return メッシュ構造化バッファのハンドル
+	uint32_t GetMeshStructuredBufferHandle(MeshStructuredBufferType bufferType, MeshType meshType, BlendMode blendMode) const {
+		return meshStructuredBufferHandles_[static_cast<size_t>(bufferType)][static_cast<size_t>(meshType)][static_cast<size_t>(blendMode)];
+	}
 
 	/// @brief シーンのレンダーテクスチャのRTVハンドルを取得
 	/// @return シーンのレンダーテクスチャのRTVハンドル
@@ -343,17 +417,33 @@ private:
 	using ConstantBuffers = std::array<std::unique_ptr<ConstantBuffer>, static_cast<size_t>(ConstantBufferType::kCountOfConstantBufferType)>;
 	using StructuredBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
 	using StructuredBufferHandles = std::array<uint32_t, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
-	static inline constexpr uint32_t kMaxObject = 1048576;				// 最大オブジェクト数
+	using BlendStructuredBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
+	using BlendMeshStructuredBuffers = std::array<BlendStructuredBuffers, static_cast<size_t>(MeshType::kCountOfMeshType)>;
+	using MeshStructuredBuffers = std::array<BlendMeshStructuredBuffers, static_cast<size_t>(MeshStructuredBufferType::kCountOfMeshStructuredBufferType)>;
+	using BlendStructuredBufferHandles = std::array<uint32_t, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
+	using BlendMeshStructuredBufferHandles = std::array<BlendStructuredBufferHandles, static_cast<size_t>(MeshType::kCountOfMeshType)>;
+	using MeshStructuredBufferHandles = std::array<BlendMeshStructuredBufferHandles, static_cast<size_t>(MeshStructuredBufferType::kCountOfMeshStructuredBufferType)>;
+	using BlendWorldTransform = std::array<TransformationMatrix *, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
+	using MeshWorldTransform = std::array<BlendWorldTransform, static_cast<size_t>(MeshType::kCountOfMeshType)>;
+	using BlendMaterial = std::array<Material *, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
+	using MeshMaterial = std::array<BlendMaterial, static_cast<size_t>(MeshType::kCountOfMeshType)>;
+	using BlendTextureData = std::array<TextureData *, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
+	using MeshTextureData = std::array<BlendTextureData, static_cast<size_t>(MeshType::kCountOfMeshType)>;
+	static inline constexpr uint32_t kMaxObject = 100000;				// 最大オブジェクト数
 	static inline constexpr uint32_t kMaxLine = 65536;					// 最大ライン数
 	static inline constexpr uint32_t kMaxPointLight = 32;				// 最大点光源数
 	static inline constexpr uint32_t kMaxSpotLight = 32;				// 最大スポットライト数
-	static inline constexpr uint32_t kMaxAABB = 1048576;				// 最大AABB数
+	static inline constexpr uint32_t kMaxAABB = 100000;					// 最大AABB数
 	static inline constexpr uint32_t kMaxFootprint = 64;				// 最大フットプリント数
 	static inline constexpr uint32_t kMaxCommandPerQueue = 1024;		// コマンドキューあたりの最大コマンド数
 	Registry *registry_ = nullptr;										// レジストリ
+	MeshManager *meshManager_ = nullptr;								// メッシュマネージャー
+	SkinClusterManager *skinClusterManager_ = nullptr;					// スキンクラスターマネージャー
 	ConstantBuffers constantBuffers_;									// 定数バッファリスト
 	StructuredBuffers structuredBuffers_;								// 構造化バッファリスト
 	StructuredBufferHandles structuredBufferHandles_;					// 構造化バッファハンドルリスト
+	MeshStructuredBuffers meshStructuredBuffers_;						// メッシュ構造化バッファリスト
+	MeshStructuredBufferHandles meshStructuredBufferHandles_;			// メッシュ構造化バッファハンドルリスト
 	std::unique_ptr<Resource> sceneRenderTexture_ = nullptr;			// シーンのレンダーテクスチャ
 	std::unique_ptr<Resource> gameRenderTexture_ = nullptr;				// ゲームのレンダーテクスチャ
 	std::unique_ptr<Resource> postEffectRenderTexture_ = nullptr;		// ポストエフェクトのレンダーテクスチャ
@@ -363,7 +453,7 @@ private:
 	std::unique_ptr<Resource> commandCounterBuffer_ = nullptr;			// コマンドカウンターバッファ
 	std::unique_ptr<Resource> footprintMapBuffer_ = nullptr;			// フットプリントマップバッファ
 	std::unique_ptr<Resource> footprintMapReadbackBuffer_ = nullptr;	// フットプリントマップ読み戻しバッファ
-	QueueOffsets queueOffsets_;											// キューオフセットリスト
+	CullingConstantsData cullingConstantsData_;							// カリング定数データ
 	GrayscaleColor grayscaleColor_;										// グレースケールカラー
 	VignetteParam vignetteParam_;										// ビネットパラメータ
 	BoxFilterParam boxFilterParam_;										// ボックスフィルターパラメータ
@@ -376,9 +466,15 @@ private:
 	NoiseParam noiseParam_;												// ノイズのパラメータ
 	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
 	Int4 *colorData_ = nullptr;											// 色データ
+	MeshLOD *meshLODData_ = nullptr;									// メッシュLODデータ
 	Rendering::Line *lineData_ = nullptr;								// ラインデータ
 	PointLight *pointLightData_ = nullptr;								// 点光源データ
 	SpotLight *spotLightData_ = nullptr;								// スポットライトデータ
+	CullingMeshData *cullingMeshData_ = nullptr;						// カリングメッシュデータ
+	CullingObjectData *cullingObjectData_ = nullptr;					// カリングオブジェクトデータ
+	MeshWorldTransform meshWorldTransform_;								// メッシュワールド変換
+	MeshMaterial meshMaterial_;											// メッシュマテリアル
+	MeshTextureData meshTextureData_;									// メッシュテクスチャデータ
 	uint32_t mipLevels_ = 0;											// ミップレベル数
 	uint32_t sceneRenderTextureRTVHandle_ = 0;							// シーンのレンダーテクスチャRTVハンドル
 	uint32_t sceneRenderTextureSRVHandle_ = 0;							// シーンのレンダーテクスチャSRVハンドル
@@ -395,6 +491,7 @@ private:
 	uint32_t processedCommandHandle_ = 0;								// カリング済みコマンドハンドル
 	uint32_t commandCounterHandle_ = 0;									// コマンドカウンターハンドル
 	uint32_t footprintMapHandle_ = 0;									// フットプリントマップハンドル
+	uint32_t instanceCount_ = 0;										// インスタンスの数
 	PostEffect postEffect_ = PostEffect::kNone;							// ポストエフェクト
 	bool isCulling_ = false;											// カリング有効フラグ
 	bool isResult_ = false;												// 結果表示フラグ
@@ -413,10 +510,16 @@ private:
 	void TransferCamera();
 
 	/// @brief ワールド変換の転送
-	void TransferTransform();
+	void TransferWorldTransform();
 
 	/// @brief マテリアルの転送
 	void TransferMaterial();
+
+	/// @brief テクスチャデータの転送
+	void TransferTextureData();
+
+	/// @brief スカイボックスの転送
+	void TransferSkybox();
 
 	/// @brief グレースケールカラーの転送
 	void TransferGrayscaleColor();
@@ -444,6 +547,12 @@ private:
 
 	/// @brief ノイズのパラメータの転送
 	void TransferNoiseParam();
+
+	/// @brief メッシュLODデータの転送
+	void TransferMeshLODData();
+
+	/// @brief カリングデータの転送
+	void TransferCullingData();
 
 	/// @brief フットプリントの転送
 	void TransferFootprint();

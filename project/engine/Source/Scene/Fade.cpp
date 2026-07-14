@@ -2,7 +2,6 @@
 #include "Fade.h"
 #include "EntityComponentSystem.h"
 #include "BlendMode.h"
-#include "Object.h"
 #include "Sprite.h"
 #include "Material.h"
 #include "Transform.h"
@@ -10,13 +9,12 @@
 
 void Fade::Add(const std::string &textureFileName, const Vector4 &color) {
 	// スプライトの設定
-	Sprite sprite = spriteManager_->CreateSprite(textureFileName);
+	Sprite sprite = spriteManager_->CreateSprite("Fade", textureFileName);
 	sprite.spriteData.size = { 1280.0f, 720.0f };
 
 	// エンティティの生成
 	entity_ = registry_->GenerateEntity();
 	registry_->AddComponent(entity_, BlendMode::kBlendModeNormal);
-	registry_->AddComponent(entity_, objectManager_->CreateObject(entity_));
 	registry_->AddComponent(entity_, sprite);
 	registry_->AddComponent(entity_, EulerTransform{});
 	registry_->AddComponent(entity_, Material{ .color = color, .enableLighting = false });

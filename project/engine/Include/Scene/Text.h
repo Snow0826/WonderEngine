@@ -10,7 +10,6 @@ struct Text final {
 
 class Registry;
 class SpriteManager;
-class ObjectManager;
 struct Matrix4x4;
 struct Vector3;
 struct Quaternion;
@@ -21,8 +20,7 @@ public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
 	/// @param spriteManager スプライトマネージャー
-	TextManager(Registry *registry, SpriteManager *spriteManager, ObjectManager *objectManager)
-		: registry_(registry), spriteManager_(spriteManager), objectManager_(objectManager) {}
+	TextManager(Registry *registry, SpriteManager *spriteManager) : registry_(registry), spriteManager_(spriteManager) {}
 
 	/// @brief テキストの作成
 	/// @param text テキスト
@@ -65,7 +63,6 @@ public:
 private:
 	Registry *registry_ = nullptr;							// レジストリ
 	SpriteManager *spriteManager_ = nullptr;				// スプライトマネージャー
-	ObjectManager *objectManager_ = nullptr;				// オブジェクトマネージャー
 	static inline constexpr int32_t kFontWidth = 9;			// フォント画像内1文字分の横幅
 	static inline constexpr int32_t kFontHeight = 18;		// フォント画像内1文字分の縦幅
 	static inline constexpr int32_t kFontLineCount = 14;	// フォント画像内1行分の文字数

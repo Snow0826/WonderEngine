@@ -36,10 +36,6 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	assert(logStream);
 	logStream_ = logStream;
 
-	// ワールドの生成
-	world_ = std::make_unique<World>(device_, *logStream_);
-	renderer_->SetWorld(world_.get());
-
 	// テクスチャの読み込み
 	textureManager_ = std::make_unique<TextureManager>(device_, logStream_);
 	renderer_->SetTextureManager(textureManager_.get());
@@ -50,7 +46,7 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	textureManager_->LoadTexture("noise1.png");
 
 	// メッシュマネージャーの生成
-	meshManager_ = std::make_unique<MeshManager>(device_);
+	meshManager_ = std::make_unique<MeshManager>(device_, logStream_);
 	renderer_->SetMeshManager(meshManager_.get());
 
 	// スキンクラスターマネージャーの生成
@@ -66,7 +62,11 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 
 	// パーティクルグループの作成
 	particleManager_ = std::make_unique<ParticleManager>(device_, textureManager_.get(), meshManager_.get(), logStream_);
-	particleManager_->CreateParticleGroup("Default", MeshType::kPlane, "circle2.png");
+	particleManager_->CreateParticleGroup("Default", MeshType::kPlane, "circle2.png", 1024);
+
+	// ワールドの生成
+	world_ = std::make_unique<World>(device_, meshManager_.get(), skinClusterManager_.get(), *logStream_);
+	renderer_->SetWorld(world_.get());
 
 	// 現在のシーンの初期化
 	currentScene_ = new SampleScene;

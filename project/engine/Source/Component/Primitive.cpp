@@ -2,54 +2,58 @@
 #include "Mesh.h"
 #include "Texture.h"
 
-Primitive PrimitiveGenerator::CreatePlane(const std::string &textureFileName) {
+Primitive PrimitiveGenerator::CreatePlane(const std::string &meshName, const std::string &textureFileName) {
+	meshManager_->CreatePlane(meshName);
 	Primitive plane{
-		.meshHandle = meshManager_->CreatePlane(),									// メッシュハンドル
+		.meshName = meshName,
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
 		.error = 0.0f,																// LODエラー
-		.sphere = meshManager_->CreateLocalSphere(plane.meshHandle),				// 球
-		.aabb = meshManager_->CreateLocalAABB(plane.meshHandle),					// AABB
-		.obb = meshManager_->CreateLocalOBB(plane.meshHandle),						// OBB
+		.sphere = meshManager_->CreateLocalSphere(plane.meshName),					// 球
+		.aabb = meshManager_->CreateLocalAABB(plane.meshName),						// AABB
+		.obb = meshManager_->CreateLocalOBB(plane.meshName),						// OBB
 	};
 	return plane;
 }
 
-Primitive PrimitiveGenerator::CreateBox(const std::string &textureFileName) {
+Primitive PrimitiveGenerator::CreateBox(const std::string &meshName, const std::string &textureFileName) {
+	meshManager_->CreateBox(meshName);
 	Primitive box{
-		.meshHandle = meshManager_->CreateBox(),									// メッシュハンドル
+		.meshName = meshName,
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
 		.error = 0.0f,																// LODエラー
-		.sphere = meshManager_->CreateLocalSphere(box.meshHandle),					// 球
-		.aabb = meshManager_->CreateLocalAABB(box.meshHandle),						// AABB
-		.obb = meshManager_->CreateLocalOBB(box.meshHandle),						// OBB
+		.sphere = meshManager_->CreateLocalSphere(box.meshName),					// 球
+		.aabb = meshManager_->CreateLocalAABB(box.meshName),						// AABB
+		.obb = meshManager_->CreateLocalOBB(box.meshName),							// OBB
 	};
 	return box;
 }
 
-Primitive PrimitiveGenerator::CreateRing(uint32_t divide, float outerRadius, float innerRadius, const std::string &textureFileName) {
+Primitive PrimitiveGenerator::CreateRing(const std::string &meshName, uint32_t divide, float outerRadius, float innerRadius, const std::string &textureFileName) {
+	meshManager_->CreateRing(meshName, divide, outerRadius, innerRadius);
 	Primitive ring{
-		.meshHandle = meshManager_->CreateRing(divide, outerRadius, innerRadius),	// メッシュハンドル
+		.meshName = meshName,
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
 		.error = 0.0f,																// LODエラー
-		.sphere = meshManager_->CreateLocalSphere(ring.meshHandle),					// 球
-		.aabb = meshManager_->CreateLocalAABB(ring.meshHandle),						// AABB
-		.obb = meshManager_->CreateLocalOBB(ring.meshHandle),						// OBB
+		.sphere = meshManager_->CreateLocalSphere(ring.meshName),					// 球
+		.aabb = meshManager_->CreateLocalAABB(ring.meshName),						// AABB
+		.obb = meshManager_->CreateLocalOBB(ring.meshName),							// OBB
 	};
 	return ring;
 }
 
-Primitive PrimitiveGenerator::CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height, bool cap, const std::string &textureFileName) {
+Primitive PrimitiveGenerator::CreateCylinder(const std::string &meshName, uint32_t divide, float topRadius, float bottomRadius, float height, bool cap, const std::string &textureFileName) {
+	meshManager_->CreateCylinder(meshName, divide, topRadius, bottomRadius, height, cap);
 	Primitive cylinder{
-		.meshHandle = meshManager_->CreateCylinder(divide, topRadius, bottomRadius, height, cap),	// メッシュハンドル
-		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),					// テクスチャハンドル
-		.enableMipMaps = true,																		// ミップマップの有効化
-		.error = 0.0f,																				// LODエラー
-		.sphere = meshManager_->CreateLocalSphere(cylinder.meshHandle),								// 球
-		.aabb = meshManager_->CreateLocalAABB(cylinder.meshHandle),									// AABB
-		.obb = meshManager_->CreateLocalOBB(cylinder.meshHandle),									// OBB
+		.meshName = meshName,
+		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
+		.enableMipMaps = true,														// ミップマップの有効化
+		.error = 0.0f,																// LODエラー
+		.sphere = meshManager_->CreateLocalSphere(cylinder.meshName),				// 球
+		.aabb = meshManager_->CreateLocalAABB(cylinder.meshName),					// AABB
+		.obb = meshManager_->CreateLocalOBB(cylinder.meshName),						// OBB
 	};
 	return cylinder;
 }

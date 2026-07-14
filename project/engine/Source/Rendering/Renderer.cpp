@@ -5,7 +5,6 @@
 #include "PipelineState.h"
 #include "Texture.h"
 #include "SkinCluster.h"
-#include "Object.h"
 #include "Model.h"
 #include "Sprite.h"
 #include "Particle.h"
@@ -18,7 +17,6 @@
 #include "Device.h"
 #include "World.h"
 #include "ConstantBuffer.h"
-#include "IndirectCommand.h"
 #include "Footprint.h"
 #include "ImGuiManager.h"
 #include "Logger.h"
@@ -28,6 +26,14 @@
 using namespace StringConverter;
 
 namespace {
+	std::array<uint32_t, static_cast<uint32_t>(MeshType::kCountOfMeshType)> pixColors = {
+		PIX_COLOR(255, 0, 0),	// MeshType::kModel
+		PIX_COLOR(255, 255, 0),	// MeshType::kPlane
+		PIX_COLOR(255, 0, 255),	// MeshType::kBox
+		PIX_COLOR(0, 255, 0),	// MeshType::kRing
+		PIX_COLOR(0, 255, 255)	// MeshType::kCylinder
+	};
+
 	// メッシュタイプ名リスト
 	std::array<std::string, static_cast<uint32_t>(MeshType::kCountOfMeshType)> meshTypeNames = {
 		"Model",
@@ -602,19 +608,15 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	footprintMapPipelineState_->SetName(L"FootprintMapPipelineState");
 
 	// コマンドシグネチャの引数設定
-	D3D12_INDIRECT_ARGUMENT_DESC argumentDescList[6] = {};
-	argumentDescList[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW;
-	argumentDescList[0].ConstantBufferView.RootParameterIndex = 0;
-	argumentDescList[1].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW;
-	argumentDescList[1].ConstantBufferView.RootParameterIndex = 2;
-	argumentDescList[2].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
-	argumentDescList[2].Constant.RootParameterIndex = 5;
-	argumentDescList[2].Constant.DestOffsetIn32BitValues = 0;
-	argumentDescList[2].Constant.Num32BitValuesToSet = 2;
-	argumentDescList[3].Type = D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
-	argumentDescList[3].VertexBuffer.Slot = 0;
-	argumentDescList[4].Type = D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW;
-	argumentDescList[5].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
+	D3D12_INDIRECT_ARGUMENT_DESC argumentDescList[4] = {};
+	argumentDescList[0].Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT;
+	argumentDescList[0].Constant.RootParameterIndex = 1;
+	argumentDescList[0].Constant.DestOffsetIn32BitValues = 0;
+	argumentDescList[0].Constant.Num32BitValuesToSet = 1;
+	argumentDescList[1].Type = D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW;
+	argumentDescList[1].VertexBuffer.Slot = 0;
+	argumentDescList[2].Type = D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW;
+	argumentDescList[3].Type = D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED;
 
 	// コマンドシグネチャの設定
 	D3D12_COMMAND_SIGNATURE_DESC commandSignatureDesc = {};
@@ -693,11 +695,6 @@ void Renderer::SetWorld(World *world) {
 void Renderer::SetDebugRenderer(DebugRenderer *debugRenderer) {
 	assert(debugRenderer);
 	debugRenderer_ = debugRenderer;
-}
-
-void Renderer::SetIndirectCommandManager(IndirectCommandManager *indirectCommandManager) {
-	assert(indirectCommandManager);
-	indirectCommandManager_ = indirectCommandManager;
 }
 
 void Renderer::SetMeshManager(MeshManager *meshManager) {
@@ -802,10 +799,7 @@ void Renderer::OcclusionCulling() {
 	world_->GetConstantBuffer(ConstantBufferType::kCameraPosition)->BindToCompute(2, 0);
 
 	// メッシュ数の設定
-	CullingConstantsData cullingConstantsData = {
-		.meshCount = indirectCommandManager_->GetMeshCounter(),
-		.queueOffsets = world_->GetQueueOffsets()
-	};
+	CullingConstantsData cullingConstantsData = world_->GetCullingConstantsData();
 	commandList_->SetComputeRoot32BitConstants(3, sizeof(CullingConstantsData) / sizeof(uint32_t), &cullingConstantsData, 0);
 
 	// 各種バッファのSRV/UAVを設定
@@ -1034,19 +1028,10 @@ void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
 	world_->GetProcessedCommandBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
 	world_->GetCommandCounterBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT);
 
-	// PIXイベントの色の設定
-	UINT32 pixColor[static_cast<uint32_t>(MeshType::kCountOfMeshType)] = {
-		PIX_COLOR(255, 0, 0),	// MeshType::kModel
-		PIX_COLOR(255, 255, 0),	// MeshType::kPlane
-		PIX_COLOR(255, 0, 255),	// MeshType::kBox
-		PIX_COLOR(0, 255, 0),	// MeshType::kRing
-		PIX_COLOR(0, 255, 255),	// MeshType::kCylinder
-	};
-
 	// メッシュタイプごとに描画
 	for (uint32_t i = 0; i < static_cast<uint32_t>(MeshType::kCountOfMeshType); i++) {
 		std::string label = "Draw" + meshTypeNames[i];
-		PIXBeginEvent(commandList_, pixColor[i], ConvertString(label).c_str());
+		PIXBeginEvent(commandList_, pixColors[i], ConvertString(label).c_str());
 		if (static_cast<MeshType>(i) == MeshType::kRing) {
 			commandList_->SetGraphicsRootSignature(ringObject3dRootSignature_);
 		} else {
@@ -1054,26 +1039,31 @@ void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
 		}
 
 		// メッシュの共通のCBV・SRVを設定
-		world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(1, cameraBufferLocationIndex);
-		world_->GetConstantBuffer(ConstantBufferType::kCameraPosition)->BindToGraphics(3, 0);
-		world_->GetConstantBuffer(ConstantBufferType::kDirectionalLight)->BindToGraphics(4, 0);
+		world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(0, cameraBufferLocationIndex);
+		world_->GetConstantBuffer(ConstantBufferType::kCameraPosition)->BindToGraphics(2, 0);
+		world_->GetConstantBuffer(ConstantBufferType::kDirectionalLight)->BindToGraphics(3, 0);
 		LightData lightData = {
 			.pointLightCount = static_cast<uint32_t>(registry_->GetComponentCount<PointLight>()),
 			.spotLightCount = static_cast<uint32_t>(registry_->GetComponentCount<SpotLight>())
 		};
-		commandList_->SetGraphicsRoot32BitConstants(6, 2, &lightData, 0);
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetStructuredBufferHandle(StructuredBufferType::kPointLight));
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetStructuredBufferHandle(StructuredBufferType::kSpotLight));
+		commandList_->SetGraphicsRoot32BitConstants(4, 2, &lightData, 0);
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetStructuredBufferHandle(StructuredBufferType::kPointLight));
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, world_->GetStructuredBufferHandle(StructuredBufferType::kSpotLight));
 		registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, skybox->textureHandle);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, skybox->textureHandle);
 			}, exclude<Disabled>());
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, 0);
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(11, 0);
 
 		// ブレンドモードごとに描画
 		for (uint32_t j = 0; j < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); j++) {
 			label = blendModeNames[j] + "Blend";
 			PIXBeginEvent(commandList_, PIX_COLOR(255, 255, 255), ConvertString(label).c_str());
 			commandList_->SetPipelineState(meshPipelineState_[i][j].Get());
+
+			// メッシュごとのSRVを設定
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(5, world_->GetMeshStructuredBufferHandle(MeshStructuredBufferType::kWorldTransform, static_cast<MeshType>(i), static_cast<BlendMode>(j)));
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(6, world_->GetMeshStructuredBufferHandle(MeshStructuredBufferType::kMaterial, static_cast<MeshType>(i), static_cast<BlendMode>(j)));
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetMeshStructuredBufferHandle(MeshStructuredBufferType::kTextureData, static_cast<MeshType>(i), static_cast<BlendMode>(j)));
 
 			// メッシュの描画
 			uint32_t queueIndex = i * static_cast<uint32_t>(BlendMode::kCountOfBlendMode) + j;
@@ -1091,19 +1081,10 @@ void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
 }
 
 void Renderer::DrawParticle(uint32_t cameraBufferLocationIndex) {
-	// PIXイベントの色の設定
-	UINT32 pixColor[static_cast<uint32_t>(MeshType::kCountOfMeshType)] = {
-		PIX_COLOR(255, 0, 0),	// MeshType::kModel
-		PIX_COLOR(255, 255, 0),	// MeshType::kPlane
-		PIX_COLOR(255, 0, 255),	// MeshType::kBox
-		PIX_COLOR(0, 255, 0),	// MeshType::kRing
-		PIX_COLOR(0, 255, 255)	// MeshType::kCylinder
-	};
-
 	// メッシュタイプごとに描画
 	for (size_t i = 0; i < static_cast<uint32_t>(MeshType::kCountOfMeshType); i++) {
 		std::string label = "Draw" + meshTypeNames[i] + "Particle";
-		PIXBeginEvent(commandList_, pixColor[i], ConvertString(label).c_str());
+		PIXBeginEvent(commandList_, pixColors[i], ConvertString(label).c_str());
 
 		// Particle用ルートシグネチャの設定
 		commandList_->SetGraphicsRootSignature(static_cast<MeshType>(i) == MeshType::kRing ? ringParticleRootSignature_ : particleRootSignature_);
@@ -1126,7 +1107,7 @@ void Renderer::DrawParticle(uint32_t cameraBufferLocationIndex) {
 				if (*meshType == static_cast<MeshType>(i) && *blendMode == static_cast<BlendMode>(j)) {
 					commandList_->SetGraphicsRoot32BitConstant(1, particleGroup->textureHandle, 0);
 					gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, particleGroup->srvHandle);
-					meshManager_->Draw(particleGroup->meshHandle, ParticleManager::kMaxParticle);
+					meshManager_->Draw(particleGroup->meshName);
 				}
 				}, exclude<Disabled>());
 			PIXEndEvent(commandList_);
@@ -1139,28 +1120,15 @@ void Renderer::DrawSprite() {
 	// Object3d用ルートシグネチャの設定
 	commandList_->SetGraphicsRootSignature(object3dRootSignature_);
 
-	// スプライトのビュープロジェクションのCBVを設定
-	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(1, 0);
-
-	// Object3dのSRVを設定
-	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, 0);
-
 	// 各ブレンドモードのスプライトの描画
 	for (uint32_t i = 0; i < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); i++) {
 		// Sprite用パイプラインステートの設定
 		commandList_->SetPipelineState(spritePipelineState_[i].Get());
 
 		// スプライトの描画
-		registry_->ForEach<BlendMode, Sprite, Object>([&](uint32_t entity, BlendMode *blendMode, Sprite *sprite, Object *object) {
+		registry_->ForEach<BlendMode, Sprite>([&](uint32_t entity, BlendMode *blendMode, Sprite *sprite) {
 			if (*blendMode == static_cast<BlendMode>(i)) {
-				world_->GetConstantBuffer(ConstantBufferType::kTransform)->BindToGraphics(0, object->handle);
-				world_->GetConstantBuffer(ConstantBufferType::kMaterial)->BindToGraphics(2, object->handle);
-				TextureData textureData = {
-					.textureHandle = sprite->textureHandle,
-					.enableMipMaps = sprite->enableMipMaps
-				};
-				commandList_->SetGraphicsRoot32BitConstants(5, 2, &textureData, 0);
-				meshManager_->Draw(sprite->meshHandle);
+				meshManager_->Draw(sprite->meshName);
 			}
 			}, exclude<Disabled>());
 	}
@@ -1180,11 +1148,10 @@ void Renderer::DrawSkybox(uint32_t cameraBufferLocationIndex) {
 	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(1, cameraBufferLocationIndex);
 
 	// スカイボックスの描画
-	registry_->ForEach<Skybox, Object>([&](uint32_t entity, Skybox *skybox, Object *object) {
-		world_->GetConstantBuffer(ConstantBufferType::kTransform)->BindToGraphics(0, object->handle);
-		world_->GetConstantBuffer(ConstantBufferType::kMaterial)->BindToGraphics(2, object->handle);
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, skybox->textureHandle);
-		meshManager_->Draw(skybox->meshHandle);
+	registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
+		world_->GetConstantBuffer(ConstantBufferType::kSkybox)->BindToGraphics(0, 0);
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, skybox->textureHandle);
+		meshManager_->Draw(skybox->meshName);
 		}, exclude<Disabled>());
 }
 

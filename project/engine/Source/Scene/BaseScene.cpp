@@ -13,8 +13,6 @@
 #include "World.h"
 #include "Resource.h"
 #include "DebugRenderer.h"
-#include "IndirectCommand.h"
-#include "Object.h"
 #include "Texture.h"
 #include "SkinCluster.h"
 #include "Material.h"
@@ -72,10 +70,6 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	debugRenderer_ = std::make_unique<DebugRenderer>(world);
 	renderer->SetDebugRenderer(debugRenderer_.get());
 
-	// 間接コマンドマネージャーの生成
-	indirectCommandManager_ = std::make_unique<IndirectCommandManager>(registry_.get(), world, meshManager, skinClusterManager);
-	renderer->SetIndirectCommandManager(indirectCommandManager_.get());
-
 	// フットプリントマネージャーの生成
 	footprintManager_ = std::make_unique<FootprintManager>(registry_.get());
 	renderer->SetFootprintManager(footprintManager_.get());
@@ -83,11 +77,8 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	// スプライトマネージャーの生成
 	spriteManager_ = std::make_unique<SpriteManager>(textureManager, meshManager, registry_.get());
 
-	// オブジェクトマネージャーの生成
-	objectManager_ = std::make_unique<ObjectManager>(registry_.get());
-
 	// テキストマネージャーの生成
-	textManager_ = std::make_unique<TextManager>(registry_.get(), spriteManager_.get(), objectManager_.get());
+	textManager_ = std::make_unique<TextManager>(registry_.get(), spriteManager_.get());
 
 	// システムの生成
 	transformSystem_ = std::make_unique<TransformSystem>(registry_.get());
@@ -104,8 +95,8 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	skeletonRenderSystem_ = std::make_unique<SkeletonRenderSystem>(registry_.get(), debugRenderer_.get());
 
 	// インスペクターの生成
-	blendModeInspector_ = std::make_unique<BlendModeInspector>(registry_.get(), indirectCommandManager_.get());
-	modelInspector_ = std::make_unique<ModelInspector>(registry_.get(), modelManager, indirectCommandManager_.get());
+	blendModeInspector_ = std::make_unique<BlendModeInspector>(registry_.get());
+	modelInspector_ = std::make_unique<ModelInspector>(registry_.get(), modelManager);
 	spriteInspector_ = std::make_unique<SpriteInspector>(registry_.get(), textureManager);
 	particleGroupInspector_ = std::make_unique<ParticleGroupInspector>(registry_.get(), textureManager);
 	emitterInspector_ = std::make_unique<EmitterInspector>(registry_.get());
@@ -153,6 +144,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	componentDrawerRegistry_->RegisterTagComponent<UseCulling>("UseCulling");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyTransform>("DirtyTransform");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyMaterial>("DirtyMaterial");
+	componentDrawerRegistry_->RegisterTagComponent<DirtyTextureData>("DirtyTextureData");
 	componentDrawerRegistry_->RegisterTagComponent<NoCollision>("NoCollision");
 	componentDrawerRegistry_->RegisterTagComponent<AABBRenderer>("AABBRenderer");
 	componentDrawerRegistry_->RegisterTagComponent<SphereRenderer>("SphereRenderer");
@@ -200,10 +192,10 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	registry_->AddComponent(directionalLightEntity_, Relationship{});
 
 	// ビットマップフォントの初期化
-	bitmapFont_ = std::make_unique<BitmapFont>(registry_.get(), spriteManager_.get(), objectManager_.get());
+	bitmapFont_ = std::make_unique<BitmapFont>(registry_.get(), spriteManager_.get());
 
 	// フェードの初期化
-	fade_ = std::make_unique<Fade>(registry_.get(), spriteManager_.get(), objectManager_.get());
+	fade_ = std::make_unique<Fade>(registry_.get(), spriteManager_.get());
 
 	// グリッドの生成
 	grid_ = std::make_unique<Grid>(debugRenderer_.get());
@@ -257,12 +249,6 @@ void BaseScene::Update() {
 	// デバッグカメラの編集
 	debugCamera_->Edit("DebugCamera");
 
-	// 間接コマンド数のデバッグ表示
-	indirectCommandManager_->Debug();
-
-	// オブジェクト数のデバッグ表示
-	objectManager_->Debug();
-
 	// フットプリント数のデバッグ表示
 	footprintManager_->Debug();
 
@@ -310,9 +296,6 @@ void BaseScene::Update() {
 
 	// コリジョンシステムの更新
 	collisionSystem_->Update();
-
-	// カリングデータの更新
-	indirectCommandManager_->UpdateCullingData();
 
 	// スキンクラスターの更新
 	skinClusterManager->Update();

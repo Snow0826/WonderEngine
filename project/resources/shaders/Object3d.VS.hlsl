@@ -1,16 +1,23 @@
 #include "Object3d.hlsli"
 
-cbuffer WorldTransform : register(b0)
+cbuffer ViewProjection : register(b0)
+{
+    float4x4 view;
+    float4x4 projection;
+};
+
+cbuffer BaseInstanceID : register(b1)
+{
+    uint baseInstanceId;
+};
+
+struct WorldTransform
 {
     float4x4 world;
     float4x4 worldInverseTranspose;
 };
 
-cbuffer ViewProjection : register(b1)
-{
-    float4x4 view;
-    float4x4 projection;
-};
+StructuredBuffer<WorldTransform> gWorldTransforms : register(t0);
 
 struct VertexShaderInput
 {
@@ -19,12 +26,14 @@ struct VertexShaderInput
     float3 normal : NORMAL0;
 };
 
-VertexShaderOutput main(VertexShaderInput input)
+VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID)
 {
     VertexShaderOutput output;
-    output.position = mul(input.position, mul(world, mul(view, projection)));
+    WorldTransform worldTransform = gWorldTransforms[baseInstanceId + instanceId];
+    output.position = mul(input.position, mul(worldTransform.world, mul(view, projection)));
     output.texcoord = input.texcoord;
-    output.normal = normalize(mul(input.normal, (float3x3)worldInverseTranspose));
-    output.worldPosition = mul(input.position, world).xyz;
+    output.normal = normalize(mul(input.normal, (float3x3) worldTransform.worldInverseTranspose));
+    output.worldPosition = mul(input.position, worldTransform.world).xyz;
+    output.instanceId = baseInstanceId + instanceId;
     return output;
 }

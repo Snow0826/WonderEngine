@@ -1,22 +1,38 @@
 #define NOMINMAX
 #include "TreeGenerator.h"
 #include "EntityComponentSystem.h"
-#include "IndirectCommand.h"
+#include "World.h"
 #include "Primitive.h"
-#include "Object.h"
 #include "Transform.h"
 #include "Material.h"
 #include "Random.h"
 
-uint32_t TreeGenerator::Generate(float leafRadius, uint32_t leafCount, float influenceRadius, float killRadius, float branchLength) {
-	GenerateLeaves(leafRadius, leafCount);
+namespace {
+	uint32_t treeCounter = 0;	// 木のカウンター
+}
+
+uint32_t TreeGenerator::Generate(const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount, float minRadius, float gamma, float influenceRadius, float killRadius, float branchLength) {
+	GenerateLeaves(crownCenter, crownRadius, leafCount);
 	GenerateRootBranch(influenceRadius, branchLength);
+	uint32_t noProgressCount = 0;
+	size_t previousLeafCount = leaves_.size();
 	while (!leaves_.empty()) {
 		FindClosestBranch(influenceRadius, killRadius);
 		GrowBranches(branchLength);
 		RemoveLeaves();
+		if (leaves_.size() == previousLeafCount) {
+			noProgressCount++;
+		} else {
+			noProgressCount = 0;
+			previousLeafCount = leaves_.size();
+		}
+
+		if (noProgressCount >= 60) {
+			break;
+		}
 	}
-	CalculateRadius(branches_.front().get());
+	CalculateRadius(branches_.front().get(), minRadius, gamma);
+	treeCounter++;
 	return CreateBranchRecursive(branches_.front().get(), std::numeric_limits<uint32_t>::max(), Quaternion::IdentityQuaternion(), branchLength);
 }
 
@@ -28,19 +44,30 @@ void TreeGenerator::Delete(uint32_t entity) {
 	for (uint32_t child : children) {
 		Delete(child);
 	}
-	indirectCommandManager_->RemoveIndirectCommand(entity);
-	objectManager_->RemoveObject(entity);
 	registry_->RemoveAllComponents(entity);
 }
 
-void TreeGenerator::GenerateLeaves(float leafRadius, uint32_t leafCount) {
+void TreeGenerator::GenerateLeaves(const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount) {
 	leaves_.clear();
 	for (uint32_t i = 0; i < leafCount; i++) {
 		Leaf leaf;
-		do {
-			leaf.position = Random::generate({ -1.0f, -1.0f, -1.0f }, { 1.0f, 1.0f, 1.0f }) * leafRadius;
-		} while (leaf.position.length() > leafRadius);
-		leaf.position.y += leafRadius;
+		while (true) {
+			Vector3 distance{
+				Random::generate(-crownRadius.x, crownRadius.x),
+				Random::generate(-crownRadius.y, crownRadius.y),
+				Random::generate(-crownRadius.z, crownRadius.z),
+			};
+
+			float value =
+				(distance.x * distance.x) / (crownRadius.x * crownRadius.x) +
+				(distance.y * distance.y) / (crownRadius.y * crownRadius.y) +
+				(distance.z * distance.z) / (crownRadius.z * crownRadius.z);
+
+			if (value <= 1.0f) {
+				leaf.position = crownCenter + distance;
+				break;
+			}
+		};
 		leaves_.emplace_back(leaf);
 	}
 }
@@ -109,19 +136,19 @@ void TreeGenerator::RemoveLeaves() {
 	leaves_.erase(std::remove_if(leaves_.begin(), leaves_.end(), [](const Leaf &leaf) { return leaf.reached; }), leaves_.end());
 }
 
-float TreeGenerator::CalculateRadius(Branch *branch) {
+float TreeGenerator::CalculateRadius(Branch *branch, float minRadius, float gamma) {
 	if (branch->children.empty()) {
-		branch->radius = 0.01f;
+		branch->radius = minRadius;
 		return branch->radius;
 	}
 
 	float sum = 0.0f;
 	for (Branch *child : branch->children) {
-		float radius = CalculateRadius(child);
-		sum += radius * radius;
+		float radius = CalculateRadius(child, minRadius, gamma);
+		sum += std::pow(radius, gamma);
 	}
 
-	branch->radius = std::sqrt(sum);
+	branch->radius = std::pow(sum, 1.0f / gamma);
 	return branch->radius;
 }
 
@@ -156,10 +183,9 @@ uint32_t TreeGenerator::CreateBranchRecursive(Branch *branch, uint32_t parentEnt
 	registry_->AddComponent(currentEntity, Material{ .environmentCoefficient = 0.0f });
 	registry_->AddComponent(currentEntity, DirtyTransform{});
 	registry_->AddComponent(currentEntity, DirtyMaterial{});
-	registry_->AddComponent(currentEntity, objectManager_->CreateObject(currentEntity));
-	registry_->AddComponent(currentEntity, primitiveGenerator_->CreateCylinder(32, branch->radius, bottomRadius, branchLength, true, "Bark001_1K-JPG_Color.jpg"));
+	registry_->AddComponent(currentEntity, DirtyTextureData{});
+	registry_->AddComponent(currentEntity, primitiveGenerator_->CreateCylinder("Branch" + std::to_string(treeCounter), 32, branch->radius, bottomRadius, branchLength, true, "Bark001_1K-JPG_Color.jpg"));
 	registry_->AddComponent(currentEntity, UseCulling{});
-	registry_->AddComponent(currentEntity, indirectCommandManager_->AddIndirectCommand(currentEntity));
 
 	//-----------------------------------
 	// 子生成

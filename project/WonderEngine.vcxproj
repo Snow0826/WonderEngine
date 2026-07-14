@@ -168,7 +168,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Component\BlendMode.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer.cpp" />
     <ClCompile Include="engine\Source\Component\Animation.cpp" />
-    <ClCompile Include="engine\Source\Component\Object.cpp" />
     <ClCompile Include="engine\Source\Component\UVTransform.cpp" />
     <ClCompile Include="engine\Source\Scene\BitmapFont.cpp" />
     <ClCompile Include="engine\Source\Component\Footprint.cpp" />
@@ -226,7 +225,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\FrustumRenderer.cpp" />
     <ClCompile Include="game\Source\Model\ParticleObject.cpp" />
     <ClCompile Include="game\Source\Scene\SampleScene.cpp" />
-    <ClCompile Include="engine\Source\Component\IndirectCommand.cpp" />
     <ClCompile Include="game\Source\Model\Human.cpp" />
     <ClCompile Include="main.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">MaxSpeed</Optimization>
@@ -261,7 +259,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\Utilities\CPUTimer.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer.h" />
     <ClInclude Include="engine\Include\Component\Animation.h" />
-    <ClInclude Include="engine\Include\Component\Object.h" />
     <ClInclude Include="engine\Include\Component\UVTransform.h" />
     <ClInclude Include="engine\Include\Scene\BitmapFont.h" />
     <ClInclude Include="engine\Include\Component\Footprint.h" />
@@ -328,7 +325,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="game\Include\Model\SkyboxEntity.h" />
     <ClInclude Include="engine\Include\Component\Light\PointLight.h" />
     <ClInclude Include="engine\Include\Math\Quaternion.h" />
-    <ClInclude Include="engine\Include\Component\IndirectCommand.h" />
     <ClInclude Include="game\Include\Model\SimpleSkin.h" />
     <ClInclude Include="game\Include\Model\Human.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\SkeletonRenderer.h" />

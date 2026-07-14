@@ -151,17 +151,18 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 
 	// Object3d用ルートシグネチャの作成
 	object3dRootSignature_ = RootSignature()
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:Transform
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 1)																			// 1:ViewProjection
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)																			// 2:Material
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)																			// 3:Camera
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 2)																			// 4:DirectionalLight
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 3, 2)																	// 5:TextureData
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 4, 2)																	// 6:LightData
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)								// 7:PointLight
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)								// 8:SpotLight
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 2)								// 9:EnvironmentTexture
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_PIXEL, 3)	// 10:Texture
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:ViewProjection
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1)																	// 1:BaseInstanceID
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)																			// 2:CameraPosition
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)																			// 3:DirectionalLight
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 2, 2)																	// 4:LightData
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 5:WorldTransform
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)								// 6:Material
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)								// 7:TextureData
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 2)								// 8:PointLight
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 3)								// 9:SpotLight
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 4)								// 10:EnvironmentTexture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_PIXEL, 5)	// 11:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL)	// MipMap0のSamplerを追加
 		.Create(logStream, device_);
@@ -170,17 +171,18 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 
 	// RingObject3d用ルートシグネチャの作成
 	ringObject3dRootSignature_ = RootSignature()
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:Transform
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 1)																			// 1:ViewProjection
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)																			// 2:Material
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)																			// 3:Camera
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 2)																			// 4:DirectionalLight
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 3, 2)																	// 5:TextureData
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 4, 2)																	// 6:LightData
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)								// 7:PointLight
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)								// 8:SpotLight
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 2)								// 9:EnvironmentTexture
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_PIXEL, 3)	// 10:Texture
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:ViewProjection
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1)																	// 1:BaseInstanceID
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)																			// 2:CameraPosition
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)																			// 3:DirectionalLight
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 2, 2)																	// 4:LightData
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 5:WorldTransform
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)								// 6:Material
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)								// 7:TextureData
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 2)								// 8:PointLight
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 3)								// 9:SpotLight
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 4)								// 10:EnvironmentTexture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_PIXEL, 5)	// 11:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL)	// MipMap0のSamplerを追加
 		.Create(logStream, device_);
@@ -219,10 +221,9 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 
 	// Skybox用ルートシグネチャの作成
 	skyboxRootSignature_ = RootSignature()
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)												// 0:WorldTransform
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)												// 0:SkyboxData
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 1)												// 1:ViewProjection
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 2:Material
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 3:Texture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 2:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create SkyboxRootSignature\n");

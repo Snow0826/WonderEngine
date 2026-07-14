@@ -15,14 +15,15 @@ SpriteManager::SpriteManager(TextureManager *textureManager, MeshManager *meshMa
 	, meshManager_(meshManager)
 	, registry_(registry) {}
 
-Sprite SpriteManager::CreateSprite(const std::string &textureFileName) {
+Sprite SpriteManager::CreateSprite(const std::string &meshName, const std::string &textureFileName) {
+	meshManager_->CreateSprite(meshName);
 	D3D12_RESOURCE_DESC resourceDesc = textureManager_->GetResourceDesc(textureFileName);
 	Vector2 size = { static_cast<float>(resourceDesc.Width), static_cast<float>(resourceDesc.Height) };
 	Sprite sprite;
 	sprite.spriteData.size = size;
 	sprite.spriteData.textureSize = size;
 	sprite.initialSpriteData = sprite.spriteData;
-	sprite.meshHandle = meshManager_->CreateSprite();
+	sprite.meshName = meshName;
 	sprite.textureHandle = textureManager_->GetTextureReadHandle(textureFileName);
 	sprite.textureFileName = textureFileName;
 	return sprite;
@@ -30,7 +31,7 @@ Sprite SpriteManager::CreateSprite(const std::string &textureFileName) {
 
 void SpriteManager::UpdateSprite() {
 	registry_->ForEach<Sprite, EulerTransform>([this](uint32_t entity, Sprite *sprite, EulerTransform *transform) {
-		VertexData *vertexData = meshManager_->GetVertexData(sprite->meshHandle);
+		VertexData *vertexData = meshManager_->GetVertexData(sprite->meshName);
 
 		// 頂点座標の計算
 		float left = -sprite->spriteData.anchorPoint.x;

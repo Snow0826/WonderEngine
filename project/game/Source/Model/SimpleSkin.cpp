@@ -1,8 +1,7 @@
 #include "SimpleSkin.h"
 #include "EntityComponentSystem.h"
-#include "IndirectCommand.h"
+#include "World.h"
 #include "Model.h"
-#include "Object.h"
 #include "Material.h"
 #include "SkeletonRenderer.h"
 #include <numbers>
@@ -16,11 +15,10 @@ void SimpleSkin::Create(const Vector3 &position) {
 	registry_->AddComponent(entity, Material{});
 	registry_->AddComponent(entity, DirtyTransform{});
 	registry_->AddComponent(entity, DirtyMaterial{});
-	registry_->AddComponent(entity, objectManager_->CreateObject(entity));
+	registry_->AddComponent(entity, DirtyTextureData{});
 	registry_->AddComponent(entity, modelManager_->FindModel("simpleSkin.gltf"));
 	registry_->AddComponent(entity, UseCulling{});
 	registry_->AddComponent(entity, SkinMesh{});
-	registry_->AddComponent(entity, indirectCommandManager_->AddIndirectCommand(entity));
 	registry_->AddComponent(entity, AnimationPlayer{});
 	registry_->AddComponent(entity, AnimationInterpolationMode::Linear);
 	registry_->AddComponent(entity, DebugSkeletonSettings{});

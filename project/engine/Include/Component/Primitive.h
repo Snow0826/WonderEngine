@@ -1,11 +1,10 @@
 #pragma once
 #include "Collision.h"
-#include "MeshType.h"
 #include <string>
 
 /// @brief プリミティブ
 struct Primitive final {
-	uint32_t meshHandle = 0;	// メッシュハンドル
+	std::string meshName;		// メッシュ名
 	uint32_t textureHandle = 0;	// テクスチャハンドル
 	bool enableMipMaps = false;	// ミップマップの有効化
 	float error = 0.0f;			// LODエラー
@@ -29,24 +28,28 @@ public:
 	}
 
 	/// @brief 平面の作成
+	/// @param meshName メッシュ名
 	/// @param textureFileName テクスチャファイル名
 	/// @return 平面
-	Primitive CreatePlane(const std::string &textureFileName);
+	Primitive CreatePlane(const std::string &meshName, const std::string &textureFileName);
 
 	/// @brief 立方体の作成
+	/// @param meshName メッシュ名
 	/// @param textureFileName テクスチャファイル名
 	/// @return 立方体
-	Primitive CreateBox(const std::string &textureFileName);
+	Primitive CreateBox(const std::string &meshName, const std::string &textureFileName);
 	
 	/// @brief 円環の作成
+	/// @param meshName メッシュ名
 	/// @param divide 分割数
 	/// @param outerRadius 外径
 	/// @param innerRadius 内径
 	/// @param textureFileName テクスチャファイル名
 	/// @return 円環
-	Primitive CreateRing(uint32_t divide, float outerRadius, float innerRadius, const std::string &textureFileName);
+	Primitive CreateRing(const std::string &meshName, uint32_t divide, float outerRadius, float innerRadius, const std::string &textureFileName);
 	
 	/// @brief 円柱の作成
+	/// @param meshName メッシュ名
 	/// @param divide 分割数
 	/// @param topRadius 上面の半径
 	/// @param bottomRadius 下面の半径
@@ -54,7 +57,7 @@ public:
 	/// @param cap キャップの有無
 	/// @param textureFileName テクスチャファイル名
 	/// @return 円柱
-	Primitive CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height, bool cap, const std::string &textureFileName);
+	Primitive CreateCylinder(const std::string &meshName, uint32_t divide, float topRadius, float bottomRadius, float height, bool cap, const std::string &textureFileName);
 
 private:
 	MeshManager *meshManager_ = nullptr;		// メッシュマネージャー

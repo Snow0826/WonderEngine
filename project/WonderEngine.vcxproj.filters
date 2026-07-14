@@ -4,7 +4,6 @@
     <ClCompile Include="engine\Source\Component\BlendMode.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer.cpp" />
     <ClCompile Include="engine\Source\Component\Animation.cpp" />
-    <ClCompile Include="engine\Source\Component\Object.cpp" />
     <ClCompile Include="engine\Source\Component\UVTransform.cpp" />
     <ClCompile Include="engine\Source\Scene\BitmapFont.cpp" />
     <ClCompile Include="engine\Source\Component\Footprint.cpp" />
@@ -57,7 +56,6 @@
     <ClCompile Include="engine\Source\Utilities\StringConverter.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\FrustumRenderer.cpp" />
     <ClCompile Include="game\Source\Scene\SampleScene.cpp" />
-    <ClCompile Include="engine\Source\Component\IndirectCommand.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="engine\Source\Asset\Mesh.cpp" />
     <ClCompile Include="engine\Source\Physics\RigidBody.cpp" />
@@ -86,7 +84,6 @@
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer.h" />
     <ClInclude Include="engine\Include\Component\Animation.h" />
-    <ClInclude Include="engine\Include\Component\Object.h" />
     <ClInclude Include="engine\Include\Component\UVTransform.h" />
     <ClInclude Include="engine\Include\Scene\BitmapFont.h" />
     <ClInclude Include="engine\Include\Component\Footprint.h" />
@@ -152,7 +149,6 @@
     <ClInclude Include="game\Include\Model\SkyboxEntity.h" />
     <ClInclude Include="engine\Include\Component\Light\PointLight.h" />
     <ClInclude Include="engine\Include\Math\Quaternion.h" />
-    <ClInclude Include="engine\Include\Component\IndirectCommand.h" />
     <ClInclude Include="engine\Include\Utilities\CPUTimer.h" />
     <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />

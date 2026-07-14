@@ -13,22 +13,18 @@ enum class BlendMode {
 };
 
 class Registry;
-class IndirectCommandManager;
 
 /// @brief ブレンドモードインスペクター
 class BlendModeInspector final {
 public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
-	/// @param indirectCommandManager 間接コマンドマネージャー
-	BlendModeInspector(Registry *registry, IndirectCommandManager *indirectCommandManager)
-		: registry_(registry), indirectCommandManager_(indirectCommandManager) {}
+	BlendModeInspector(Registry *registry) : registry_(registry) {}
 
 	/// @brief ブレンドモードインスペクターの描画
 	/// @param entity エンティティ
 	void Draw(uint32_t entity);
 
 private:
-	Registry *registry_ = nullptr;								// レジストリ
-	IndirectCommandManager *indirectCommandManager_ = nullptr;	// 間接コマンドマネージャー
+	Registry *registry_ = nullptr;	// レジストリ
 };

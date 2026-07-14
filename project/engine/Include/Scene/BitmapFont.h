@@ -3,7 +3,6 @@
 
 class Registry;
 class SpriteManager;
-class ObjectManager;
 
 /// @brief ビットマップフォント
 class BitmapFont final {
@@ -11,9 +10,7 @@ public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
 	/// @param spriteManager スプライトマネージャー
-	/// @param objectManager オブジェクトマネージャー
-	BitmapFont(Registry *registry, SpriteManager *spriteManager, ObjectManager *objectManager)
-		: registry_(registry), spriteManager_(spriteManager), objectManager_(objectManager) {}
+	BitmapFont(Registry *registry, SpriteManager *spriteManager) : registry_(registry), spriteManager_(spriteManager) {}
 
 	/// @brief 初期化
 	void Initialize();
@@ -34,7 +31,6 @@ public:
 private:
 	Registry *registry_ = nullptr;				// レジストリ
 	SpriteManager *spriteManager_ = nullptr;	// スプライトマネージャー
-	ObjectManager *objectManager_ = nullptr;	// オブジェクトマネージャー
 	std::vector<uint32_t> digitEntities_;		// 桁のエンティティリスト
 	std::vector<uint32_t> textureHandles_;		// テクスチャハンドルリスト
 	static inline constexpr uint32_t kDigitCount = 2;	// 桁数

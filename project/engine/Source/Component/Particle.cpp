@@ -20,7 +20,7 @@ ParticleManager::ParticleManager(Device *device, TextureManager *textureManager,
 
 ParticleManager::~ParticleManager() = default;
 
-void ParticleManager::CreateParticleGroup(const std::string &name, MeshType meshType, const std::string &textureFileName) {
+void ParticleManager::CreateParticleGroup(const std::string &name, MeshType meshType, const std::string &textureFileName, uint32_t count) {
 	// すでに読み込まれている場合は何もしない
 	if (particleGroups_.contains(name)) {
 		Logger::Log(*logStream_, "Particle already created: " + name + "\n");
@@ -34,16 +34,28 @@ void ParticleManager::CreateParticleGroup(const std::string &name, MeshType mesh
 		case MeshType::kModel:
 			break;
 		case MeshType::kPlane:
-			particleGroup.meshHandle = meshManager_->CreatePlane();
+			particleGroup.meshName = name + "Plane";
+			for (uint32_t i = 0; i < count; ++i) {
+				meshManager_->CreatePlane(particleGroup.meshName);
+			}
 			break;
 		case MeshType::kBox:
-			particleGroup.meshHandle = meshManager_->CreateBox();
+			particleGroup.meshName = name + "Box";
+			for (uint32_t i = 0; i < count; ++i) {
+				meshManager_->CreateBox(particleGroup.meshName);
+			}
 			break;
 		case MeshType::kRing:
-			particleGroup.meshHandle = meshManager_->CreateRing(32, 0.5f, 0.1f);
+			particleGroup.meshName = name + "Ring";
+			for (uint32_t i = 0; i < count; ++i) {
+				meshManager_->CreateRing(particleGroup.meshName, 32, 0.5f, 0.1f);
+			}
 			break;
 		case MeshType::kCylinder:
-			particleGroup.meshHandle = meshManager_->CreateCylinder(32, 1.0f, 1.0f, 3.0f, false);
+			particleGroup.meshName = name + "Cylinder";
+			for (uint32_t i = 0; i < count; ++i) {
+				meshManager_->CreateCylinder(particleGroup.meshName, 32, 1.0f, 1.0f, 3.0f, false);
+			}
 			break;
 		case MeshType::kCountOfMeshType:
 			break;

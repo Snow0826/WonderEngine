@@ -1,7 +1,6 @@
 #include "BitmapFont.h"
 #include "EntityComponentSystem.h"
 #include "BlendMode.h"
-#include "Object.h"
 #include "Sprite.h"
 #include "Transform.h"
 #include "Material.h"
@@ -9,13 +8,12 @@
 void BitmapFont::Initialize() {
 	for (size_t i = 0; i < kDigitCount; i++) {
 		// スプライトの設定
-		Sprite sprite = spriteManager_->CreateSprite("0.png");
+		Sprite sprite = spriteManager_->CreateSprite("Digit", "0.png");
 		sprite.spriteData.position = { static_cast<float>(i * 64), 0.0f };
 
 		// エンティティの生成
 		uint32_t entity = registry_->GenerateEntity();
 		registry_->AddComponent(entity, BlendMode::kBlendModeNormal);
-		registry_->AddComponent(entity, objectManager_->CreateObject(entity));
 		registry_->AddComponent(entity, sprite);
 		registry_->AddComponent(entity, EulerTransform{});
 		registry_->AddComponent(entity, Material{ .enableLighting = false });

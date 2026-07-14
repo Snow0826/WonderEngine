@@ -1,7 +1,6 @@
 #include "Text.h"
 #include "EntityComponentSystem.h"
-#include "Renderer.h"
-#include "Object.h"
+#include "BlendMode.h"
 #include "Sprite.h"
 #include "Transform.h"
 #include "Material.h"
@@ -10,7 +9,7 @@
 Text TextManager::CreateText(const std::string &text, float x, float y) {
 	Text textData;
 	for (size_t i = 0; i < text.size(); ++i) {
-		Sprite sprite = spriteManager_->CreateSprite("debugfont.png");
+		Sprite sprite = spriteManager_->CreateSprite("DebugFont", "debugfont.png");
 		int32_t ascii = static_cast<uint8_t>(text[i]);
 		int32_t index = ascii - 32;   // 画像はスペース(32)から始まっている
 		int32_t col = index % kFontLineCount;
@@ -25,7 +24,6 @@ Text TextManager::CreateText(const std::string &text, float x, float y) {
 		sprite.spriteData.position.y = y;
 		uint32_t entity = registry_->GenerateEntity();
 		registry_->AddComponent(entity, BlendMode::kBlendModeNormal);
-		registry_->AddComponent(entity, objectManager_->CreateObject(entity));
 		registry_->AddComponent(entity, sprite);
 		registry_->AddComponent(entity, EulerTransform{});
 		registry_->AddComponent(entity, Material{ .enableLighting = false });

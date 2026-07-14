@@ -18,10 +18,10 @@ struct Particle final {
 
 /// @brief パーティクルグループ
 struct ParticleGroup final {
-	uint32_t meshHandle = 0;		// メッシュハンドル
 	uint32_t textureHandle = 0;		// テクスチャハンドル
 	uint32_t srvHandle = 0;			// SRVハンドル
 	uint32_t uavHandle = 0;			// UAVハンドル
+	std::string meshName;			// メッシュ名
 	std::string textureFileName;	// テクスチャファイル名
 };
 
@@ -61,8 +61,6 @@ class Resource;
 /// @brief パーティクルマネージャー
 class ParticleManager final {
 public:
-	static inline constexpr uint32_t kMaxParticle = 1024;	// 最大パーティクル数
-
 	/// @brief コンストラクタ
 	/// @param device デバイス
 	/// @param textureManager テクスチャマネージャー
@@ -77,7 +75,8 @@ public:
 	/// @param name パーティクルグループ名
 	/// @param meshType メッシュタイプ
 	/// @param textureFileName テクスチャファイル名
-	void CreateParticleGroup(const std::string &name, MeshType meshType, const std::string &textureFileName);
+	/// @param count パーティクル数
+	void CreateParticleGroup(const std::string &name, MeshType meshType, const std::string &textureFileName, uint32_t count);
 
 	/// @brief パーティクルグループの検索
 	/// @param name パーティクルグループ名
@@ -85,6 +84,7 @@ public:
 	ParticleGroup FindParticleGroup(const std::string &name);
 
 private:
+	static inline constexpr uint32_t kMaxParticle = 1024;							// 最大パーティクル数
 	Device *device_ = nullptr;														// デバイス
 	TextureManager *textureManager_ = nullptr;										// テクスチャマネージャー
 	MeshManager *meshManager_ = nullptr;											// メッシュマネージャー

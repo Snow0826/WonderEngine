@@ -4,7 +4,6 @@
 #include "VertexBuffer.h"
 #include "Texture.h"
 #include "SkinCluster.h"
-#include "IndirectCommand.h"
 #include "Matrix3x3.h"
 #include "Logger.h"
 #include "StringConverter.h"
@@ -49,6 +48,14 @@ Model ModelManager::FindModel(const std::string &fileName) {
 	Model model;
 	if (models_.contains(fileName)) {
 		model = *models_.at(fileName);
+		for (MeshData &mesh : model.modelData.meshes) {
+			for (const MeshLODData &lod : mesh.lods) {
+				meshManager_->CreateMesh(lod.meshName, lod);
+				mesh.aabb = meshManager_->CreateLocalAABB(lod.meshName);
+				mesh.obb = meshManager_->CreateLocalOBB(lod.meshName);
+				mesh.sphere = meshManager_->CreateLocalSphere(lod.meshName);
+			}
+		}
 	}
 	return model;
 }
@@ -159,13 +166,10 @@ ModelData ModelManager::LoadModelData(const std::string &fileName) {
 
 		meshLODData = meshManager_->ReIndexMeshLODData(meshLODData);
 		meshLODData.error = 0.0f;
-		meshLODData.handle = meshManager_->CreateMesh(meshLODData);
+		meshLODData.meshName = fileName + mesh->mName.C_Str();
 		MeshData meshData;
 		meshData.lods.emplace_back(meshLODData);
 		meshData.materialIndex = mesh->mMaterialIndex;
-		meshData.sphere = meshManager_->CreateLocalSphere(meshLODData.handle);
-		meshData.aabb = meshManager_->CreateLocalAABB(meshLODData.handle);
-		meshData.obb = meshManager_->CreateLocalOBB(meshLODData.handle);
 		modelData.meshes.emplace_back(meshData);
 	}
 
@@ -306,8 +310,6 @@ void ModelInspector::Draw([[maybe_unused]] uint32_t entity) {
 			if (modelManager_->Combo(model->modelData.format, model)) {
 				TransformSystem transformSystem{ registry_ };
 				transformSystem.MarkDirty(entity);
-				indirectCommandManager_->RemoveIndirectCommand(entity);
-				registry_->AddComponent(entity, indirectCommandManager_->AddIndirectCommand(entity));
 			}
 
 			for (size_t i = 0; i < model->modelData.meshes.size(); i++) {

@@ -4,18 +4,15 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include <d3d12.h>
-
-class Device;
-class VertexBuffer;
-class IndexBuffer;
 
 /// @brief メッシュLODデータ
 struct MeshLODData final {
 	std::vector<VertexData> vertices;	// 頂点リスト
 	std::vector<uint32_t> indices;		// インデックスリスト
 	float error = 0.0f;					// LODエラー
-	uint32_t handle = 0;				// メッシュハンドル
+	std::string meshName;				// メッシュ名
 };
 
 /// @brief メッシュデータ
@@ -27,79 +24,91 @@ struct MeshData final {
 	Collision::OBB obb;				// OBB
 };
 
+class VertexBuffer;
+class IndexBuffer;
+
 /// @brief メッシュ
 struct Mesh final {
+	uint32_t instanceCount = 0;	// インスタンス数
 	std::unique_ptr<VertexBuffer> vertexBuffer = nullptr;	// 頂点バッファ
 	std::unique_ptr<IndexBuffer> indexBuffer = nullptr;		// インデックスバッファ
 };
+
+class Device;
+struct MeshLOD;
 
 /// @brief メッシュマネージャー
 class MeshManager final {
 public:
 	/// @brief コンストラクタ
 	/// @param device デバイス
-	MeshManager(Device *device);
+	/// @param logStream ログ出力ストリーム
+	MeshManager(Device *device, std::ofstream *logStream);
 
 	/// @brief デストラクタ
 	~MeshManager();
 
 	/// @brief メッシュの生成
+	/// @param meshName メッシュ名
 	/// @param meshLODData メッシュLODデータ
-	/// @return メッシュハンドル
-	uint32_t CreateMesh(const MeshLODData &meshLODData);
+	void CreateMesh(const std::string &meshName, const MeshLODData &meshLODData);
 
 	/// @brief スプライトの生成
-	/// @return メッシュハンドル
-	uint32_t CreateSprite();
+	/// @param meshName メッシュ名
+	void CreateSprite(const std::string &meshName);
 
 	/// @brief 平面の生成
-	/// @return メッシュハンドル
-	uint32_t CreatePlane();
+	/// @param meshName メッシュ名
+	void CreatePlane(const std::string &meshName);
 
 	/// @brief 立方体の生成
-	/// @return メッシュハンドル
-	uint32_t CreateBox();
-	
+	/// @param meshName メッシュ名
+	void CreateBox(const std::string &meshName);
+
 	/// @brief 円環の生成
+	/// @param meshName メッシュ名
 	/// @param divide 分割数
 	/// @param outerRadius 外半径
 	/// @param innerRadius 内半径
-	/// @return メッシュハンドル
-	uint32_t CreateRing(uint32_t divide, float outerRadius, float innerRadius);
+	void CreateRing(const std::string &meshName, uint32_t divide, float outerRadius, float innerRadius);
 
 	/// @brief 円柱の生成
+	/// @param meshName メッシュ名
 	/// @param divide 分割数
 	/// @param topRadius 上面の半径
 	/// @param bottomRadius 下面の半径
 	/// @param height 高さ
 	/// @param cap キャップの有無
-	/// @return メッシュハンドル
-	uint32_t CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height, bool cap = true);
+	void CreateCylinder(const std::string &meshName, uint32_t divide, float topRadius, float bottomRadius, float height, bool cap = true);
 
 	/// @brief 描画
-	/// @param meshHandle メッシュハンドル
-	/// @param instanceCount インスタンス数
-	void Draw(uint32_t meshHandle, uint32_t instanceCount = 1) const;
+	/// @param meshName メッシュ名
+	void Draw(const std::string &meshName) const;
 
 	/// @brief 頂点バッファビューの取得
-	/// @param meshHandle メッシュハンドル
+	/// @param meshName メッシュ名
 	/// @return 頂点バッファビュー
-	D3D12_VERTEX_BUFFER_VIEW GetVertexBufferView(uint32_t meshHandle) const;
+	D3D12_VERTEX_BUFFER_VIEW GetVertexBufferView(const std::string &meshName) const;
 
 	/// @brief インデックスバッファビューの取得
-	/// @param meshHandle メッシュハンドル
+	/// @param meshName メッシュ名
 	/// @return インデックスバッファビュー
-	D3D12_INDEX_BUFFER_VIEW GetIndexBufferView(uint32_t meshHandle) const;
+	D3D12_INDEX_BUFFER_VIEW GetIndexBufferView(const std::string &meshName) const;
 
 	/// @brief 頂点データの取得
-	/// @param meshHandle メッシュハンドル
+	/// @param meshName メッシュ名
 	/// @return 頂点データ
-	VertexData *GetVertexData(uint32_t meshHandle) const;
+	VertexData *GetVertexData(const std::string &meshName) const;
 
 	/// @brief インデックス数の取得
-	/// @param meshHandle メッシュハンドル
+	/// @param meshName メッシュ名
 	/// @return インデックス数
-	UINT GetIndexCount(uint32_t meshHandle) const;
+	UINT GetIndexCount(const std::string &meshName) const;
+
+	/// @brief インスタンス数の取得
+	/// @param meshName メッシュ名
+	/// @return インスタンス数
+	UINT GetInstanceCount(const std::string &meshName) const;
 
 	/// @brief メッシュLODデータの再インデックス化
 	/// @param meshLODData メッシュLODデータ
@@ -107,21 +116,22 @@ public:
 	static MeshLODData ReIndexMeshLODData(const MeshLODData &meshLODData);
 
 	/// @brief ローカル球の生成
-	/// @param meshHandle メッシュハンドル
+	/// @param meshName メッシュ名
 	/// @return ローカル球
-	Collision::Sphere CreateLocalSphere(uint32_t meshHandle);
+	Collision::Sphere CreateLocalSphere(const std::string &meshName);
 
 	/// @brief ローカルAABBの生成
-	/// @param meshHandle メッシュハンドル
+	/// @param meshName メッシュ名
 	/// @return ローカルAABB
-	Collision::AABB CreateLocalAABB(uint32_t meshHandle);
+	Collision::AABB CreateLocalAABB(const std::string &meshName);
 
 	/// @brief ローカルOBBの生成
-	/// @param meshHandle メッシュハンドル
+	/// @param meshName メッシュ名
 	/// @return ローカルOBB
-	Collision::OBB CreateLocalOBB(uint32_t meshHandle);
+	Collision::OBB CreateLocalOBB(const std::string &meshName);
 
 private:
-	Device *device_ = nullptr;					// デバイス
-	std::vector<std::unique_ptr<Mesh>> meshes_;	// メッシュリスト
+	Device *device_ = nullptr;	// デバイス
+	std::ofstream *logStream_ = nullptr;	// ログ出力用のストリーム
+	std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes_;	// メッシュリスト
 };

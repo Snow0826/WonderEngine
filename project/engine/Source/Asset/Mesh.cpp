@@ -3,16 +3,26 @@
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 #include "Collision.h"
+#include "World.h"
 #include "Resource.h"
+#include "Logger.h"
 #include <algorithm>
 #include <numbers>
 
-MeshManager::MeshManager(Device *device) : device_(device) {}
+MeshManager::MeshManager(Device *device, std::ofstream *logStream) : device_(device), logStream_(logStream) {}
 MeshManager::~MeshManager() = default;
 
-uint32_t MeshManager::CreateMesh(const MeshLODData &meshLODData) {
-	uint32_t meshHandle = static_cast<uint32_t>(meshes_.size());
+void MeshManager::CreateMesh(const std::string &meshName, const MeshLODData &meshLODData) {
+	// すでに読み込まれている場合は何もしない
+	auto it = meshes_.find(meshName);
+	if (it != meshes_.end()) {
+		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
+		it->second->instanceCount++;
+		return;
+	}
+
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
+	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -23,13 +33,21 @@ uint32_t MeshManager::CreateMesh(const MeshLODData &meshLODData) {
 	mesh->indexBuffer = std::make_unique<IndexBuffer>();
 	mesh->indexBuffer->Initialize(device_, meshLODData.indices.size());
 	std::memcpy(mesh->indexBuffer->GetIndexData(), meshLODData.indices.data(), sizeof(uint32_t) * meshLODData.indices.size());
-	meshes_.emplace_back(std::move(mesh));
-	return meshHandle;
+
+	meshes_.emplace(meshName, std::move(mesh));
 }
 
-uint32_t MeshManager::CreateSprite() {
-	uint32_t meshHandle = static_cast<uint32_t>(meshes_.size());
+void MeshManager::CreateSprite(const std::string &meshName) {
+	// すでに読み込まれている場合は何もしない
+	auto it = meshes_.find(meshName);
+	if (it != meshes_.end()) {
+		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
+		it->second->instanceCount++;
+		return;
+	}
+
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
+	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -66,13 +84,20 @@ uint32_t MeshManager::CreateSprite() {
 	indexData[3] = 1;	// 左上
 	indexData[4] = 3;	// 右上
 	indexData[5] = 2;	// 右下
-	meshes_.emplace_back(std::move(mesh));
-	return meshHandle;
+	meshes_.emplace(meshName, std::move(mesh));
 }
 
-uint32_t MeshManager::CreatePlane() {
-	uint32_t meshHandle = static_cast<uint32_t>(meshes_.size());
+void MeshManager::CreatePlane(const std::string &meshName) {
+	// すでに読み込まれている場合は何もしない
+	auto it = meshes_.find(meshName);
+	if (it != meshes_.end()) {
+		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
+		it->second->instanceCount++;
+		return;
+	}
+
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
+	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -109,13 +134,20 @@ uint32_t MeshManager::CreatePlane() {
 	indexData[3] = 1;	// 左上
 	indexData[4] = 3;	// 右上
 	indexData[5] = 2;	// 右下
-	meshes_.emplace_back(std::move(mesh));
-	return meshHandle;
+	meshes_.emplace(meshName, std::move(mesh));
 }
 
-uint32_t MeshManager::CreateBox() {
-	uint32_t meshHandle = static_cast<uint32_t>(meshes_.size());
+void MeshManager::CreateBox(const std::string &meshName) {
+	// すでに読み込まれている場合は何もしない
+	auto it = meshes_.find(meshName);
+	if (it != meshes_.end()) {
+		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
+		it->second->instanceCount++;
+		return;
+	}
+
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
+	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -208,13 +240,20 @@ uint32_t MeshManager::CreateBox() {
 	indexData[33] = 22;
 	indexData[34] = 21;
 	indexData[35] = 23;
-	meshes_.emplace_back(std::move(mesh));
-	return meshHandle;
+	meshes_.emplace(meshName, std::move(mesh));
 }
 
-uint32_t MeshManager::CreateRing(uint32_t divide, float outerRadius, float innerRadius) {
-	uint32_t meshHandle = static_cast<uint32_t>(meshes_.size());
+void MeshManager::CreateRing(const std::string &meshName, uint32_t divide, float outerRadius, float innerRadius) {
+	// すでに読み込まれている場合は何もしない
+	auto it = meshes_.find(meshName);
+	if (it != meshes_.end()) {
+		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
+		it->second->instanceCount++;
+		return;
+	}
+
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
+	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -254,11 +293,18 @@ uint32_t MeshManager::CreateRing(uint32_t divide, float outerRadius, float inner
 		indexData[baseIndex + 5] = baseVertex + 3;	// 次の内周の頂点
 	}
 
-	meshes_.emplace_back(std::move(mesh));
-	return meshHandle;
+	meshes_.emplace(meshName, std::move(mesh));
 }
 
-uint32_t MeshManager::CreateCylinder(uint32_t divide, float topRadius, float bottomRadius, float height, bool cap) {
+void MeshManager::CreateCylinder(const std::string &meshName, uint32_t divide, float topRadius, float bottomRadius, float height, bool cap) {
+	// すでに読み込まれている場合は何もしない
+	auto it = meshes_.find(meshName);
+	if (it != meshes_.end()) {
+		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
+		it->second->instanceCount++;
+		return;
+	}
+
 	// 頂点データの生成
 	std::vector<VertexData> vertices;
 	const float radianPerDivide = std::numbers::pi_v<float> *2.0f / static_cast<float>(divide);
@@ -358,8 +404,8 @@ uint32_t MeshManager::CreateCylinder(uint32_t divide, float topRadius, float bot
 	}
 
 	// メッシュの生成
-	uint32_t meshHandle = static_cast<uint32_t>(meshes_.size());
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
+	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -370,30 +416,33 @@ uint32_t MeshManager::CreateCylinder(uint32_t divide, float topRadius, float bot
 	mesh->indexBuffer = std::make_unique<IndexBuffer>();
 	mesh->indexBuffer->Initialize(device_, indices.size());
 	std::memcpy(mesh->indexBuffer->GetIndexData(), indices.data(), sizeof(uint32_t) * indices.size());
-	meshes_.emplace_back(std::move(mesh));
-	return meshHandle;
+	meshes_.emplace(meshName, std::move(mesh));
 }
 
-void MeshManager::Draw(uint32_t meshHandle, uint32_t instanceCount) const {
-	meshes_[meshHandle]->vertexBuffer->IASetVertexBuffers();				// VBVの設定
-	meshes_[meshHandle]->indexBuffer->IASetIndexBuffer();					// IBVの設定
-	meshes_[meshHandle]->indexBuffer->DrawIndexedInstanced(instanceCount);	// 描画
+void MeshManager::Draw(const std::string &meshName) const {
+	meshes_.at(meshName)->vertexBuffer->IASetVertexBuffers();	// VBVの設定
+	meshes_.at(meshName)->indexBuffer->IASetIndexBuffer();		// IBVの設定
+	meshes_.at(meshName)->indexBuffer->DrawIndexedInstanced(meshes_.at(meshName)->instanceCount);	// 描画
 }
 
-VertexData *MeshManager::GetVertexData(uint32_t meshHandle) const {
-	return meshes_[meshHandle]->vertexBuffer->GetVertexData();
+VertexData *MeshManager::GetVertexData(const std::string &meshName) const {
+	return meshes_.at(meshName)->vertexBuffer->GetVertexData();
 }
 
-D3D12_VERTEX_BUFFER_VIEW MeshManager::GetVertexBufferView(uint32_t meshHandle) const {
-	return meshes_[meshHandle]->vertexBuffer->GetVertexBufferView();
+D3D12_VERTEX_BUFFER_VIEW MeshManager::GetVertexBufferView(const std::string &meshName) const {
+	return meshes_.at(meshName)->vertexBuffer->GetVertexBufferView();
 }
 
-D3D12_INDEX_BUFFER_VIEW MeshManager::GetIndexBufferView(uint32_t meshHandle) const {
-	return meshes_[meshHandle]->indexBuffer->GetIndexBufferView();
+D3D12_INDEX_BUFFER_VIEW MeshManager::GetIndexBufferView(const std::string &meshName) const {
+	return meshes_.at(meshName)->indexBuffer->GetIndexBufferView();
 }
 
-UINT MeshManager::GetIndexCount(uint32_t meshHandle) const {
-	return meshes_[meshHandle]->indexBuffer->GetIndices();
+UINT MeshManager::GetIndexCount(const std::string &meshName) const {
+	return meshes_.at(meshName)->indexBuffer->GetIndices();
+}
+
+UINT MeshManager::GetInstanceCount(const std::string &meshName) const {
+	return meshes_.at(meshName)->instanceCount;
 }
 
 MeshLODData MeshManager::ReIndexMeshLODData(const MeshLODData &meshLODData) {
@@ -417,9 +466,9 @@ MeshLODData MeshManager::ReIndexMeshLODData(const MeshLODData &meshLODData) {
 	return reIndexedMeshLODData;
 }
 
-Collision::Sphere MeshManager::CreateLocalSphere(uint32_t meshHandle) {
-	VertexData *vertexData = meshes_[meshHandle]->vertexBuffer->GetVertexData();
-	size_t vertices = meshes_[meshHandle]->vertexBuffer->GetVertices();
+Collision::Sphere MeshManager::CreateLocalSphere(const std::string &meshName) {
+	VertexData *vertexData = meshes_.at(meshName)->vertexBuffer->GetVertexData();
+	size_t vertices = meshes_.at(meshName)->vertexBuffer->GetVertices();
 
 	// 中心点の計算
 	Vector3 center = { 0.0f, 0.0f, 0.0f };
@@ -445,9 +494,9 @@ Collision::Sphere MeshManager::CreateLocalSphere(uint32_t meshHandle) {
 	return sphere;
 }
 
-Collision::AABB MeshManager::CreateLocalAABB(uint32_t meshHandle) {
-	VertexData *vertexData = meshes_[meshHandle]->vertexBuffer->GetVertexData();
-	size_t vertices = meshes_[meshHandle]->vertexBuffer->GetVertices();
+Collision::AABB MeshManager::CreateLocalAABB(const std::string &meshName) {
+	VertexData *vertexData = meshes_.at(meshName)->vertexBuffer->GetVertexData();
+	size_t vertices = meshes_.at(meshName)->vertexBuffer->GetVertices();
 
 	Collision::AABB aabb = {
 		.min = { vertexData[0].position.x, vertexData[0].position.y, vertexData[0].position.z },
@@ -465,9 +514,9 @@ Collision::AABB MeshManager::CreateLocalAABB(uint32_t meshHandle) {
 	return aabb;
 }
 
-Collision::OBB MeshManager::CreateLocalOBB(uint32_t meshHandle) {
-	VertexData *vertexData = meshes_[meshHandle]->vertexBuffer->GetVertexData();
-	size_t vertices = meshes_[meshHandle]->vertexBuffer->GetVertices();
+Collision::OBB MeshManager::CreateLocalOBB(const std::string &meshName) {
+	VertexData *vertexData = meshes_.at(meshName)->vertexBuffer->GetVertexData();
+	size_t vertices = meshes_.at(meshName)->vertexBuffer->GetVertices();
 
 	// 中心点の計算
 	Vector3 center = { 0.0f, 0.0f, 0.0f };

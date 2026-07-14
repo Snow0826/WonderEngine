@@ -1,9 +1,9 @@
 #include "Skybox.hlsli"
 
-cbuffer WorldTransform : register(b0)
+cbuffer SkyboxData : register(b0)
 {
     float4x4 world;
-    float4x4 worldInverseTranspose;
+    float4 color;
 };
 
 cbuffer ViewProjection : register(b1)
@@ -22,5 +22,6 @@ VertexShaderOutput main(VertexShaderInput input)
     VertexShaderOutput output;
     output.position = mul(input.position, mul(world, mul(view, projection))).xyww;
     output.texcoord = input.position.xyz;
+    output.color = color;
     return output;
 }

@@ -15,7 +15,6 @@ class DebugRenderer;
 class MeshManager;
 class TextureManager;
 class SkinClusterManager;
-class IndirectCommandManager;
 class FootprintManager;
 
 /// @brief レンダラー
@@ -59,10 +58,6 @@ public:
 	/// @param skinClusterManager スキンクラスターマネージャー
 	void SetSkinClusterManager(SkinClusterManager *skinClusterManager);
 
-	/// @brief 間接コマンドマネージャーをセットする
-	/// @param indirectCommandManager 間接コマンドマネージャー
-	void SetIndirectCommandManager(IndirectCommandManager *indirectCommandManager);
-
 	/// @brief フットプリントマネージャーをセットする
 	/// @param footprintManager フットプリントマネージャー
 	void SetFootprintManager(FootprintManager *footprintManager);
@@ -92,7 +87,6 @@ private:
 	MeshManager *meshManager_ = nullptr;														// メッシュマネージャー
 	TextureManager *textureManager_ = nullptr;													// テクスチャマネージャー
 	SkinClusterManager *skinClusterManager_ = nullptr;											// スキンクラスターマネージャー
-	IndirectCommandManager *indirectCommandManager_ = nullptr;									// 間接コマンドマネージャー
 	FootprintManager *footprintManager_ = nullptr;												// フットプリントマネージャー
 	ID3D12RootSignature *object3dRootSignature_ = nullptr;										// Object3d用ルートシグネチャ
 	ID3D12RootSignature *ringObject3dRootSignature_ = nullptr;									// RingObject3d用ルートシグネチャ

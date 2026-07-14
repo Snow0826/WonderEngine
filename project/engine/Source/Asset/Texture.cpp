@@ -14,9 +14,10 @@ TextureManager::~TextureManager() = default;
 
 uint32_t TextureManager::LoadTexture(const std::string &fileName) {
 	// すでに読み込まれている場合は何もしない
-	if (textures_.contains(fileName)) {
+	auto it = textures_.find(fileName);
+	if (it != textures_.end()) {
 		Logger::Log(*logStream_, "Texture already loaded: " + fileName + "\n");
-		return textures_.at(fileName)->readHandle;
+		return it->second->readHandle;
 	}
 
 	// ファイル名が空の場合は白テクスチャを返す

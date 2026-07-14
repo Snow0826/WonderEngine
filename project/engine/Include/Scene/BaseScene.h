@@ -11,9 +11,7 @@ enum class CameraType {
 };
 
 class SceneManager;
-class ObjectManager;
 class FootprintManager;
-class IndirectCommandManager;
 class TextManager;
 class SpriteManager;
 class World;
@@ -97,9 +95,7 @@ public:
 protected:
 	using CameraEntities = std::array<uint32_t, static_cast<uint32_t>(CameraType::kCountOfCameraType)>;
 	SceneManager *sceneManager_ = nullptr;												// シーンマネージャー
-	std::unique_ptr<ObjectManager> objectManager_ = nullptr;							// オブジェクトマネージャー
 	std::unique_ptr<FootprintManager> footprintManager_ = nullptr;						// フットプリントマネージャー
-	std::unique_ptr<IndirectCommandManager> indirectCommandManager_ = nullptr;			// 間接コマンドマネージャー
 	std::unique_ptr<TextManager> textManager_ = nullptr;								// テキストマネージャー
 	std::unique_ptr<SpriteManager> spriteManager_ = nullptr;							// スプライトマネージャー
 	std::unique_ptr<DebugRenderer> debugRenderer_ = nullptr;							// デバッグレンダラー

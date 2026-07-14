@@ -4,7 +4,6 @@
 
 class Registry;
 class SpriteManager;
-class ObjectManager;
 
 /// @brief フェード
 class Fade final {
@@ -19,9 +18,7 @@ public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
 	/// @param spriteManager スプライトマネージャー
-	/// @param objectManager オブジェクトマネージャー
-	Fade(Registry *registry, SpriteManager *spriteManager, ObjectManager *objectManager)
-		: registry_(registry), spriteManager_(spriteManager), objectManager_(objectManager) {}
+	Fade(Registry *registry, SpriteManager *spriteManager) : registry_(registry), spriteManager_(spriteManager) {}
 
 	/// @brief フェードの追加
 	/// @param textureFileName テクスチャファイル名
@@ -49,7 +46,6 @@ public:
 private:
 	Registry *registry_ = nullptr;				// レジストリ
 	SpriteManager *spriteManager_ = nullptr;	// スプライトマネージャー
-	ObjectManager *objectManager_ = nullptr;	// オブジェクトマネージャー
 	uint32_t entity_ = 0;						// エンティティ
 	Status status_ = Status::None;				// 現在のフェードの状態
 	float duration_ = 0.0f;						// フェードの継続時間

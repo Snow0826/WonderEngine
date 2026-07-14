@@ -19,7 +19,7 @@ struct SpriteData final {
 struct Sprite final {
 	SpriteData initialSpriteData;	// 初期スプライトデータ
 	SpriteData spriteData;			// スプライトデータ
-	uint32_t meshHandle = 0;		// メッシュハンドル
+	std::string meshName;			// メッシュ名
 	uint32_t textureHandle = 0;		// テクスチャハンドル
 	bool enableMipMaps = true;		// ミップマップ有効フラグ
 	std::string textureFileName;	// テクスチャファイル名
@@ -39,9 +39,10 @@ public:
 	SpriteManager(TextureManager *textureManager, MeshManager *meshManager, Registry *registry);
 
 	/// @brief スプライトの生成
+	/// @param meshName メッシュ名
 	/// @param textureFileName テクスチャファイル名
 	/// @return スプライト
-	Sprite CreateSprite(const std::string &textureFileName);
+	Sprite CreateSprite(const std::string &meshName, const std::string &textureFileName);
 
 	/// @brief スプライトの更新
 	void UpdateSprite();

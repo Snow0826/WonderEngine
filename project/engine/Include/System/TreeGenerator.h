@@ -22,8 +22,6 @@ struct Branch final {
 
 class Registry;
 class PrimitiveGenerator;
-class ObjectManager;
-class IndirectCommandManager;
 struct Vector3;
 struct Quaternion;
 
@@ -33,40 +31,35 @@ public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
 	/// @param primitiveGenerator プリミティブジェネレーター
-	/// @param objectManager オブジェクトマネージャー
-	/// @param indirectCommandManager 間接コマンドマネージャー
-	TreeGenerator(Registry *registry, PrimitiveGenerator *primitiveGenerator, ObjectManager *objectManager, IndirectCommandManager *indirectCommandManager)
-		: registry_(registry),
-		primitiveGenerator_(primitiveGenerator),
-		objectManager_(objectManager),
-		indirectCommandManager_(indirectCommandManager) {
-	}
+	TreeGenerator(Registry *registry, PrimitiveGenerator *primitiveGenerator) : registry_(registry), primitiveGenerator_(primitiveGenerator) {}
 
 	/// @brief 木の生成
-	/// @param leafRadius 葉の半径
+	/// @param crownCenter 葉の生成範囲の中心
+	/// @param crownRadius 葉の生成範囲の半径
 	/// @param leafCount 葉の数
+	/// @param minRadius 枝の最小半径
+	/// @param gamma 枝の半径計算のガンマ値
 	/// @param influenceRadius 影響半径
 	/// @param killRadius 消滅半径
 	/// @param branchLength 枝の長さ
 	/// @return 生成された木のエンティティID
-	uint32_t Generate(float leafRadius, uint32_t leafCount, float influenceRadius, float killRadius, float branchLength);
+	uint32_t Generate(const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount, float minRadius, float gamma, float influenceRadius, float killRadius, float branchLength);
 
 	/// @brief 木の削除
 	/// @param entity 削除する木のエンティティID
 	void Delete(uint32_t entity);
 
 private:
-	Registry *registry_ = nullptr;								// レジストリ
-	PrimitiveGenerator *primitiveGenerator_ = nullptr;			// プリミティブジェネレーター
-	ObjectManager *objectManager_ = nullptr;					// オブジェクトマネージャー
-	IndirectCommandManager *indirectCommandManager_ = nullptr;	// 間接コマンドマネージャー
-	std::vector<Leaf> leaves_;									// 葉のリスト
-	std::vector<std::unique_ptr<Branch>> branches_;				// 枝のリスト
+	Registry *registry_ = nullptr;						// レジストリ
+	PrimitiveGenerator *primitiveGenerator_ = nullptr;	// プリミティブジェネレーター
+	std::vector<Leaf> leaves_;							// 葉のリスト
+	std::vector<std::unique_ptr<Branch>> branches_;		// 枝のリスト
 
 	/// @brief 葉の生成
-	/// @param leafRadius 葉の半径
+	/// @param crownCenter 葉の生成範囲の中心
+	/// @param crownRadius 葉の生成範囲の半径
 	/// @param leafCount 葉の数
-	void GenerateLeaves(float leafRadius, uint32_t leafCount);
+	void GenerateLeaves(const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount);
 
 	/// @brief 根の枝の生成
 	/// @param influenceRadius 影響半径
@@ -87,8 +80,10 @@ private:
 
 	/// @brief 枝の半径を計算する
 	/// @param branch 枝
+	/// @param minRadius 最小半径
+	/// @param gamma ガンマ値
 	/// @return 枝の半径
-	float CalculateRadius(Branch *branch);
+	float CalculateRadius(Branch *branch, float minRadius, float gamma);
 
 	/// @brief 枝を再帰的に作成する
 	/// @param branch 枝

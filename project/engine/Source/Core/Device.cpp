@@ -315,7 +315,7 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 
 	// Noise用ルートシグネチャの作成
 	noiseRootSignature_ = RootSignature()
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:NoiseData
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:PerFrame
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
@@ -336,9 +336,20 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	// パーティクル初期化用ルートシグネチャの作成
 	initializeParticleRootSignature_ = RootSignature()
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 0:Particle
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 1:FreeCounter
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create InitializeParticleRootSignature\n");
 	initializeParticleRootSignature_->SetName(L"InitializeParticleRootSignature");
+
+	// パーティクル発生用ルートシグネチャの作成
+	emitParticleRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 0)												// 0:EmitterSphere
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 1)												// 1:PerFrame
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 2:Particle
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 3:FreeCounter
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create EmitParticleRootSignature\n");
+	emitParticleRootSignature_->SetName(L"EmitParticleRootSignature");
 
 	// 深度ステンシルテクスチャコピー用ルートシグネチャの作成
 	depthStencilCopyRootSignature_ = RootSignature()
@@ -432,9 +443,6 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 
 	// ImGuiの初期化
 	ImGuiManager::Initialize(hwnd, device_, commandQueue_, swapChainDesc, rtvDesc, dsvDesc, gpuCbvSrvUavDescriptorHeap_, logStream);
-	
-	// フレームの開始処理
-	NewFrame();
 }
 
 void Device::NewFrame() {

@@ -25,24 +25,14 @@ struct ParticleGroup final {
 	std::string textureFileName;	// テクスチャファイル名
 };
 
-template<typename T>
-struct Range final {
-	T min;	// 最小値
-	T max;	// 最大値	
-};
-
-/// @brief エミッター
-struct Emitter final {
-	EulerTransform transform;	// SRTデータ
-	Collision::AABB area;		// 発生範囲
-	Range<Vector3> scale;		// 大きさ
-	Range<Vector3> rotate;		// 回転
-	Range<Vector3> velocity;	// 速度
-	Range<Vector4> color;		// 色
-	Range<float> lifeTime;		// 寿命
-	uint32_t count;				// 発生数
-	float frequency;			// 発生頻度
-	float frequencyTime;		// 発生頻度用時刻
+/// @brief 球状エミッター
+struct EmitterSphere final {
+	Vector3 translate;		// 位置
+	float radius;			// 射出半径
+	uint32_t count;			// 射出数
+	float frequency;		// 射出頻度
+	float frequencyTime;	// 射出頻度調整用時間
+	uint32_t emit;			// 射出許可
 };
 
 /// @brief 場
@@ -56,6 +46,7 @@ struct Field final {
 class Device;
 class TextureManager;
 class MeshManager;
+class Registry;
 class Resource;
 
 /// @brief パーティクルマネージャー
@@ -83,17 +74,24 @@ public:
 	/// @return パーティクルグループ
 	ParticleGroup FindParticleGroup(const std::string &name);
 
+	/// @brief 球状エミッターの更新
+	/// @param deltaTime デルタタイム
+	void UpdateEmitterSphere(float deltaTime);
+
+	/// @brief レジストリの設定
+	/// @param registry レジストリ
+	void SetRegistry(Registry *registry) { registry_ = registry; }
+
 private:
 	static inline constexpr uint32_t kMaxParticle = 1024;							// 最大パーティクル数
 	Device *device_ = nullptr;														// デバイス
 	TextureManager *textureManager_ = nullptr;										// テクスチャマネージャー
 	MeshManager *meshManager_ = nullptr;											// メッシュマネージャー
+	Registry *registry_ = nullptr;													// レジストリ
 	std::ofstream *logStream_ = nullptr;											// ログ出力用のストリーム
 	std::unordered_map<std::string, std::unique_ptr<Resource>> particleResources_;	// パーティクルリソースマップ
 	std::unordered_map<std::string, ParticleGroup> particleGroups_;					// パーティクルグループマップ
 };
-
-class Registry;
 
 /// @brief パーティクルグループインスペクター
 class ParticleGroupInspector final {
@@ -112,14 +110,14 @@ private:
 	TextureManager *textureManager_ = nullptr;	// テクスチャマネージャー
 };
 
-/// @brief エミッターインスペクター
-class EmitterInspector final {
+/// @brief 球状エミッターインスペクター
+class EmitterSphereInspector final {
 public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
-	EmitterInspector(Registry *registry) : registry_(registry) {}
+	EmitterSphereInspector(Registry *registry) : registry_(registry) {}
 
-	/// @brief エミッターインスペクターの描画
+	/// @brief 球状エミッターインスペクターの描画
 	/// @param entity エンティティ
 	void Draw(uint32_t entity);
 
@@ -133,7 +131,7 @@ public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
 	FieldInspector(Registry *registry) : registry_(registry) {}
-	
+
 	/// @brief フィールドインスペクターの描画
 	/// @param entity エンティティ
 	void Draw(uint32_t entity);

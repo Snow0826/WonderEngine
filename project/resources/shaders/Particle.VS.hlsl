@@ -1,15 +1,5 @@
 #include "Particle.hlsli"
 
-struct Particle
-{
-    float3 translate;
-    float3 scale;
-    float lifeTime;
-    float3 velocity;
-    float currentTime;
-    float4 color;
-};
-
 StructuredBuffer<Particle> gParticles : register(t0);
 
 cbuffer PerView : register(b0)

@@ -1,16 +1,7 @@
-static const uint kMaxParticles = 1024;
-
-struct Particle
-{
-    float3 translate;
-    float3 scale;
-    float lifeTime;
-    float3 velocity;
-    float currentTime;
-    float4 color;
-};
+#include "Particle.hlsli"
 
 RWStructuredBuffer<Particle> gParticles : register(u0);
+RWStructuredBuffer<int> gFreeCounter : register(u1);
 
 [numthreads(1024, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
@@ -21,7 +12,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
         return;
     }
     
-    gParticles[particleIndex] = (Particle)0;
-    gParticles[particleIndex].scale = float3(0.5f, 0.5f, 0.5f);
-    gParticles[particleIndex].color = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    gParticles[particleIndex] = (Particle) 0;
+    
+    if (particleIndex == 0)
+    {
+        gFreeCounter[0] = 0;
+    }
 }

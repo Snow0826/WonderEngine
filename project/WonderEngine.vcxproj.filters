@@ -78,7 +78,7 @@
     <ClCompile Include="engine\Source\System\TransformManipulator.cpp" />
     <ClCompile Include="engine\Source\Asset\SkinCluster.cpp" />
     <ClCompile Include="engine\Source\Component\Primitive.cpp" />
-    <ClCompile Include="game\Source\Model\ParticleObject.cpp" />
+    <ClCompile Include="game\Source\Particle\ParticleObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -168,7 +168,7 @@
     <ClInclude Include="engine\Include\System\TransformManipulator.h" />
     <ClInclude Include="engine\Include\Asset\SkinCluster.h" />
     <ClInclude Include="engine\Include\Component\Primitive.h" />
-    <ClInclude Include="game\Include\Model\ParticleObject.h" />
+    <ClInclude Include="game\Include\Particle\ParticleObject.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

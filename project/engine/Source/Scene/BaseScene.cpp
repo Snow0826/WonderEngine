@@ -65,6 +65,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	renderer->SetRegistry(registry_.get());
 	world->SetRegistry(registry_.get());
 	skinClusterManager->SetRegistry(registry_.get());
+	particleManager->SetRegistry(registry_.get());
 
 	// デバッグレンダラーの生成
 	debugRenderer_ = std::make_unique<DebugRenderer>(world);
@@ -99,7 +100,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	modelInspector_ = std::make_unique<ModelInspector>(registry_.get(), modelManager);
 	spriteInspector_ = std::make_unique<SpriteInspector>(registry_.get(), textureManager);
 	particleGroupInspector_ = std::make_unique<ParticleGroupInspector>(registry_.get(), textureManager);
-	emitterInspector_ = std::make_unique<EmitterInspector>(registry_.get());
+	emitterSphereInspector_ = std::make_unique<EmitterSphereInspector>(registry_.get());
 	fieldInspector_ = std::make_unique<FieldInspector>(registry_.get());
 	transformInspector_ = std::make_unique<TransformInspector>(registry_.get());
 	uvTransformInspector_ = std::make_unique<UVTransformInspector>(registry_.get());
@@ -122,7 +123,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	componentDrawerRegistry_->RegisterComponentDrawer<Model>([this](uint32_t entity) { modelInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Sprite>([this](uint32_t entity) { spriteInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<ParticleGroup>([this](uint32_t entity) { particleGroupInspector_->Draw(entity); });
-	componentDrawerRegistry_->RegisterComponentDrawer<Emitter>([this](uint32_t entity) { emitterInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<EmitterSphere>([this](uint32_t entity) { emitterSphereInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Field>([this](uint32_t entity) { fieldInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<EulerTransform>([this](uint32_t entity) { transformInspector_->DrawEulerTransform(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<QuaternionTransform>([this](uint32_t entity) { transformInspector_->DrawQuaternionTransform(entity); });
@@ -300,6 +301,9 @@ void BaseScene::Update() {
 	// スキンクラスターの更新
 	skinClusterManager->Update();
 
+	// 球状エミッターの更新
+	particleManager->UpdateEmitterSphere(kDeltaTime);
+
 	// ワールド変換後処理の呼び出し
 	OnAfterTransform();
 
@@ -327,6 +331,9 @@ void BaseScene::Update() {
 
 	// ワールドの更新
 	world->Update();
+
+	// パーティクルの発生
+	renderer->EmitParticle();
 
 	// デバッグレンダラーのフレーム終了
 	debugRenderer_->EndFrame();

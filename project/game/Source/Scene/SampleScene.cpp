@@ -56,8 +56,8 @@ void SampleScene::OnInitialize() {
 	human.Create("sneakWalk.gltf", { 3.0f, 0.0f, 5.0f });
 
 	// パーティクルオブジェクトの作成
-	//ParticleObject particleObject{ registry_.get(), particleManager };
-	//particleObject.Create();
+	ParticleObject particleObject{ registry_.get(), particleManager };
+	particleObject.Create();
 
 	// メインカメラの作成
 	mainCamera_ = std::make_unique<DebugCamera>(registry_.get(), sceneManager_->GetInput());

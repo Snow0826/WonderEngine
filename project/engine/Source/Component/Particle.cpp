@@ -108,6 +108,18 @@ ParticleGroup ParticleManager::FindParticleGroup(const std::string &name) {
 	return particleGroup;
 }
 
+void ParticleManager::UpdateEmitterSphere(float deltaTime) {
+	registry_->ForEach<EmitterSphere>([&](uint32_t entity, EmitterSphere *emitterSphere) {
+		emitterSphere->frequencyTime += deltaTime;
+		if (emitterSphere->frequency <= emitterSphere->frequencyTime) {
+			emitterSphere->frequencyTime -= emitterSphere->frequency;
+			emitterSphere->emit = true;
+		} else {
+			emitterSphere->emit = false;
+		}
+		}, exclude<Disabled>());
+}
+
 void ParticleGroupInspector::Draw([[maybe_unused]] uint32_t entity) {
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode("ParticleGroup")) {
@@ -120,34 +132,17 @@ void ParticleGroupInspector::Draw([[maybe_unused]] uint32_t entity) {
 #endif // USE_IMGUI
 }
 
-void EmitterInspector::Draw([[maybe_unused]] uint32_t entity) {
+void EmitterSphereInspector::Draw([[maybe_unused]] uint32_t entity) {
 #ifdef USE_IMGUI
-	if (ImGui::TreeNode("Emitter")) {
-		Emitter *emitter = registry_->GetComponent<Emitter>(entity);
-		if (emitter) {
-			ImGui::DragFloat3("Translate", &emitter->transform.translate.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
-			ImGui::SliderAngle("RotateX", &emitter->transform.rotate.x, -360.0f, 360.0f);
-			ImGui::SliderAngle("RotateY", &emitter->transform.rotate.y, -360.0f, 360.0f);
-			ImGui::SliderAngle("RotateZ", &emitter->transform.rotate.z, -360.0f, 360.0f);
-			ImGui::DragFloat3("Scale", &emitter->transform.scale.x, 0.01f, 0.0f, std::numeric_limits<float>::max());
-			ImGui::DragFloat3("AreaMin", &emitter->area.min.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("AreaMax", &emitter->area.max.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("ScaleMin", &emitter->scale.min.x, 0.01f, 0.0f, std::numeric_limits<float>::max());
-			ImGui::DragFloat3("ScaleMax", &emitter->scale.max.x, 0.01f, 0.0f, std::numeric_limits<float>::max());
-			ImGui::SliderAngle("RotateMinX", &emitter->rotate.min.x, -360.0f, 360.0f);
-			ImGui::SliderAngle("RotateMinY", &emitter->rotate.min.y, -360.0f, 360.0f);
-			ImGui::SliderAngle("RotateMinZ", &emitter->rotate.min.z, -360.0f, 360.0f);
-			ImGui::SliderAngle("RotateMaxX", &emitter->rotate.max.x, -360.0f, 360.0f);
-			ImGui::SliderAngle("RotateMaxY", &emitter->rotate.max.y, -360.0f, 360.0f);
-			ImGui::SliderAngle("RotateMaxZ", &emitter->rotate.max.z, -360.0f, 360.0f);
-			ImGui::DragFloat3("VelocityMin", &emitter->velocity.min.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("VelocityMax", &emitter->velocity.max.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
-			ImGui::ColorEdit4("ColorMin", &emitter->color.min.x);
-			ImGui::ColorEdit4("ColorMax", &emitter->color.max.x);
-			ImGui::DragFloat("LifeTimeMin", &emitter->lifeTime.min, 0.01f, 0.0f, std::numeric_limits<float>::max());
-			ImGui::DragFloat("LifeTimeMax", &emitter->lifeTime.max, 0.01f, 0.0f, std::numeric_limits<float>::max());
-			ImGui::DragFloat("Frequency", &emitter->frequency, 0.01f, 0.0f, std::numeric_limits<float>::max());
-			ImGui::DragInt("Count", reinterpret_cast<int *>(&emitter->count), 1.0f, 1, std::numeric_limits<int>	::max());
+	if (ImGui::TreeNode("EmitterSphere")) {
+		EmitterSphere *emitterSphere = registry_->GetComponent<EmitterSphere>(entity);
+		if (emitterSphere) {
+			ImGui::DragFloat3("Translate", &emitterSphere->translate.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+			ImGui::DragFloat("Radius", &emitterSphere->radius, 0.01f, 0.0f, std::numeric_limits<float>::max());
+			ImGui::DragInt("Count", reinterpret_cast<int *>(&emitterSphere->count), 1.0f, 1, std::numeric_limits<int>::max());
+			ImGui::DragFloat("Frequency", &emitterSphere->frequency, 0.01f, 0.0f, std::numeric_limits<float>::max());
+			ImGui::Text("FrequencyTime: %.3f", emitterSphere->frequencyTime);
+			ImGui::Checkbox("Emit", reinterpret_cast<bool *>(&emitterSphere->emit));
 		}
 		ImGui::TreePop();
 	}

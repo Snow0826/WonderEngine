@@ -80,6 +80,7 @@ Renderer::Renderer(Device *device)
 	, noiseRootSignature_(device->GetNoiseRootSignature())
 	, skinningRootSignature_(device->GetSkinningRootSignature())
 	, initializeParticleRootSignature_(device->GetInitializeParticleRootSignature())
+	, emitParticleRootSignature_(device->GetEmitParticleRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
@@ -263,6 +264,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// パーティクル初期化のシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> initializeParticleCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/InitializeParticle.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(initializeParticleCSBlob);
+
+	// パーティクル発生のシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> emitParticleCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/EmitParticle.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(emitParticleCSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -572,6 +577,13 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create InitializeParticlePipelineState\n");
 	initializeParticlePipelineState_->SetName(L"InitializeParticlePipelineState");
 
+	// パーティクル発生用パイプラインステートの生成
+	emitParticlePipelineState_ = PipelineState()
+		.SetComputeShader(emitParticleCSBlob->GetBufferPointer(), emitParticleCSBlob->GetBufferSize())	// コンピュートシェーダー
+		.Create(device_->GetDevice(), emitParticleRootSignature_);
+	Logger::Log(logStream, "Create EmitParticlePipelineState\n");
+	emitParticlePipelineState_->SetName(L"EmitParticlePipelineState");
+
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
 		.SetComputeShader(depthStencilCopyCSBlob->GetBufferPointer(), depthStencilCopyCSBlob->GetBufferSize())	// コンピュートシェーダー
@@ -636,11 +648,35 @@ void Renderer::Initialize(std::ofstream &logStream) {
 }
 
 void Renderer::InitializeParticle() {
+	// DescriptorHeapを設定する
+	ID3D12DescriptorHeap *descriptorHeaps[] = { gpuCbvSrvUavDescriptorHeap_->GetDescriptorHeap() };
+	commandList_->SetDescriptorHeaps(1, descriptorHeaps);
+
 	commandList_->SetComputeRootSignature(initializeParticleRootSignature_);
 	commandList_->SetPipelineState(initializeParticlePipelineState_.Get());
 
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetFreeCounterHandle());
+	
 	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, particleGroup->uavHandle);
+		commandList_->Dispatch(1, 1, 1);
+		}, exclude<Disabled>());
+}
+
+void Renderer::EmitParticle() {
+	// DescriptorHeapを設定する
+	ID3D12DescriptorHeap *descriptorHeaps[] = { gpuCbvSrvUavDescriptorHeap_->GetDescriptorHeap() };
+	commandList_->SetDescriptorHeaps(1, descriptorHeaps);
+
+	commandList_->SetComputeRootSignature(emitParticleRootSignature_);
+	commandList_->SetPipelineState(emitParticlePipelineState_.Get());
+
+	world_->GetConstantBuffer(ConstantBufferType::kEmitterSphere)->BindToCompute(0, 0);
+	world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToCompute(1, 0);
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetFreeCounterHandle());
+
+	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, particleGroup->uavHandle);
 		commandList_->Dispatch(1, 1, 1);
 		}, exclude<Disabled>());
 }
@@ -813,7 +849,7 @@ void Renderer::OcclusionCulling() {
 	// コマンドバッファの転送
 	Resource *indirectCommandStructuredBuffer = world_->GetStructuredBuffer(StructuredBufferType::kMeshLOD);
 	indirectCommandStructuredBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_COPY_DEST);
-	indirectCommandStructuredBuffer->CopyFrom(world_->GetCommandBufferUpload()->GetResource(), 0, 0, sizeof(MeshLOD) * world_->GetMaxAABB());
+	indirectCommandStructuredBuffer->CopyFrom(world_->GetCommandUploadBuffer()->GetResource(), 0, 0, sizeof(MeshLOD) * world_->GetMaxAABB());
 	indirectCommandStructuredBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
 	// オクルージョンカリングの実行前にUAVを遷移する
@@ -1219,7 +1255,7 @@ void Renderer::CopyImage() {
 		case PostEffect::kNoise:
 			commandList_->SetGraphicsRootSignature(noiseRootSignature_);
 			commandList_->SetPipelineState(noisePipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kNoiseParam)->BindToGraphics(0, 0);
+			world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToGraphics(0, 0);
 			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
 			break;
 		case PostEffect::kCountOfPostEffect:

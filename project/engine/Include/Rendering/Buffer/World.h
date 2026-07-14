@@ -143,8 +143,8 @@ struct DissolveParam final {
 	Vector3 edgeColor = { 1.0f, 1.0f, 1.0f };	// エッジカラー
 };
 
-/// @brief ノイズのパラメータ
-struct NoiseParam final {
+/// @brief フレームごとのデータ
+struct PerFrame final {
 	float time = 0.0f;	// 時間
 };
 
@@ -179,7 +179,8 @@ enum class ConstantBufferType {
 	kDepthMaterial,				// 深度マテリアル
 	kRadialBlurParam,			// ラジアルブラーのパラメータ
 	kDissolveParam,				// ディゾルブのパラメータ
-	kNoiseParam,				// ノイズのパラメータ
+	kPerFrame,					// フレームごとのデータ
+	kEmitterSphere,				// 球状エミッター
 	kFootprintMap,				// フットプリントマップ
 	kCountOfConstantBufferType	// 定数バッファの種類の数
 };
@@ -297,9 +298,9 @@ public:
 	/// @return Hi-Zテクスチャ
 	Resource *GetHiZTexture() { return hiZTexture_.get(); }
 
-	/// @brief コマンドバッファアップロードを取得
-	/// @return コマンドバッファアップロード
-	Resource *GetCommandBufferUpload() { return commandBufferUpload_.get(); }
+	/// @brief コマンドアップロードバッファを取得
+	/// @return コマンドアップロードバッファ
+	Resource *GetCommandUploadBuffer() { return commandUploadBuffer_.get(); }
 
 	/// @brief カリング済みコマンドバッファを取得
 	/// @return カリング済みコマンドバッファ
@@ -401,6 +402,10 @@ public:
 	/// @return コマンドカウンターハンドル
 	uint32_t GetCommandCounterHandle() const { return commandCounterHandle_; }
 
+	/// @brief フリーカウンターハンドルを取得
+	/// @return フリーカウンターハンドル
+	uint32_t GetFreeCounterHandle() const { return freeCounterHandle_; }
+
 	/// @brief 結果表示フラグを取得
 	/// @return 結果表示フラグ
 	bool IsResult() const { return isResult_; }
@@ -448,9 +453,10 @@ private:
 	std::unique_ptr<Resource> gameRenderTexture_ = nullptr;				// ゲームのレンダーテクスチャ
 	std::unique_ptr<Resource> postEffectRenderTexture_ = nullptr;		// ポストエフェクトのレンダーテクスチャ
 	std::unique_ptr<Resource> hiZTexture_ = nullptr;					// Hi-Zテクスチャ
-	std::unique_ptr<Resource> commandBufferUpload_ = nullptr;			// コマンドバッファアップロード用
+	std::unique_ptr<Resource> commandUploadBuffer_ = nullptr;			// コマンドアップロードバッファ
 	std::unique_ptr<Resource> processedCommandBuffer_ = nullptr;		// カリング済みコマンドバッファ
 	std::unique_ptr<Resource> commandCounterBuffer_ = nullptr;			// コマンドカウンターバッファ
+	std::unique_ptr<Resource> freeCounterBuffer_ = nullptr;				// フリーカウンターバッファ
 	std::unique_ptr<Resource> footprintMapBuffer_ = nullptr;			// フットプリントマップバッファ
 	std::unique_ptr<Resource> footprintMapReadbackBuffer_ = nullptr;	// フットプリントマップ読み戻しバッファ
 	CullingConstantsData cullingConstantsData_;							// カリング定数データ
@@ -463,7 +469,7 @@ private:
 	DepthMaterial depthMaterial_;										// 深度マテリアル
 	RadialBlurParam radialBlurParam_;									// ラジアルブラーのパラメータ
 	DissolveParam dissolveParam_;										// ディゾルブのパラメータ
-	NoiseParam noiseParam_;												// ノイズのパラメータ
+	PerFrame perFrame_;													// フレームごとのデータ
 	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
 	Int4 *colorData_ = nullptr;											// 色データ
 	MeshLOD *meshLODData_ = nullptr;									// メッシュLODデータ
@@ -490,12 +496,12 @@ private:
 	std::vector<uint32_t> hiZMipMapWriteHandles_;						// Hi-Zミップマップ書き込みハンドル
 	uint32_t processedCommandHandle_ = 0;								// カリング済みコマンドハンドル
 	uint32_t commandCounterHandle_ = 0;									// コマンドカウンターハンドル
+	uint32_t freeCounterHandle_ = 0;									// フリーカウンターハンドル
 	uint32_t footprintMapHandle_ = 0;									// フットプリントマップハンドル
 	uint32_t instanceCount_ = 0;										// インスタンスの数
 	PostEffect postEffect_ = PostEffect::kNone;							// ポストエフェクト
 	bool isCulling_ = false;											// カリング有効フラグ
 	bool isResult_ = false;												// 結果表示フラグ
-	CPUTimer cpuTimer_;													// CPUタイマー
 
 	/// @brief 平行光源の転送
 	void TransferDirectionalLight();
@@ -545,14 +551,17 @@ private:
 	/// @brief ディゾルブのパラメータの転送
 	void TransferDissolveParam();
 
-	/// @brief ノイズのパラメータの転送
-	void TransferNoiseParam();
+	/// @brief フレームごとのデータの転送
+	void TransferPerFrame();
 
 	/// @brief メッシュLODデータの転送
 	void TransferMeshLODData();
 
 	/// @brief カリングデータの転送
 	void TransferCullingData();
+
+	/// @brief 球状エミッターの転送
+	void TransferEmitterSphere();
 
 	/// @brief フットプリントの転送
 	void TransferFootprint();

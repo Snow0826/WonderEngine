@@ -1,6 +1,6 @@
 #include "Fullscreen.hlsli"
 
-cbuffer NoiseData : register(b0)
+cbuffer PerFrame : register(b0)
 {
     float time;
 };

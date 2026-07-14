@@ -12,6 +12,7 @@
 #include "Model.h"
 #include "Primitive.h"
 #include "Sprite.h"
+#include "Particle.h"
 #include "Skybox.h"
 #include "Camera.h"
 #include "DirectionalLight.h"
@@ -68,9 +69,6 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device->GetGpuCbvSrvUavDescriptorHeap();
 	DescriptorHeap *cpuCbvSrvUavDescriptorHeap = device->GetCpuCbvSrvUavDescriptorHeap();
 
-	// CPUタイマーの開始
-	cpuTimer_.Begin();
-
 	// 定数バッファの初期化
 	for (auto &constantBuffer : constantBuffers_) {
 		constantBuffer = std::make_unique<ConstantBuffer>();
@@ -104,8 +102,10 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kRadialBlurParam)]->SetName("RadialBlurParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDissolveParam)]->Initialize(device, sizeof(DissolveParam), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDissolveParam)]->SetName("DissolveParam");
-	constantBuffers_[static_cast<size_t>(ConstantBufferType::kNoiseParam)]->Initialize(device, sizeof(NoiseParam), 1);
-	constantBuffers_[static_cast<size_t>(ConstantBufferType::kNoiseParam)]->SetName("NoiseParam");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPerFrame)]->Initialize(device, sizeof(PerFrame), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPerFrame)]->SetName("PerFrame");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kEmitterSphere)]->Initialize(device, sizeof(EmitterSphere), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kEmitterSphere)]->SetName("EmitterSphere");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->Initialize(device, sizeof(FootprintMap), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->SetName("FootprintMap");
 
@@ -124,20 +124,6 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	// PrewittFilter用のパラメータの初期データ設定
 	luminancePrewittFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
 	depthPrewittFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
-
-	// コマンドバッファ転送用中間バッファの作成
-	commandBufferUpload_ = Resource::CreateUploadBuffer(device, sizeof(MeshLOD) * kMaxAABB);
-	commandBufferUpload_->SetName("CommandBufferUpload");
-	commandBufferUpload_->Map(reinterpret_cast<void **>(&meshLODData_));
-
-	// カリング済みコマンドバッファの初期化
-	processedCommandBuffer_ = Resource::CreateRWBuffer(device, sizeof(IndirectCommand) * kMaxAABB);
-	processedCommandBuffer_->SetName("ProcessedCommandBuffer");
-
-	// コマンドカウンターバッファの初期化
-	constexpr size_t kMaxQueue = static_cast<size_t>(MeshType::kCountOfMeshType) * static_cast<size_t>(BlendMode::kCountOfBlendMode);
-	commandCounterBuffer_ = Resource::CreateRWBuffer(device, sizeof(uint32_t) * kMaxQueue);
-	commandCounterBuffer_->SetName("CommandCounterBuffer");
 
 	// キューオフセットリストの初期化
 	for (uint32_t i = 0; i < cullingConstantsData_.queueOffsets.size(); i++) {
@@ -415,7 +401,17 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	}
 #pragma endregion
 
-	// カリング済みコマンドバッファ用UAVの設定
+	// コマンドアップロードバッファの作成
+	commandUploadBuffer_ = Resource::CreateUploadBuffer(device, sizeof(MeshLOD) * kMaxAABB);
+	commandUploadBuffer_->SetName("CommandBufferUpload");
+	commandUploadBuffer_->Map(reinterpret_cast<void **>(&meshLODData_));
+
+	// カリング済みコマンド用RWStructuredBufferの作成
+	processedCommandBuffer_ = Resource::CreateRWBuffer(device, sizeof(IndirectCommand) * kMaxAABB);
+	processedCommandBuffer_->SetName("ProcessedCommandBuffer");
+	processedCommandHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// カリング済みコマンド用UAVの作成
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavBufferDesc{};
 	uavBufferDesc.Format = DXGI_FORMAT_UNKNOWN;							// バッファなのでフォーマットなし
 	uavBufferDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;			// バッファビュー
@@ -424,13 +420,16 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	uavBufferDesc.Buffer.StructureByteStride = sizeof(IndirectCommand);	// 構造体のサイズ
 	uavBufferDesc.Buffer.CounterOffsetInBytes = 0;						// カウンタなし
 	uavBufferDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;			// 特になし
-
-	// カリング済みコマンドバッファ用UAVの作成
-	processedCommandHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(processedCommandBuffer_->GetResource(), uavBufferDesc, processedCommandHandle_);
 	Logger::Log(logStream, "ProcessedCommand UAVDescriptorIndex: " + std::to_string(processedCommandHandle_) + "\n");
 
-	// コマンドカウンターバッファ用UAVの設定
+	// コマンドカウンター用RWByteAddressBufferの作成
+	constexpr size_t kMaxQueue = static_cast<size_t>(MeshType::kCountOfMeshType) * static_cast<size_t>(BlendMode::kCountOfBlendMode);
+	commandCounterBuffer_ = Resource::CreateRWBuffer(device, sizeof(uint32_t) * kMaxQueue);
+	commandCounterBuffer_->SetName("CommandCounterBuffer");
+	commandCounterHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// コマンドカウンター用UAVの作成
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavCounterBufferDesc{};
 	uavCounterBufferDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;	// バッファビュー
 	uavCounterBufferDesc.Format = DXGI_FORMAT_R32_TYPELESS;				// カウンターバッファはフォーマットR32_TYPELESSで作成し、UAVではR32_UINTとして扱う
@@ -439,24 +438,30 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	uavCounterBufferDesc.Buffer.StructureByteStride = 0;				// 構造体のサイズ
 	uavCounterBufferDesc.Buffer.CounterOffsetInBytes = 0;				// カウンタなし
 	uavCounterBufferDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;		// RAWフラグを設定して、バッファ全体を1つの要素として扱う
-
-	// コマンドカウンターバッファ用UAVの作成
-	commandCounterHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(commandCounterBuffer_->GetResource(), uavCounterBufferDesc, commandCounterHandle_);
 	cpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(commandCounterBuffer_->GetResource(), uavCounterBufferDesc, commandCounterHandle_);
 	Logger::Log(logStream, "CommandCounter UAVDescriptorIndex: " + std::to_string(commandCounterHandle_) + "\n");
 
-	// フットプリントマップ用バッファの作成
+	// フリーカウンター用RWStructuredBufferの作成
+	freeCounterBuffer_ = Resource::CreateRWBuffer(device, sizeof(int32_t));
+	freeCounterBuffer_->SetName("FreeCounterBuffer");
+	freeCounterHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// フリーカウンター用UAVの作成
+	uavBufferDesc.Buffer.NumElements = 1;						// 要素数
+	uavBufferDesc.Buffer.StructureByteStride = sizeof(int32_t);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(freeCounterBuffer_->GetResource(), uavBufferDesc, freeCounterHandle_);
+	Logger::Log(logStream, "FreeCounter UAVDescriptorIndex: " + std::to_string(freeCounterHandle_) + "\n");
+
+	// フットプリントマップ用RWStructuredBufferの作成
 	footprintMapBuffer_ = Resource::CreateRWBuffer(device, sizeof(Int4));
 	footprintMapBuffer_->SetName("FootprintMapBuffer");
 	footprintMapBuffer_->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-	// フットプリントマップ用UAVの設定
-	uavBufferDesc.Buffer.NumElements = 1;						// 要素数
-	uavBufferDesc.Buffer.StructureByteStride = sizeof(Int4);	// 構造体のサイズ
+	footprintMapHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// フットプリントマップ用UAVの作成
-	footprintMapHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	uavBufferDesc.Buffer.NumElements = 1;						// 要素数
+	uavBufferDesc.Buffer.StructureByteStride = sizeof(Int4);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(footprintMapBuffer_->GetResource(), uavBufferDesc, footprintMapHandle_);
 	Logger::Log(logStream, "FootprintMap UAVDescriptorIndex: " + std::to_string(footprintMapHandle_) + "\n");
 
@@ -487,13 +492,18 @@ void World::Update() {
 	TransferDepthBasedOutlineData();
 	TransferRadialBlurParam();
 	TransferDissolveParam();
-	TransferNoiseParam();
+	TransferPerFrame();
+	TransferEmitterSphere();
 	TransferFootprint();
 	TransferFootprintMap();
 }
 
 void World::Edit() {
 #ifdef USE_IMGUI
+	ImGui::Text("Time: %.2f", perFrame_.time);
+	ImGui::Text("CullingMeshCount: %d", cullingConstantsData_.meshCount);
+	ImGui::Text("InstanceCount: %d", instanceCount_);
+
 	if (ImGui::Checkbox("Culling", &isCulling_)) {
 		TransformSystem transformSystem{ registry_ };
 		if (isCulling_) {
@@ -511,8 +521,6 @@ void World::Edit() {
 
 	ImGui::Checkbox("Result", &isResult_);
 	ImGui::DragInt4("Color", &colorData_->x, 1.0f, 0, 100);
-	ImGui::Text("CullingMeshCount: %d", cullingConstantsData_.meshCount);
-	ImGui::Text("InstanceCount: %d", instanceCount_);
 
 	if (ImGui::BeginCombo("PostEffect", postEffectNames[static_cast<size_t>(postEffect_)].c_str())) {
 		for (size_t i = 0; i < postEffectNames.size(); i++) {
@@ -601,11 +609,6 @@ void World::Edit() {
 			dissolveParam_.edgeWidth = 0.03f;
 			dissolveParam_.edgeColor = { 1.0f, 1.0f, 1.0f };
 		}
-		ImGui::TreePop();
-	}
-
-	if (ImGui::TreeNode("Noise")) {
-		ImGui::Text("Time: %.2f", noiseParam_.time);
 		ImGui::TreePop();
 	}
 #endif // USE_IMGUI
@@ -796,10 +799,9 @@ void World::TransferDissolveParam() {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDissolveParam)]->CopyData(&dissolveParam_, sizeof(DissolveParam), 0);
 }
 
-void World::TransferNoiseParam() {
-	cpuTimer_.End();
-	noiseParam_.time = static_cast<float>(cpuTimer_.GetMs());
-	constantBuffers_[static_cast<size_t>(ConstantBufferType::kNoiseParam)]->CopyData(&noiseParam_, sizeof(NoiseParam), 0);
+void World::TransferPerFrame() {
+	perFrame_.time++;
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPerFrame)]->CopyData(&perFrame_, sizeof(PerFrame), 0);
 }
 
 void World::TransferMeshLODData() {
@@ -944,6 +946,14 @@ void World::TransferCullingData() {
 		cullingMeshDataOffset++;
 		cullingObjectDataOffset++;
 		});
+}
+
+void World::TransferEmitterSphere() {
+	uint32_t emitterSphereCounter = 0;
+	registry_->ForEach<EmitterSphere>([&](uint32_t entity, EmitterSphere *emitterSphere) {
+		constantBuffers_[static_cast<size_t>(ConstantBufferType::kEmitterSphere)]->CopyData(emitterSphere, sizeof(EmitterSphere), emitterSphereCounter);
+		emitterSphereCounter++;
+		}, exclude<Disabled>());
 }
 
 void World::TransferFootprint() {

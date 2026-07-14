@@ -26,7 +26,7 @@ class BlendModeInspector;
 class ModelInspector;
 class SpriteInspector;
 class ParticleGroupInspector;
-class EmitterInspector;
+class EmitterSphereInspector;
 class FieldInspector;
 class TransformInspector;
 class UVTransformInspector;
@@ -110,7 +110,7 @@ protected:
 	std::unique_ptr<ModelInspector> modelInspector_ = nullptr;							// モデルインスペクター
 	std::unique_ptr<SpriteInspector> spriteInspector_ = nullptr;						// スプライトインスペクター
 	std::unique_ptr<ParticleGroupInspector> particleGroupInspector_ = nullptr;			// パーティクルグループインスペクター
-	std::unique_ptr<EmitterInspector> emitterInspector_ = nullptr;						// エミッターインスペクター
+	std::unique_ptr<EmitterSphereInspector> emitterSphereInspector_ = nullptr;			// 球状エミッターインスペクター
 	std::unique_ptr<FieldInspector> fieldInspector_ = nullptr;							// フィールドインスペクター
 	std::unique_ptr<TransformInspector> transformInspector_ = nullptr;					// 変換データインスペクター
 	std::unique_ptr<UVTransformInspector> uvTransformInspector_ = nullptr;				// UV変換データインスペクター

@@ -38,6 +38,10 @@ public:
 	/// @return デバイス
 	ID3D12Device *GetDevice() const { return device_.Get(); }
 
+	/// @brief コマンドキューを取得
+	/// @return コマンドキュー
+	ID3D12CommandQueue *GetCommandQueue() const { return commandQueue_.Get(); }
+
 	/// @brief コマンドリストを取得
 	/// @return コマンドリスト
 	ID3D12GraphicsCommandList *GetCommandList() const { return commandList_.Get(); }

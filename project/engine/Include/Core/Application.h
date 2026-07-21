@@ -10,6 +10,7 @@ class Window;
 class Renderer;
 class SceneManager;
 class CPUTimer;
+class GPUTimer;
 
 /// @brief アプリケーション
 class Application final {
@@ -34,4 +35,5 @@ private:
 	std::unique_ptr<SceneManager> sceneManager_ = nullptr;	// シーンマネージャー
 	std::unique_ptr<CPUTimer> deltaTimer_ = nullptr;		// デルタタイマー
 	std::unique_ptr<CPUTimer> cpuTimer_ = nullptr;			// CPUタイマー
+	std::unique_ptr<GPUTimer> gpuTimer_ = nullptr;			// GPUタイマー
 };

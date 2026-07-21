@@ -8,7 +8,8 @@
 class DescriptorHeap;
 
 /// @brief ImGuiマネージャー
-struct ImGuiManager final {
+class ImGuiManager final {
+public:
 	/// @brief ImGuiの初期化
 	/// @param hwnd ウィンドウハンドル
 	/// @param device デバイス

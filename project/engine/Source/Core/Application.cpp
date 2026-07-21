@@ -7,6 +7,7 @@
 #include "SceneManager.h"
 #include "ImGuiManager.h"
 #include "CPUTimer.h"
+#include "GPUTimer.h"
 #include "Logger.h"
 #include <cassert>
 
@@ -63,6 +64,9 @@ Application::Application() {
 
 	// CPUタイマーの初期化
 	cpuTimer_ = std::make_unique<CPUTimer>();
+
+	// GPUタイマーの初期化
+	gpuTimer_ = std::make_unique<GPUTimer>(device_.get());
 }
 
 Application::~Application() {
@@ -95,6 +99,7 @@ void Application::Run() {
 #ifdef USE_IMGUI
 		ImGui::Text("Framerate: %.2f fps", ImGui::GetIO().Framerate);	// フレームレートをImGuiに表示
 		ImGui::Text("CPU Time: %.2f ms", cpuTimer_->GetMs());	// CPUタイムをImGuiに表示
+		ImGui::Text("GPU Time: %.2f ms", gpuTimer_->GetMs());	// GPUタイムをImGuiに表示
 #endif // USE_IMGUI
 
 		cpuTimer_->Begin();	// CPUタイマーの開始
@@ -105,7 +110,12 @@ void Application::Run() {
 
 		device_->NewFrame();	// 描画開始処理
 
+		gpuTimer_->Begin();	// GPUタイマーの開始
+
 		renderer_->Render();	// 描画処理
+
+		gpuTimer_->End();	// GPUタイマーの終了
+		gpuTimer_->Resolve();	// GPUタイマーの結果をReadbackBufferにコピー
 
 		cpuTimer_->End();	// CPUタイマーの終了
 

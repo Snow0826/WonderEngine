@@ -80,6 +80,7 @@
     <ClCompile Include="engine\Source\Component\Primitive.cpp" />
     <ClCompile Include="game\Source\Particle\ParticleObject.cpp" />
     <ClCompile Include="engine\Source\Component\InstanceAllocator.cpp" />
+    <ClCompile Include="engine\Source\Utilities\GPUTimer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -171,6 +172,7 @@
     <ClInclude Include="engine\Include\Component\Primitive.h" />
     <ClInclude Include="game\Include\Particle\ParticleObject.h" />
     <ClInclude Include="engine\Include\Component\InstanceAllocator.h" />
+    <ClInclude Include="engine\Include\Utilities\GPUTimer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

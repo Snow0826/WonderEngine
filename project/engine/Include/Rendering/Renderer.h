@@ -15,6 +15,7 @@ class DebugRenderer;
 class MeshManager;
 class TextureManager;
 class SkinClusterManager;
+class ParticleManager;
 class FootprintManager;
 
 /// @brief レンダラー
@@ -33,6 +34,9 @@ public:
 
 	/// @brief パーティクルの発生
 	void EmitParticle();
+
+	/// @brief パーティクルの更新
+	void UpdateParticle();
 
 	/// @brief 描画
 	void Render();
@@ -60,6 +64,10 @@ public:
 	/// @brief スキンクラスターマネージャーをセットする
 	/// @param skinClusterManager スキンクラスターマネージャー
 	void SetSkinClusterManager(SkinClusterManager *skinClusterManager);
+
+	/// @brief パーティクルマネージャーをセットする
+	/// @param particleManager パーティクルマネージャー
+	void SetParticleManager(ParticleManager *particleManager);
 
 	/// @brief フットプリントマネージャーをセットする
 	/// @param footprintManager フットプリントマネージャー
@@ -90,6 +98,7 @@ private:
 	MeshManager *meshManager_ = nullptr;														// メッシュマネージャー
 	TextureManager *textureManager_ = nullptr;													// テクスチャマネージャー
 	SkinClusterManager *skinClusterManager_ = nullptr;											// スキンクラスターマネージャー
+	ParticleManager *particleManager_ = nullptr;												// パーティクルマネージャー
 	FootprintManager *footprintManager_ = nullptr;												// フットプリントマネージャー
 	ID3D12RootSignature *object3dRootSignature_ = nullptr;										// Object3d用ルートシグネチャ
 	ID3D12RootSignature *ringObject3dRootSignature_ = nullptr;									// RingObject3d用ルートシグネチャ
@@ -110,9 +119,12 @@ private:
 	ID3D12RootSignature *skinningRootSignature_ = nullptr;										// スキニング用ルートシグネチャ
 	ID3D12RootSignature *initializeParticleRootSignature_ = nullptr;							// パーティクル初期化用ルートシグネチャ
 	ID3D12RootSignature *emitParticleRootSignature_ = nullptr;									// パーティクル発生用ルートシグネチャ
+	ID3D12RootSignature *updateParticleRootSignature_ = nullptr;								// パーティクル更新用ルートシグネチャ
 	ID3D12RootSignature *depthStencilCopyRootSignature_ = nullptr;								// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *generateHiZMipMapRootSignature_ = nullptr;								// HiZミップマップ生成用ルートシグネチャ
+	ID3D12RootSignature *clearMeshCommandStatesRootSignature_ = nullptr;						// メッシュコマンドステートのクリア用ルートシグネチャ
 	ID3D12RootSignature *occlusionCullingRootSignature_ = nullptr;								// オクルージョンカリング用ルートシグネチャ
+	ID3D12RootSignature *setInstanceCountRootSignature_ = nullptr;								// インスタンス数の反映用ルートシグネチャ
 	ID3D12RootSignature *footprintRootSignature_ = nullptr;										// フットプリント用ルートシグネチャ
 	ID3D12RootSignature *footprintMapRootSignature_ = nullptr;									// フットプリントマップ用ルートシグネチャ
 	MeshPipelineState meshPipelineState_;														// Mesh用パイプラインステート
@@ -133,9 +145,12 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> skinningPipelineState_ = nullptr;				// スキニング用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> initializeParticlePipelineState_ = nullptr;		// パーティクル初期化用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> emitParticlePipelineState_ = nullptr;			// パーティクル発生用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> updateParticlePipelineState_ = nullptr;			// パーティクル更新用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthStencilCopyPipelineState_ = nullptr;		// 深度ステンシルテクスチャコピー用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> generateHiZMipMapPipelineState_ = nullptr;		// HiZミップマップ生成用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> clearMeshCommandStatesPipelineState_ = nullptr;	// メッシュコマンドステートのクリア用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> occlusionCullingPipelineState_ = nullptr;		// オクルージョンカリング用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>	setInstanceCountPipelineState_ = nullptr;		// インスタンス数の反映用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintPipelineState_ = nullptr;				// フットプリント用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintMapPipelineState_ = nullptr;			// フットプリントマップ用パイプラインステート
 	MeshCommandSignature meshCommandSignature_;													// メッシュコマンドシグネチャ
@@ -152,8 +167,14 @@ private:
 	/// @brief HiZミップマップ生成
 	void GenerateHiZMipMap();
 
+	/// @brief メッシュコマンドステートのクリア
+	void ClearMeshCommandStates();
+
 	/// @brief オクルージョンカリング
 	void OcclusionCulling();
+
+	/// @brief インスタンス数の反映
+	void SetInstanceCount();
 
 	/// @brief フットプリント
 	void Footprint();

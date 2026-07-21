@@ -62,7 +62,8 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 
 	// パーティクルグループの作成
 	particleManager_ = std::make_unique<ParticleManager>(device_, textureManager_.get(), meshManager_.get(), logStream_);
-	particleManager_->CreateParticleGroup("Default", MeshType::kPlane, "circle2.png", 1024);
+	particleManager_->CreateParticleGroup("Default", MeshType::kPlane, "circle2.png");
+	renderer_->SetParticleManager(particleManager_.get());
 
 	// ワールドの生成
 	world_ = std::make_unique<World>(device_, meshManager_.get(), skinClusterManager_.get(), *logStream_);
@@ -73,8 +74,8 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	currentScene_->Initialize(this);
 }
 
-void SceneManager::Update() {
-	currentScene_->Update();
+void SceneManager::Update(float deltaTime) {
+	currentScene_->Update(deltaTime);
 
 	if (nextScene_) {
 		// 古いシーンを削除
@@ -89,6 +90,6 @@ void SceneManager::Update() {
 
 		// 新しいシーンの初期化
 		currentScene_->Initialize(this);
-		currentScene_->Update();
+		currentScene_->Update(deltaTime);
 	}
 }

@@ -83,26 +83,26 @@ PixelShaderOutput main(VertexShaderOutput input)
 {
     PixelShaderOutput output;
     float2 texcoord = input.texcoord;
-    uint instanceId = input.instanceId;
-    if (gMaterial[instanceId].enableFlipV != 0)
+    uint instanceIndex = input.instanceIndex;
+    if (gMaterial[instanceIndex].enableFlipV != 0)
     {
         texcoord.y = 1.0f - texcoord.y; // Flip the y-coordinate for texture sampling
     }
-    float4 transformedUV = mul(float4(texcoord, 0.0f, 1.0f), gMaterial[instanceId].uvTransform);
+    float4 transformedUV = mul(float4(texcoord, 0.0f, 1.0f), gMaterial[instanceIndex].uvTransform);
     float4 textureColor;
-    if (gTextureData[instanceId].enableMipmaps != 0)
+    if (gTextureData[instanceIndex].enableMipmaps != 0)
     {
-        textureColor = gTextures[gTextureData[instanceId].textureHandle].Sample(gSampler, transformedUV.xy);
+        textureColor = gTextures[gTextureData[instanceIndex].textureHandle].Sample(gSampler, transformedUV.xy);
     }
     else
     {
-        textureColor = gTextures[gTextureData[instanceId].textureHandle].Sample(gSamplerMip0, transformedUV.xy);
+        textureColor = gTextures[gTextureData[instanceIndex].textureHandle].Sample(gSamplerMip0, transformedUV.xy);
     }
     
-    if (gMaterial[instanceId].enableLighting != 0)
+    if (gMaterial[instanceIndex].enableLighting != 0)
     {
         output.color.rgb = ApplyLightCommon(gDirectionalLight.direction, input, textureColor) * gDirectionalLight.color.rgb * gDirectionalLight.intensity;
-        output.color.a = gMaterial[instanceId].color.a * textureColor.a;
+        output.color.a = gMaterial[instanceIndex].color.a * textureColor.a;
         
         for (uint i = 0; i < gPointLightCount; ++i)
         {
@@ -125,11 +125,11 @@ PixelShaderOutput main(VertexShaderOutput input)
         float3 cameraToPosition = normalize(input.worldPosition - gCamera.worldPosition);
         float3 reflectedVector = reflect(cameraToPosition, normalize(input.normal));
         float4 environmentColor = gEnvironmentMap.Sample(gSampler, reflectedVector);
-        output.color.rgb += environmentColor.rgb * gMaterial[instanceId].environmentCoefficient;
+        output.color.rgb += environmentColor.rgb * gMaterial[instanceIndex].environmentCoefficient;
     }
     else
     {
-        output.color = gMaterial[instanceId].color * textureColor;
+        output.color = gMaterial[instanceIndex].color * textureColor;
     }
     
     if (output.color.a == 0.0f)
@@ -160,7 +160,7 @@ float3 ApplyLightCommon(float3 lightDirection, VertexShaderOutput input, float4 
     float3 viewDir = normalize(gCamera.worldPosition - input.worldPosition);
     float3 halfDir = normalize(-lightDirection + viewDir);
     float3 NdotH = dot(normalize(input.normal), halfDir);
-    float3 diffuse = gMaterial[input.instanceId].color.rgb * textureColor.rgb * cos;
-    float3 specular = pow(saturate(NdotH), gMaterial[input.instanceId].shininess) * gMaterial[input.instanceId].specular;
+    float3 diffuse = gMaterial[input.instanceIndex].color.rgb * textureColor.rgb * cos;
+    float3 specular = pow(saturate(NdotH), gMaterial[input.instanceIndex].shininess) * gMaterial[input.instanceIndex].specular;
     return diffuse + specular;
 }

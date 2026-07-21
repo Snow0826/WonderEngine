@@ -6,9 +6,9 @@ cbuffer ViewProjection : register(b0)
     float4x4 projection;
 };
 
-cbuffer BaseInstanceID : register(b1)
+cbuffer MeshOffset : register(b1)
 {
-    uint baseInstanceId;
+    uint meshOffset;
 };
 
 struct WorldTransform
@@ -17,7 +17,8 @@ struct WorldTransform
     float4x4 worldInverseTranspose;
 };
 
-StructuredBuffer<WorldTransform> gWorldTransforms : register(t0);
+StructuredBuffer<uint> gInstanceIndices : register(t0);
+StructuredBuffer<WorldTransform> gWorldTransforms : register(t1);
 
 struct VertexShaderInput
 {
@@ -29,11 +30,12 @@ struct VertexShaderInput
 VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID)
 {
     VertexShaderOutput output;
-    WorldTransform worldTransform = gWorldTransforms[baseInstanceId + instanceId];
+    uint instanceIndex = gInstanceIndices[meshOffset + instanceId];
+    WorldTransform worldTransform = gWorldTransforms[instanceIndex];
     output.position = mul(input.position, mul(worldTransform.world, mul(view, projection)));
     output.texcoord = input.texcoord;
     output.normal = normalize(mul(input.normal, (float3x3) worldTransform.worldInverseTranspose));
     output.worldPosition = mul(input.position, worldTransform.world).xyz;
-    output.instanceId = baseInstanceId + instanceId;
+    output.instanceIndex = instanceIndex;
     return output;
 }

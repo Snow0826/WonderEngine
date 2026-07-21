@@ -7,6 +7,14 @@
 template <typename T>
 constexpr bool false_v = false;
 
+/// @brief 範囲を表す構造体
+/// @tparam T 範囲の型
+template <typename T>
+struct Range final {
+	T min;	// 最小値
+	T max;	// 最大値
+};
+
 /// @brief 疑似乱数生成
 struct Random final {
 	/// @brief 疑似乱数生成器

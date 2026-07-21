@@ -1,5 +1,8 @@
+#include "IndirectCommand.hlsli"
+
 static const uint kMaxMeshType = 5; // Number of mesh types (Model, Plane, Box, Ring, Cylinder)
 static const uint kMaxBlendMode = 6; // Number of blend modes (None, Normal, Additive, Subtractive, Multiplicative, Screen)
+static const uint kCreatingCommandIndex = (uint) -2;
 
 struct Object
 {
@@ -28,37 +31,6 @@ struct UVAABB
     float2 min;
     float2 max;
     float minZ;
-};
-
-struct VertexBufferView
-{
-    uint2 bufferLocation;
-    uint sizeInBytes;
-    uint strideInBytes;
-};
-
-struct IndexBufferView
-{
-    uint2 bufferLocation;
-    uint sizeInBytes;
-    uint format;
-};
-
-struct DrawIndexedArguments
-{
-    uint IndexCountPerInstance;
-    uint InstanceCount;
-    uint StartIndexLocation;
-    int BaseVertexLocation;
-    uint StartInstanceLocation;
-};
-    
-struct IndirectCommand
-{
-    uint baseInstanceId;
-    VertexBufferView vertexBufferView;
-    IndexBufferView indexBufferView;
-    DrawIndexedArguments drawIndexedArguments;
 };
 
 struct MeshLOD
@@ -96,7 +68,8 @@ StructuredBuffer<MeshLOD> meshLODs : register(t2); // SRV: Mesh LODs
 Texture2D<float> gHiZTexture : register(t3);
 SamplerState gSampler : register(s0);
 RWStructuredBuffer<IndirectCommand> commands : register(u0); // UAV: Processed Indirect Commands
-RWByteAddressBuffer commandCounters : register(u1); // UAV: Counters for Processed Indirect Commands
+RWStructuredBuffer<MeshCommandState> meshCommandStates : register(u1); // UAV: Mesh Command States
+RWByteAddressBuffer commandCounters : register(u2); // UAV: Command Counters for Processed Indirect Commands
 
 UVAABB GetBoxInUVSpace(AABB box);
 
@@ -156,12 +129,20 @@ void main(uint3 DTid : SV_DispatchThreadID)
         }
     }
     
-    IndirectCommand command = meshLODs[mesh.lodOffset + selectedLOD].command;
-    uint queueIndex = object.meshType * kMaxBlendMode + object.blendMode;
-    uint dstIndex;
-    commandCounters.InterlockedAdd(queueIndex * 4, 1, dstIndex);
-    uint queueOffset = queueOffsets[queueIndex / 4][queueIndex % 4];
-    commands[queueOffset + dstIndex] = command;
+    uint stateIndex = mesh.lodOffset + selectedLOD;
+    IndirectCommand command = meshLODs[stateIndex].command;
+    uint old;
+    InterlockedCompareExchange(meshCommandStates[stateIndex].commandIndex, kInvalidCommandIndex, kCreatingCommandIndex, old);
+    if (old == kInvalidCommandIndex)
+    {
+        uint queueIndex = object.meshType * kMaxBlendMode + object.blendMode;
+        uint commandIndex;
+        commandCounters.InterlockedAdd(queueIndex * 4, 1, commandIndex);
+        uint queueOffset = queueOffsets[queueIndex / 4][queueIndex % 4];
+        commands[queueOffset + commandIndex] = command;
+        meshCommandStates[stateIndex].commandIndex = queueOffset + commandIndex;
+    }
+    InterlockedAdd(meshCommandStates[stateIndex].instanceCount, 1);
 }
 
 UVAABB GetBoxInUVSpace(AABB box)

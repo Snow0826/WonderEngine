@@ -14,14 +14,15 @@ struct Branch final {
 	Vector3 position;				// 位置
 	Vector3 direction;				// 方向
 	float radius = 0.0f;			// 半径
-	Branch* parent = nullptr;		// 親の枝
-	std::vector<Branch*> children;	// 子の枝
+	Branch *parent = nullptr;		// 親の枝
+	std::vector<Branch *> children;	// 子の枝
 	Vector3 growDirection;			// 成長方向
 	uint32_t growCount = 0;			// 成長カウント
 };
 
 class Registry;
 class PrimitiveGenerator;
+class InstanceAllocator;
 struct Vector3;
 struct Quaternion;
 
@@ -31,9 +32,12 @@ public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
 	/// @param primitiveGenerator プリミティブジェネレーター
-	TreeGenerator(Registry *registry, PrimitiveGenerator *primitiveGenerator) : registry_(registry), primitiveGenerator_(primitiveGenerator) {}
+	/// @param instanceAllocator インスタンスアロケーター
+	TreeGenerator(Registry *registry, PrimitiveGenerator *primitiveGenerator, InstanceAllocator *instanceAllocator) : registry_(registry), primitiveGenerator_(primitiveGenerator), instanceAllocator_(instanceAllocator) {}
 
 	/// @brief 木の生成
+	/// @param rootPosition 根の位置
+	/// @param rootDirection 根の方向
 	/// @param crownCenter 葉の生成範囲の中心
 	/// @param crownRadius 葉の生成範囲の半径
 	/// @param leafCount 葉の数
@@ -43,7 +47,7 @@ public:
 	/// @param killRadius 消滅半径
 	/// @param branchLength 枝の長さ
 	/// @return 生成された木のエンティティID
-	uint32_t Generate(const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount, float minRadius, float gamma, float influenceRadius, float killRadius, float branchLength);
+	uint32_t Generate(const Vector3 &rootPosition, const Vector3 &rootDirection, const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount, float minRadius, float gamma, float influenceRadius, float killRadius, float branchLength);
 
 	/// @brief 木の削除
 	/// @param entity 削除する木のエンティティID
@@ -52,6 +56,7 @@ public:
 private:
 	Registry *registry_ = nullptr;						// レジストリ
 	PrimitiveGenerator *primitiveGenerator_ = nullptr;	// プリミティブジェネレーター
+	InstanceAllocator *instanceAllocator_ = nullptr;	// インスタンスアロケーター
 	std::vector<Leaf> leaves_;							// 葉のリスト
 	std::vector<std::unique_ptr<Branch>> branches_;		// 枝のリスト
 
@@ -62,9 +67,9 @@ private:
 	void GenerateLeaves(const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount);
 
 	/// @brief 根の枝の生成
-	/// @param influenceRadius 影響半径
-	/// @param branchLength 枝の長さ
-	void GenerateRootBranch(float influenceRadius, float branchLength);
+	/// @param rootPosition 根の位置
+	/// @param rootDirection 根の方向
+	void GenerateRootBranch(const Vector3 &rootPosition, const Vector3 &rootDirection);
 
 	/// @brief 最も近い枝を見つける
 	/// @param influenceRadius 影響半径

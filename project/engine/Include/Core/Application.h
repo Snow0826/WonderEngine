@@ -9,6 +9,7 @@ class Device;
 class Window;
 class Renderer;
 class SceneManager;
+class CPUTimer;
 
 /// @brief アプリケーション
 class Application final {
@@ -31,4 +32,6 @@ private:
 	std::unique_ptr<Device> device_ = nullptr;				// デバイス
 	std::unique_ptr<Renderer> renderer_ = nullptr;			// レンダラー
 	std::unique_ptr<SceneManager> sceneManager_ = nullptr;	// シーンマネージャー
+	std::unique_ptr<CPUTimer> deltaTimer_ = nullptr;		// デルタタイマー
+	std::unique_ptr<CPUTimer> cpuTimer_ = nullptr;			// CPUタイマー
 };

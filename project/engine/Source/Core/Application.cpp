@@ -57,6 +57,12 @@ Application::Application() {
 	sceneManager_ = std::make_unique<SceneManager>();
 	sceneManager_->Initialize(device_.get(), input_.get(), audio_.get(), renderer_.get(), &logStream_);
 	Logger::Log(logStream_, "Create SceneManager\n");
+
+	// デルタタイマーの初期化
+	deltaTimer_ = std::make_unique<CPUTimer>();
+
+	// CPUタイマーの初期化
+	cpuTimer_ = std::make_unique<CPUTimer>();
 }
 
 Application::~Application() {
@@ -74,8 +80,11 @@ Application::~Application() {
 void Application::Run() {
 	// ウィンドウの×ボタンが押されるまでループ
 	while (true) {
+		float deltaTime = static_cast<float>(deltaTimer_->GetMs() / 1000.0);	// デルタタイムの取得
+		deltaTimer_->Begin();		// デルタタイマーの開始
+
 		// Windowsのメッセージ処理
-		if(window_->ProcessMessage()) {
+		if (window_->ProcessMessage()) {
 			break;
 		}
 
@@ -83,16 +92,14 @@ void Application::Run() {
 
 		ImGuiManager::Begin();	// ImGuiの開始処理
 
-		CPUTimer cpuTimer;	// CPUタイマー
-		cpuTimer.Begin();	// CPUタイマーの開始
-
-		sceneManager_->Update();	// 更新処理
-
-		cpuTimer.End();	// CPUタイマーの終了
-
 #ifdef USE_IMGUI
-		ImGui::Text("CPU Time: %.2f ms", cpuTimer.GetMs());	// CPUタイマーの結果をImGuiに表示
+		ImGui::Text("Framerate: %.2f fps", ImGui::GetIO().Framerate);	// フレームレートをImGuiに表示
+		ImGui::Text("CPU Time: %.2f ms", cpuTimer_->GetMs());	// CPUタイムをImGuiに表示
 #endif // USE_IMGUI
+
+		cpuTimer_->Begin();	// CPUタイマーの開始
+
+		sceneManager_->Update(deltaTime);	// 更新処理
 
 		ImGuiManager::End();	// ImGuiの終了処理
 
@@ -100,8 +107,12 @@ void Application::Run() {
 
 		renderer_->Render();	// 描画処理
 
+		cpuTimer_->End();	// CPUタイマーの終了
+
 		ImGuiManager::Draw(device_->GetCommandList());	// ImGuiの描画
 
 		device_->EndFrame();	// 描画終了処理
+
+		deltaTimer_->End();	// デルタタイマーの終了
 	}
 }

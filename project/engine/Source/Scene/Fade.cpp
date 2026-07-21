@@ -24,7 +24,7 @@ void Fade::Remove() {
 	registry_->RemoveAllComponents(entity_);
 }
 
-void Fade::Update() {
+void Fade::Update(float deltaTime) {
 	Material *material = registry_->GetComponent<Material>(entity_);
 	if (!material) {
 		return;
@@ -35,7 +35,7 @@ void Fade::Update() {
 			break;
 		case Fade::Status::FadeIn:
 			// 1フレーム分の秒数をカウントアップ
-			counter_ += kDeltaTime;
+			counter_ += deltaTime;
 
 			// フェード継続時間に達したら打ち止め
 			counter_ = std::min(counter_, duration_);
@@ -45,7 +45,7 @@ void Fade::Update() {
 			break;
 		case Fade::Status::FadeOut:
 			// 1フレーム分の秒数をカウントアップ
-			counter_ += kDeltaTime;
+			counter_ += deltaTime;
 
 			// フェード継続時間に達したら打ち止め
 			counter_ = std::min(counter_, duration_);

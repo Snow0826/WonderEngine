@@ -11,12 +11,7 @@ struct EmitterSphere
 };
 
 ConstantBuffer<EmitterSphere> gEmitterSphere : register(b0);
-
-cbuffer PerFrame : register(b1)
-{
-    float time;
-};
-
+ConstantBuffer<PerFrame> gPerFrame : register(b1);
 RWStructuredBuffer<Particle> gParticles : register(u0);
 RWStructuredBuffer<int> gFreeCounter : register(u1);
 
@@ -49,7 +44,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     }
     
     RandomGenerator randomGenerator;
-    randomGenerator.seed = (DTid + time) * time;
+    randomGenerator.seed = (DTid + gPerFrame.time) * gPerFrame.time;
     
     for (uint countIndex = 0; countIndex < gEmitterSphere.count; ++countIndex)
     {
@@ -58,11 +53,12 @@ void main(uint3 DTid : SV_DispatchThreadID)
         if (particleIndex < kMaxParticles)
         {
             gParticles[particleIndex].scale = randomGenerator.Generate3d();
-            gParticles[particleIndex].translate = randomGenerator.Generate3d();
+            gParticles[particleIndex].translate = randomGenerator.Generate3d() * 2.0f - 1.0f;
             gParticles[particleIndex].color.rgb = randomGenerator.Generate3d();
             gParticles[particleIndex].color.a = 1.0f;
             gParticles[particleIndex].lifeTime = randomGenerator.Generate1d();
-            gParticles[particleIndex].velocity = randomGenerator.Generate3d();
+            gParticles[particleIndex].velocity = randomGenerator.Generate3d() * 2.0f - 1.0f;
+            gParticles[particleIndex].velocity *= gPerFrame.deltaTime;
             gParticles[particleIndex].currentTime = 0.0f;
         }
     }

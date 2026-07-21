@@ -29,7 +29,8 @@ public:
 	void Remove();
 
 	/// @brief 更新
-	void Update();
+	/// @param deltaTime デルタタイム
+	void Update(float deltaTime);
 
 	/// @brief フェードの開始
 	/// @param status フェードの状態
@@ -50,5 +51,4 @@ private:
 	Status status_ = Status::None;				// 現在のフェードの状態
 	float duration_ = 0.0f;						// フェードの継続時間
 	float counter_ = 0.0f;						// フェードの経過時間
-	static inline constexpr float kDeltaTime = 1.0f / 60.0f;	// デルタタイム
 };

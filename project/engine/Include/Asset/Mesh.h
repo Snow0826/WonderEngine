@@ -29,7 +29,6 @@ class IndexBuffer;
 
 /// @brief メッシュ
 struct Mesh final {
-	uint32_t instanceCount = 0;	// インスタンス数
 	std::unique_ptr<VertexBuffer> vertexBuffer = nullptr;	// 頂点バッファ
 	std::unique_ptr<IndexBuffer> indexBuffer = nullptr;		// インデックスバッファ
 };
@@ -83,7 +82,8 @@ public:
 
 	/// @brief 描画
 	/// @param meshName メッシュ名
-	void Draw(const std::string &meshName) const;
+	/// @param instanceCount インスタンス数
+	void Draw(const std::string &meshName, uint32_t instanceCount) const;
 
 	/// @brief 頂点バッファビューの取得
 	/// @param meshName メッシュ名
@@ -104,11 +104,6 @@ public:
 	/// @param meshName メッシュ名
 	/// @return インデックス数
 	UINT GetIndexCount(const std::string &meshName) const;
-
-	/// @brief インスタンス数の取得
-	/// @param meshName メッシュ名
-	/// @return インスタンス数
-	UINT GetInstanceCount(const std::string &meshName) const;
 
 	/// @brief メッシュLODデータの再インデックス化
 	/// @param meshLODData メッシュLODデータ

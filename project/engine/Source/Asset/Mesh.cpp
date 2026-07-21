@@ -17,12 +17,10 @@ void MeshManager::CreateMesh(const std::string &meshName, const MeshLODData &mes
 	auto it = meshes_.find(meshName);
 	if (it != meshes_.end()) {
 		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
-		it->second->instanceCount++;
 		return;
 	}
 
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
-	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -42,12 +40,10 @@ void MeshManager::CreateSprite(const std::string &meshName) {
 	auto it = meshes_.find(meshName);
 	if (it != meshes_.end()) {
 		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
-		it->second->instanceCount++;
 		return;
 	}
 
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
-	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -92,12 +88,10 @@ void MeshManager::CreatePlane(const std::string &meshName) {
 	auto it = meshes_.find(meshName);
 	if (it != meshes_.end()) {
 		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
-		it->second->instanceCount++;
 		return;
 	}
 
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
-	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -142,12 +136,10 @@ void MeshManager::CreateBox(const std::string &meshName) {
 	auto it = meshes_.find(meshName);
 	if (it != meshes_.end()) {
 		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
-		it->second->instanceCount++;
 		return;
 	}
 
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
-	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -248,12 +240,10 @@ void MeshManager::CreateRing(const std::string &meshName, uint32_t divide, float
 	auto it = meshes_.find(meshName);
 	if (it != meshes_.end()) {
 		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
-		it->second->instanceCount++;
 		return;
 	}
 
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
-	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -301,7 +291,6 @@ void MeshManager::CreateCylinder(const std::string &meshName, uint32_t divide, f
 	auto it = meshes_.find(meshName);
 	if (it != meshes_.end()) {
 		Logger::Log(*logStream_, "Mesh already created: " + meshName + "\n");
-		it->second->instanceCount++;
 		return;
 	}
 
@@ -405,7 +394,6 @@ void MeshManager::CreateCylinder(const std::string &meshName, uint32_t divide, f
 
 	// メッシュの生成
 	std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>();
-	mesh->instanceCount++;
 
 	// 頂点バッファの生成と初期化
 	mesh->vertexBuffer = std::make_unique<VertexBuffer>();
@@ -419,10 +407,10 @@ void MeshManager::CreateCylinder(const std::string &meshName, uint32_t divide, f
 	meshes_.emplace(meshName, std::move(mesh));
 }
 
-void MeshManager::Draw(const std::string &meshName) const {
+void MeshManager::Draw(const std::string &meshName, uint32_t instanceCount) const {
 	meshes_.at(meshName)->vertexBuffer->IASetVertexBuffers();	// VBVの設定
 	meshes_.at(meshName)->indexBuffer->IASetIndexBuffer();		// IBVの設定
-	meshes_.at(meshName)->indexBuffer->DrawIndexedInstanced(meshes_.at(meshName)->instanceCount);	// 描画
+	meshes_.at(meshName)->indexBuffer->DrawIndexedInstanced(instanceCount);	// 描画
 }
 
 VertexData *MeshManager::GetVertexData(const std::string &meshName) const {
@@ -439,10 +427,6 @@ D3D12_INDEX_BUFFER_VIEW MeshManager::GetIndexBufferView(const std::string &meshN
 
 UINT MeshManager::GetIndexCount(const std::string &meshName) const {
 	return meshes_.at(meshName)->indexBuffer->GetIndices();
-}
-
-UINT MeshManager::GetInstanceCount(const std::string &meshName) const {
-	return meshes_.at(meshName)->instanceCount;
 }
 
 MeshLODData MeshManager::ReIndexMeshLODData(const MeshLODData &meshLODData) {

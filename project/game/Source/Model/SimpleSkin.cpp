@@ -1,6 +1,7 @@
 #include "SimpleSkin.h"
 #include "EntityComponentSystem.h"
 #include "World.h"
+#include "InstanceAllocator.h"
 #include "Model.h"
 #include "Material.h"
 #include "SkeletonRenderer.h"
@@ -16,6 +17,9 @@ void SimpleSkin::Create(const Vector3 &position) {
 	registry_->AddComponent(entity, DirtyTransform{});
 	registry_->AddComponent(entity, DirtyMaterial{});
 	registry_->AddComponent(entity, DirtyTextureData{});
+	registry_->AddComponent(entity, DirtyMeshLOD{});
+	registry_->AddComponent(entity, DirtyCullingData{});
+	registry_->AddComponent(entity, instanceAllocator_->Allocate(entity));
 	registry_->AddComponent(entity, modelManager_->FindModel("simpleSkin.gltf"));
 	registry_->AddComponent(entity, UseCulling{});
 	registry_->AddComponent(entity, SkinMesh{});

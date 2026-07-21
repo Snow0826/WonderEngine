@@ -12,6 +12,7 @@ enum class CameraType {
 
 class SceneManager;
 class FootprintManager;
+class InstanceAllocator;
 class TextManager;
 class SpriteManager;
 class World;
@@ -74,7 +75,8 @@ public:
 	void Initialize(SceneManager *sceneManager);
 
 	/// @brief 更新
-	void Update();
+	/// @param deltaTime デルタタイム
+	void Update(float deltaTime);
 
 	/// @brief シーンの初期化処理(派生クラスで実装)
 	virtual void OnInitialize() = 0;
@@ -96,6 +98,7 @@ protected:
 	using CameraEntities = std::array<uint32_t, static_cast<uint32_t>(CameraType::kCountOfCameraType)>;
 	SceneManager *sceneManager_ = nullptr;												// シーンマネージャー
 	std::unique_ptr<FootprintManager> footprintManager_ = nullptr;						// フットプリントマネージャー
+	std::unique_ptr<InstanceAllocator> instanceAllocator_ = nullptr;					// インスタンスアロケーター
 	std::unique_ptr<TextManager> textManager_ = nullptr;								// テキストマネージャー
 	std::unique_ptr<SpriteManager> spriteManager_ = nullptr;							// スプライトマネージャー
 	std::unique_ptr<DebugRenderer> debugRenderer_ = nullptr;							// デバッグレンダラー
@@ -147,5 +150,4 @@ protected:
 	CameraEntities cameraEntities_{};													// カメラエンティティリスト
 	uint32_t mainCameraType_ = static_cast<uint32_t>(CameraType::kMainCamera);			// メインカメラのタイプ
 	uint32_t debugCameraType_ = static_cast<uint32_t>(CameraType::kDebugCamera);		// デバッグカメラのタイプ
-	static inline constexpr float kDeltaTime = 1.0f / 60.0f;							// デルタタイム
 };

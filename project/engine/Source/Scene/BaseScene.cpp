@@ -13,6 +13,7 @@
 #include "World.h"
 #include "Resource.h"
 #include "DebugRenderer.h"
+#include "InstanceAllocator.h"
 #include "Texture.h"
 #include "SkinCluster.h"
 #include "Material.h"
@@ -74,6 +75,9 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	// フットプリントマネージャーの生成
 	footprintManager_ = std::make_unique<FootprintManager>(registry_.get());
 	renderer->SetFootprintManager(footprintManager_.get());
+
+	// インスタンスアロケーターの生成
+	instanceAllocator_ = std::make_unique<InstanceAllocator>(registry_.get());
 
 	// スプライトマネージャーの生成
 	spriteManager_ = std::make_unique<SpriteManager>(textureManager, meshManager, registry_.get());
@@ -146,6 +150,8 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	componentDrawerRegistry_->RegisterTagComponent<DirtyTransform>("DirtyTransform");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyMaterial>("DirtyMaterial");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyTextureData>("DirtyTextureData");
+	componentDrawerRegistry_->RegisterTagComponent<DirtyMeshLOD>("DirtyMeshLOD");
+	componentDrawerRegistry_->RegisterTagComponent<DirtyCullingData>("DirtyCullingData");
 	componentDrawerRegistry_->RegisterTagComponent<NoCollision>("NoCollision");
 	componentDrawerRegistry_->RegisterTagComponent<AABBRenderer>("AABBRenderer");
 	componentDrawerRegistry_->RegisterTagComponent<SphereRenderer>("SphereRenderer");
@@ -213,16 +219,13 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	renderer->InitializeParticle();
 }
 
-void BaseScene::Update() {
+void BaseScene::Update(float deltaTime) {
 	Renderer *renderer = sceneManager_->GetRenderer();
 	World *world = sceneManager_->GetWorld();
 	SkinClusterManager *skinClusterManager = sceneManager_->GetSkinClusterManager();
 	ParticleManager *particleManager = sceneManager_->GetParticleManager();
 
 #ifdef USE_IMGUI
-	// フレームレートの表示
-	ImGui::Text("Framerate: %6.2f fps", ImGui::GetIO().Framerate);
-
 	// ワールドの編集
 	world->Edit();
 
@@ -287,10 +290,10 @@ void BaseScene::Update() {
 	spriteManager_->UpdateSprite();
 
 	// アニメーションの更新
-	animationSystem_->Update(kDeltaTime);
+	animationSystem_->Update(deltaTime);
 
 	// 物理システムの更新
-	physicalSystem_->Update(kDeltaTime);
+	physicalSystem_->Update(deltaTime);
 
 	// ワールド行列の更新
 	transformSystem_->Update();
@@ -302,7 +305,7 @@ void BaseScene::Update() {
 	skinClusterManager->Update();
 
 	// 球状エミッターの更新
-	particleManager->UpdateEmitterSphere(kDeltaTime);
+	particleManager->UpdateEmitterSphere(deltaTime);
 
 	// ワールド変換後処理の呼び出し
 	OnAfterTransform();
@@ -330,10 +333,13 @@ void BaseScene::Update() {
 	skeletonRenderSystem_->Update();
 
 	// ワールドの更新
-	world->Update();
+	world->Update(deltaTime);
 
 	// パーティクルの発生
 	renderer->EmitParticle();
+
+	// パーティクルの更新
+	renderer->UpdateParticle();
 
 	// デバッグレンダラーのフレーム終了
 	debugRenderer_->EndFrame();

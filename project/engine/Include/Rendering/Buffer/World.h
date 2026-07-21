@@ -50,16 +50,19 @@ struct AABBForGPU final {
 /// @brief カリングデータ(GPU)
 struct CullingMeshData final {
 	AABBForGPU aabb;			// AABB
-	uint32_t objectHandle = 0;	// オブジェクトハンドル
+	uint32_t objectIndex = 0;	// オブジェクトインデックス
 	uint32_t lodOffset = 0;		// LODオフセット
 	uint32_t lodCount = 0;		// LOD数
 	uint32_t useCulling = 0;	// カリングを使用するか
 };
 
+/// @brief カリングデータが変更されたフラグ
+struct DirtyCullingData final {};
+
 /// @brief 間接コマンド
 #pragma pack(push, 1)
 struct IndirectCommand final {
-	uint32_t baseInstanceId = 0;						// ベースインスタンスID
+	uint32_t meshOffset = 0;							// メッシュオフセット
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;			// 頂点バッファビュー
 	D3D12_INDEX_BUFFER_VIEW indexBufferView;			// インデックスバッファビュー
 	D3D12_DRAW_INDEXED_ARGUMENTS drawIndexedArguments;	// 描画コマンド引数
@@ -73,6 +76,15 @@ struct MeshLOD final {
 	float error = 0.0f;					// LODエラー
 };
 #pragma pack(pop)
+
+/// @brief メッシュLODが変更されたフラグ
+struct DirtyMeshLOD final {};
+
+/// @brief メッシュコマンドステート
+struct MeshCommandState {
+	uint32_t commandIndex;
+	uint32_t instanceCount;
+};
 
 /// @brief カリングコンポーネント
 struct UseCulling final {};
@@ -145,7 +157,8 @@ struct DissolveParam final {
 
 /// @brief フレームごとのデータ
 struct PerFrame final {
-	float time = 0.0f;	// 時間
+	float time = 0.0f;		// 時間
+	float deltaTime = 0.0f;	// デルタ時間
 };
 
 /// @brief int型4要素ベクトル
@@ -187,6 +200,10 @@ enum class ConstantBufferType {
 
 /// @brief 構造化バッファの種類
 enum class StructuredBufferType {
+	kInstanceIndex,					// インスタンスインデックス
+	kWorldTransform,				// ワールド変換
+	kMaterial,						// マテリアル
+	kTextureData,					// テクスチャデータ
 	kLine,							// ライン
 	kPointLight,					// 点光源
 	kSpotLight,						// スポットライト
@@ -195,14 +212,6 @@ enum class StructuredBufferType {
 	kMeshLOD,						// メッシュLOD
 	kFootprint,						// フットプリント
 	kCountOfStructuredBufferType	// 構造化バッファの種類の数
-};
-
-/// @brief メッシュ構造化バッファの種類
-enum class MeshStructuredBufferType {
-	kWorldTransform,					// ワールド変換
-	kMaterial,							// マテリアル
-	kTextureData,						// テクスチャデータ
-	kCountOfMeshStructuredBufferType	// メッシュ構造化バッファの種類の数
 };
 
 /// @brief ポストエフェクト
@@ -248,7 +257,8 @@ public:
 	~World();
 
 	/// @brief 更新
-	void Update();
+	/// @param deltaTime デルタタイム
+	void Update(float deltaTime);
 
 	/// @brief 編集
 	void Edit();
@@ -306,6 +316,10 @@ public:
 	/// @return カリング済みコマンドバッファ
 	Resource *GetProcessedCommandBuffer() { return processedCommandBuffer_.get(); }
 
+	/// @brief メッシュコマンドの状態バッファを取得
+	/// @return メッシュコマンドの状態バッファ
+	Resource *GetMeshCommandStateBuffer() { return meshCommandStateBuffer_.get(); }
+
 	/// @brief コマンドカウンターバッファを取得
 	/// @return コマンドカウンターバッファ
 	Resource *GetCommandCounterBuffer() { return commandCounterBuffer_.get(); }
@@ -313,6 +327,10 @@ public:
 	/// @brief フットプリントマップバッファを取得
 	/// @return フットプリントマップバッファ
 	Resource *GetFootprintMapBuffer() { return footprintMapBuffer_.get(); }
+
+	/// @brief メッシュLODカウンターを取得
+	/// @return メッシュLODカウンター
+	uint32_t GetMeshLODCounter() const { return meshLODCounter_; }
 
 	/// @brief カリング定数データを取得
 	/// @return カリング定数データ
@@ -330,15 +348,6 @@ public:
 	/// @param type 構造化バッファの種類
 	/// @return 構造化バッファのハンドル
 	uint32_t GetStructuredBufferHandle(StructuredBufferType type) const { return structuredBufferHandles_[static_cast<size_t>(type)]; }
-
-	/// @brief メッシュ構造化バッファのハンドルを取得
-	/// @param bufferType メッシュ構造化バッファの種類
-	/// @param meshType メッシュの種類
-	/// @param blendMode ブレンドモード
-	/// @return メッシュ構造化バッファのハンドル
-	uint32_t GetMeshStructuredBufferHandle(MeshStructuredBufferType bufferType, MeshType meshType, BlendMode blendMode) const {
-		return meshStructuredBufferHandles_[static_cast<size_t>(bufferType)][static_cast<size_t>(meshType)][static_cast<size_t>(blendMode)];
-	}
 
 	/// @brief シーンのレンダーテクスチャのRTVハンドルを取得
 	/// @return シーンのレンダーテクスチャのRTVハンドル
@@ -398,6 +407,14 @@ public:
 	/// @return カリング済みコマンドハンドル
 	uint32_t GetProcessedCommandHandle() const { return processedCommandHandle_; }
 
+	/// @brief メッシュコマンドの状態SRVハンドルを取得
+	/// @return メッシュコマンドの状態SRVハンドル
+	uint32_t GetMeshCommandStateSRVHandle() const { return meshCommandStateSRVHandle_; }
+
+	/// @brief メッシュコマンドの状態UAVハンドルを取得
+	/// @return メッシュコマンドの状態UAVハンドル
+	uint32_t GetMeshCommandStateUAVHandle() const { return meshCommandStateUAVHandle_; }
+
 	/// @brief コマンドカウンターハンドルを取得
 	/// @return コマンドカウンターハンドル
 	uint32_t GetCommandCounterHandle() const { return commandCounterHandle_; }
@@ -422,23 +439,11 @@ private:
 	using ConstantBuffers = std::array<std::unique_ptr<ConstantBuffer>, static_cast<size_t>(ConstantBufferType::kCountOfConstantBufferType)>;
 	using StructuredBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
 	using StructuredBufferHandles = std::array<uint32_t, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
-	using BlendStructuredBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
-	using BlendMeshStructuredBuffers = std::array<BlendStructuredBuffers, static_cast<size_t>(MeshType::kCountOfMeshType)>;
-	using MeshStructuredBuffers = std::array<BlendMeshStructuredBuffers, static_cast<size_t>(MeshStructuredBufferType::kCountOfMeshStructuredBufferType)>;
-	using BlendStructuredBufferHandles = std::array<uint32_t, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
-	using BlendMeshStructuredBufferHandles = std::array<BlendStructuredBufferHandles, static_cast<size_t>(MeshType::kCountOfMeshType)>;
-	using MeshStructuredBufferHandles = std::array<BlendMeshStructuredBufferHandles, static_cast<size_t>(MeshStructuredBufferType::kCountOfMeshStructuredBufferType)>;
-	using BlendWorldTransform = std::array<TransformationMatrix *, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
-	using MeshWorldTransform = std::array<BlendWorldTransform, static_cast<size_t>(MeshType::kCountOfMeshType)>;
-	using BlendMaterial = std::array<Material *, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
-	using MeshMaterial = std::array<BlendMaterial, static_cast<size_t>(MeshType::kCountOfMeshType)>;
-	using BlendTextureData = std::array<TextureData *, static_cast<size_t>(BlendMode::kCountOfBlendMode)>;
-	using MeshTextureData = std::array<BlendTextureData, static_cast<size_t>(MeshType::kCountOfMeshType)>;
-	static inline constexpr uint32_t kMaxObject = 100000;				// 最大オブジェクト数
+	static inline constexpr uint32_t kMaxObject = 1000000;				// 最大オブジェクト数
 	static inline constexpr uint32_t kMaxLine = 65536;					// 最大ライン数
 	static inline constexpr uint32_t kMaxPointLight = 32;				// 最大点光源数
 	static inline constexpr uint32_t kMaxSpotLight = 32;				// 最大スポットライト数
-	static inline constexpr uint32_t kMaxAABB = 100000;					// 最大AABB数
+	static inline constexpr uint32_t kMaxAABB = 1000000;				// 最大AABB数
 	static inline constexpr uint32_t kMaxFootprint = 64;				// 最大フットプリント数
 	static inline constexpr uint32_t kMaxCommandPerQueue = 1024;		// コマンドキューあたりの最大コマンド数
 	Registry *registry_ = nullptr;										// レジストリ
@@ -447,18 +452,19 @@ private:
 	ConstantBuffers constantBuffers_;									// 定数バッファリスト
 	StructuredBuffers structuredBuffers_;								// 構造化バッファリスト
 	StructuredBufferHandles structuredBufferHandles_;					// 構造化バッファハンドルリスト
-	MeshStructuredBuffers meshStructuredBuffers_;						// メッシュ構造化バッファリスト
-	MeshStructuredBufferHandles meshStructuredBufferHandles_;			// メッシュ構造化バッファハンドルリスト
 	std::unique_ptr<Resource> sceneRenderTexture_ = nullptr;			// シーンのレンダーテクスチャ
 	std::unique_ptr<Resource> gameRenderTexture_ = nullptr;				// ゲームのレンダーテクスチャ
 	std::unique_ptr<Resource> postEffectRenderTexture_ = nullptr;		// ポストエフェクトのレンダーテクスチャ
 	std::unique_ptr<Resource> hiZTexture_ = nullptr;					// Hi-Zテクスチャ
 	std::unique_ptr<Resource> commandUploadBuffer_ = nullptr;			// コマンドアップロードバッファ
 	std::unique_ptr<Resource> processedCommandBuffer_ = nullptr;		// カリング済みコマンドバッファ
+	std::unique_ptr<Resource> meshCommandStateBuffer_ = nullptr;		// メッシュコマンドの状態バッファ
 	std::unique_ptr<Resource> commandCounterBuffer_ = nullptr;			// コマンドカウンターバッファ
 	std::unique_ptr<Resource> freeCounterBuffer_ = nullptr;				// フリーカウンターバッファ
 	std::unique_ptr<Resource> footprintMapBuffer_ = nullptr;			// フットプリントマップバッファ
 	std::unique_ptr<Resource> footprintMapReadbackBuffer_ = nullptr;	// フットプリントマップ読み戻しバッファ
+	uint32_t meshLODCounter_ = 0;										// メッシュLODカウンター
+	uint32_t cullingMeshDataOffset_ = 0;								// カリングメッシュデータのオフセット
 	CullingConstantsData cullingConstantsData_;							// カリング定数データ
 	GrayscaleColor grayscaleColor_;										// グレースケールカラー
 	VignetteParam vignetteParam_;										// ビネットパラメータ
@@ -473,14 +479,15 @@ private:
 	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
 	Int4 *colorData_ = nullptr;											// 色データ
 	MeshLOD *meshLODData_ = nullptr;									// メッシュLODデータ
+	uint32_t *instanceIndexData_ = nullptr;								// インスタンスインデックスデータ
+	TransformationMatrix *worldTransformData_ = nullptr;				// ワールド変換データ
+	Material *materialData_ = nullptr;									// マテリアルデータ
+	TextureData *textureData_ = nullptr;								// テクスチャデータ
 	Rendering::Line *lineData_ = nullptr;								// ラインデータ
 	PointLight *pointLightData_ = nullptr;								// 点光源データ
 	SpotLight *spotLightData_ = nullptr;								// スポットライトデータ
 	CullingMeshData *cullingMeshData_ = nullptr;						// カリングメッシュデータ
 	CullingObjectData *cullingObjectData_ = nullptr;					// カリングオブジェクトデータ
-	MeshWorldTransform meshWorldTransform_;								// メッシュワールド変換
-	MeshMaterial meshMaterial_;											// メッシュマテリアル
-	MeshTextureData meshTextureData_;									// メッシュテクスチャデータ
 	uint32_t mipLevels_ = 0;											// ミップレベル数
 	uint32_t sceneRenderTextureRTVHandle_ = 0;							// シーンのレンダーテクスチャRTVハンドル
 	uint32_t sceneRenderTextureSRVHandle_ = 0;							// シーンのレンダーテクスチャSRVハンドル
@@ -495,10 +502,11 @@ private:
 	std::vector<uint32_t> hiZMipMapReadHandles_;						// Hi-Zミップマップ読み取りハンドル
 	std::vector<uint32_t> hiZMipMapWriteHandles_;						// Hi-Zミップマップ書き込みハンドル
 	uint32_t processedCommandHandle_ = 0;								// カリング済みコマンドハンドル
+	uint32_t meshCommandStateSRVHandle_ = 0;							// メッシュコマンドの状態SRVハンドル
+	uint32_t meshCommandStateUAVHandle_ = 0;							// メッシュコマンドの状態UAVハンドル
 	uint32_t commandCounterHandle_ = 0;									// コマンドカウンターハンドル
 	uint32_t freeCounterHandle_ = 0;									// フリーカウンターハンドル
 	uint32_t footprintMapHandle_ = 0;									// フットプリントマップハンドル
-	uint32_t instanceCount_ = 0;										// インスタンスの数
 	PostEffect postEffect_ = PostEffect::kNone;							// ポストエフェクト
 	bool isCulling_ = false;											// カリング有効フラグ
 	bool isResult_ = false;												// 結果表示フラグ
@@ -552,7 +560,7 @@ private:
 	void TransferDissolveParam();
 
 	/// @brief フレームごとのデータの転送
-	void TransferPerFrame();
+	void TransferPerFrame(float deltaTime);
 
 	/// @brief メッシュLODデータの転送
 	void TransferMeshLODData();

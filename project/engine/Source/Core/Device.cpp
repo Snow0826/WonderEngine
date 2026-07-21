@@ -152,17 +152,18 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	// Object3d用ルートシグネチャの作成
 	object3dRootSignature_ = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:ViewProjection
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1)																	// 1:BaseInstanceID
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1)																	// 1:MeshOffset
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)																			// 2:CameraPosition
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)																			// 3:DirectionalLight
 		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 2, 2)																	// 4:LightData
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 5:WorldTransform
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)								// 6:Material
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)								// 7:TextureData
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 2)								// 8:PointLight
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 3)								// 9:SpotLight
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 4)								// 10:EnvironmentTexture
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_PIXEL, 5)	// 11:Texture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 5:InstanceIndices
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 1)								// 6:WorldTransform
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)								// 7:Material
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)								// 8:TextureData
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 2)								// 9:PointLight
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 3)								// 10:SpotLight
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 4)								// 11:EnvironmentTexture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_PIXEL, 5)	// 12:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL)	// MipMap0のSamplerを追加
 		.Create(logStream, device_);
@@ -172,17 +173,18 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	// RingObject3d用ルートシグネチャの作成
 	ringObject3dRootSignature_ = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:ViewProjection
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1)																	// 1:BaseInstanceID
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1)																	// 1:MeshOffset
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)																			// 2:CameraPosition
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)																			// 3:DirectionalLight
 		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 2, 2)																	// 4:LightData
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 5:WorldTransform
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)								// 6:Material
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)								// 7:TextureData
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 2)								// 8:PointLight
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 3)								// 9:SpotLight
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 4)								// 10:EnvironmentTexture
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_PIXEL, 5)	// 11:Texture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 5:InstanceIndices
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 1)								// 6:WorldTransform
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)								// 7:Material
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)								// 8:TextureData
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 2)								// 9:PointLight
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 3)								// 10:SpotLight
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 4)								// 11:EnvironmentTexture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, DescriptorHeap::kMaxSRVCount, D3D12_SHADER_VISIBILITY_PIXEL, 5)	// 12:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, 0, 1, D3D12_SHADER_VISIBILITY_PIXEL)	// MipMap0のSamplerを追加
 		.Create(logStream, device_);
@@ -351,6 +353,14 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create EmitParticleRootSignature\n");
 	emitParticleRootSignature_->SetName(L"EmitParticleRootSignature");
 
+	// パーティクル更新用ルートシグネチャの作成
+	updateParticleRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 0)												// 0:PerFrame
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:Particle
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create UpdateParticleRootSignature\n");
+	updateParticleRootSignature_->SetName(L"UpdateParticleRootSignature");
+
 	// 深度ステンシルテクスチャコピー用ルートシグネチャの作成
 	depthStencilCopyRootSignature_ = RootSignature()
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 0:DepthStencil
@@ -367,6 +377,14 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create GenerateHiZMipMapRootSignature\n");
 	generateHiZMipMapRootSignature_->SetName(L"GenerateHiZMipMapRootSignature");
 
+	// メッシュコマンドステートのクリア用ルートシグネチャの作成
+	clearMeshCommandStatesRootSignature_ = RootSignature()
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:Constant
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:MeshCommandState
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create ClearMeshCommandStatesRootSignature\n");
+	clearMeshCommandStatesRootSignature_->SetName(L"ClearMeshCommandStatesRootSignature");
+
 	// オクルージョンカリング用ルートシグネチャの作成
 	occlusionCullingRootSignature_ = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 0)												// 0:Frustum
@@ -378,11 +396,21 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 6:MeshLOD
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 3)	// 7:HiZTexture
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 8:ProcessedIndirectCommand
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 9:ProcessedIndirectCommandCounter
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 9:MeshCommandState
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 10:ProcessedIndirectCommandCounter
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_ALL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create OcclusionCullingRootSignature\n");
 	occlusionCullingRootSignature_->SetName(L"OcclusionCullingRootSignature");
+
+	// インスタンス数の反映用ルートシグネチャの作成
+	setInstanceCountRootSignature_ = RootSignature()
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:Constant
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:MeshCommandState
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 2:IndirectCommand
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create SetInstanceCountRootSignature\n");
+	setInstanceCountRootSignature_->SetName(L"SetInstanceCountRootSignature");
 
 	// フットプリント用ルートシグネチャの作成
 	footprintRootSignature_ = RootSignature()

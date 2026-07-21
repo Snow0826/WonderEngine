@@ -8,6 +8,7 @@
 #include "ConstantBuffer.h"
 #include "Resource.h"
 #include "SkinCluster.h"
+#include "InstanceAllocator.h"
 #include "Material.h"
 #include "Model.h"
 #include "Primitive.h"
@@ -43,25 +44,6 @@ namespace {
 		"Dissolve",
 		"Noise"
 	};
-
-	// メッシュタイプ名リスト
-	std::array<std::string, static_cast<uint32_t>(MeshType::kCountOfMeshType)> meshTypeNames = {
-		"Model",
-		"Plane",
-		"Box",
-		"Ring",
-		"Cylinder",
-	};
-
-	// ブレンドモード名リスト
-	std::array<std::string, static_cast<uint32_t>(BlendMode::kCountOfBlendMode)> blendModeNames = {
-		"None",
-		"Normal",
-		"Additive",
-		"Subtractive",
-		"Multiplicative",
-		"Screen"
-	};
 }
 
 World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinClusterManager, std::ofstream &logStream)
@@ -78,11 +60,11 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kViewProjection)]->SetName("ViewProjection");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kParticlePerView)]->Initialize(device, sizeof(ParticlePerViewData), 2);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kParticlePerView)]->SetName("ParticlePerView");
-	constantBuffers_[static_cast<size_t>(ConstantBufferType::kCameraPosition)]->Initialize(device, sizeof(CameraPosition), 2);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kCameraPosition)]->Initialize(device, sizeof(CameraPosition), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kCameraPosition)]->SetName("CameraPosition");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDirectionalLight)]->Initialize(device, sizeof(DirectionalLight), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDirectionalLight)]->SetName("DirectionalLight");
-	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFrustum)]->Initialize(device, sizeof(Frustum), 2);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFrustum)]->Initialize(device, sizeof(Frustum), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFrustum)]->SetName("Frustum");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kSkybox)]->Initialize(device, sizeof(SkyboxForGPU), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kSkybox)]->SetName("Skybox");
@@ -134,22 +116,68 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 		cullingConstantsData_.queueOffsets[i].w = (queueIndex + 3) * kMaxCommandPerQueue;
 	}
 
+	// InstanceIndex用StructuredBufferの作成
+	size_t structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kInstanceIndex);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(uint32_t) * kMaxObject);
+	structuredBuffers_[structuredBufferIndex]->SetName("InstanceIndex");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&instanceIndexData_));
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// InstanceIndex用SRVの作成
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvBufferDesc{};
+	srvBufferDesc.Format = DXGI_FORMAT_UNKNOWN;											// バッファなのでフォーマットなし
+	srvBufferDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;							// バッファビュー
+	srvBufferDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;	// 標準設定
+	srvBufferDesc.Buffer.FirstElement = 0;												// 先頭の要素
+	srvBufferDesc.Buffer.NumElements = kMaxObject;										// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(uint32_t);						// 構造体のサイズ
+	srvBufferDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;							// 特になし
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+
+	// WorldTransform用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kWorldTransform);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(TransformationMatrix) * kMaxObject);
+	structuredBuffers_[structuredBufferIndex]->SetName("WorldTransform");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&worldTransformData_));
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// WorldTransform用SRVの作成
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(TransformationMatrix);			// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+
+	// Material用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kMaterial);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(Material) * kMaxObject);
+	structuredBuffers_[structuredBufferIndex]->SetName("Material");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&materialData_));
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// Material用SRVの作成
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(Material);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+
+	// TextureData用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kTextureData);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(TextureData) * kMaxAABB);
+	structuredBuffers_[structuredBufferIndex]->SetName("TextureData");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&textureData_));
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// TextureData用SRVの作成
+	srvBufferDesc.Buffer.NumElements = kMaxAABB;					// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(TextureData);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+
 	// Line用StructuredBufferの作成
-	size_t structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kLine);
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kLine);
 	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(Rendering::Line) * kMaxLine);
 	structuredBuffers_[structuredBufferIndex]->SetName("Line");
 	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&lineData_));
 	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// Line用SRVの作成
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvBufferDesc{};
-	srvBufferDesc.Format = DXGI_FORMAT_UNKNOWN;											// バッファなのでフォーマットなし
-	srvBufferDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;							// バッファビュー
-	srvBufferDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;	// 標準設定
-	srvBufferDesc.Buffer.FirstElement = 0;												// 先頭の要素
-	srvBufferDesc.Buffer.NumElements = kMaxLine;										// 要素数
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(Rendering::Line);					// 構造体のサイズ
-	srvBufferDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;							// 特になし
+	srvBufferDesc.Buffer.NumElements = kMaxLine;						// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(Rendering::Line);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 	Logger::Log(logStream, "Line SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
@@ -228,46 +256,6 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	srvBufferDesc.Buffer.StructureByteStride = sizeof(FootprintForGPU);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 	Logger::Log(logStream, "Footprint SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
-
-	// メッシュ構造化バッファの初期化
-	for (size_t meshType = 0; meshType < static_cast<size_t>(MeshType::kCountOfMeshType); meshType++) {
-		for (size_t blendMode = 0; blendMode < static_cast<size_t>(BlendMode::kCountOfBlendMode); blendMode++) {
-			// WorldTransform用StructuredBufferの作成
-			structuredBufferIndex = static_cast<size_t>(MeshStructuredBufferType::kWorldTransform);
-			meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode] = Resource::CreateUploadBuffer(device, sizeof(TransformationMatrix) * kMaxObject);
-			meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode]->SetName(blendModeNames[blendMode] + meshTypeNames[meshType] + "WorldTransform");
-			meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode]->Map(reinterpret_cast<void **>(&meshWorldTransform_[meshType][blendMode]));
-			meshStructuredBufferHandles_[structuredBufferIndex][meshType][blendMode] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-
-			// WorldTransform用SRVの作成
-			srvBufferDesc.Buffer.NumElements = kMaxObject;								// 要素数
-			srvBufferDesc.Buffer.StructureByteStride = sizeof(TransformationMatrix);	// 構造体のサイズ
-			gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode]->GetResource(), srvBufferDesc, meshStructuredBufferHandles_[structuredBufferIndex][meshType][blendMode]);
-
-			// Material用StructuredBufferの作成
-			structuredBufferIndex = static_cast<size_t>(MeshStructuredBufferType::kMaterial);
-			meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode] = Resource::CreateUploadBuffer(device, sizeof(Material) * kMaxObject);
-			meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode]->SetName(blendModeNames[blendMode] + meshTypeNames[meshType] + "Material");
-			meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode]->Map(reinterpret_cast<void **>(&meshMaterial_[meshType][blendMode]));
-			meshStructuredBufferHandles_[structuredBufferIndex][meshType][blendMode] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-
-			// Material用SRVの作成
-			srvBufferDesc.Buffer.StructureByteStride = sizeof(Material);	// 構造体のサイズ
-			gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode]->GetResource(), srvBufferDesc, meshStructuredBufferHandles_[structuredBufferIndex][meshType][blendMode]);
-
-			// TextureData用StructuredBufferの作成
-			structuredBufferIndex = static_cast<size_t>(MeshStructuredBufferType::kTextureData);
-			meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode] = Resource::CreateUploadBuffer(device, sizeof(TextureData) * kMaxAABB);
-			meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode]->SetName(blendModeNames[blendMode] + meshTypeNames[meshType] + "TextureData");
-			meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode]->Map(reinterpret_cast<void **>(&meshTextureData_[meshType][blendMode]));
-			meshStructuredBufferHandles_[structuredBufferIndex][meshType][blendMode] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-
-			// TextureData用SRVの作成
-			srvBufferDesc.Buffer.NumElements = kMaxAABB;					// 要素数
-			srvBufferDesc.Buffer.StructureByteStride = sizeof(TextureData);	// 構造体のサイズ
-			gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(meshStructuredBuffers_[structuredBufferIndex][meshType][blendMode]->GetResource(), srvBufferDesc, meshStructuredBufferHandles_[structuredBufferIndex][meshType][blendMode]);
-		}
-	}
 
 	// シーンのレンダーテクスチャの作成
 	D3D12_CLEAR_VALUE clearValue{};
@@ -423,6 +411,24 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(processedCommandBuffer_->GetResource(), uavBufferDesc, processedCommandHandle_);
 	Logger::Log(logStream, "ProcessedCommand UAVDescriptorIndex: " + std::to_string(processedCommandHandle_) + "\n");
 
+	// メッシュコマンドの状態用RWStructuredBufferの作成
+	meshCommandStateBuffer_ = Resource::CreateRWBuffer(device, sizeof(MeshCommandState) * kMaxAABB);
+	meshCommandStateBuffer_->SetName("MeshCommandStateBuffer");
+	meshCommandStateSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	meshCommandStateUAVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// メッシュコマンドの状態用SRVの作成
+	srvBufferDesc.Buffer.NumElements = kMaxAABB;							// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(MeshCommandState);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(meshCommandStateBuffer_->GetResource(), srvBufferDesc, meshCommandStateSRVHandle_);
+	Logger::Log(logStream, "MeshCommandState SRVDescriptorIndex: " + std::to_string(meshCommandStateSRVHandle_) + "\n");
+
+	// メッシュコマンドの状態用UAVの作成
+	uavBufferDesc.Buffer.NumElements = kMaxAABB;							// 要素数
+	uavBufferDesc.Buffer.StructureByteStride = sizeof(MeshCommandState);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(meshCommandStateBuffer_->GetResource(), uavBufferDesc, meshCommandStateUAVHandle_);
+	Logger::Log(logStream, "MeshCommandState UAVDescriptorIndex: " + std::to_string(meshCommandStateUAVHandle_) + "\n");
+
 	// コマンドカウンター用RWByteAddressBufferの作成
 	constexpr size_t kMaxQueue = static_cast<size_t>(MeshType::kCountOfMeshType) * static_cast<size_t>(BlendMode::kCountOfBlendMode);
 	commandCounterBuffer_ = Resource::CreateRWBuffer(device, sizeof(uint32_t) * kMaxQueue);
@@ -473,7 +479,7 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 
 World::~World() = default;
 
-void World::Update() {
+void World::Update(float deltaTime) {
 	TransferDirectionalLight();
 	TransferPointLight();
 	TransferSpotLight();
@@ -492,7 +498,7 @@ void World::Update() {
 	TransferDepthBasedOutlineData();
 	TransferRadialBlurParam();
 	TransferDissolveParam();
-	TransferPerFrame();
+	TransferPerFrame(deltaTime);
 	TransferEmitterSphere();
 	TransferFootprint();
 	TransferFootprintMap();
@@ -500,9 +506,9 @@ void World::Update() {
 
 void World::Edit() {
 #ifdef USE_IMGUI
-	ImGui::Text("Time: %.2f", perFrame_.time);
+	ImGui::Text("Time: %.1f", perFrame_.time);
+	ImGui::Text("DeltaTime: %.4f", perFrame_.deltaTime);
 	ImGui::Text("CullingMeshCount: %d", cullingConstantsData_.meshCount);
-	ImGui::Text("InstanceCount: %d", instanceCount_);
 
 	if (ImGui::Checkbox("Culling", &isCulling_)) {
 		TransformSystem transformSystem{ registry_ };
@@ -669,91 +675,61 @@ void World::TransferCamera() {
 		Frustum frustum = MakeFrustum(viewProjection);
 		if (registry_->HasComponent<MainCamera>(entity)) {
 			depthMaterial_.projectionInverse = viewProjection.projection.inverse();
+			constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCameraPosition)]->CopyData(&cameraPosition, sizeof(CameraPosition), 0);
+			constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), 0);
 		}
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kViewProjection)]->CopyData(&viewProjection, sizeof(ViewProjectionData), cameraIndex + 1);
 		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kParticlePerView)]->CopyData(&particlePerViewData, sizeof(ParticlePerViewData), cameraIndex);
-		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kCameraPosition)]->CopyData(&cameraPosition, sizeof(CameraPosition), cameraIndex);
-		constantBuffers_[static_cast<uint32_t>(ConstantBufferType::kFrustum)]->CopyData(&frustum, sizeof(Frustum), cameraIndex);
 		cameraIndex++;
 		}, exclude<Disabled>());
 }
 
 void World::TransferWorldTransform() {
-	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
-		for (size_t j = 0; j < static_cast<size_t>(BlendMode::kCountOfBlendMode); j++) {
-			uint32_t meshWorldTransformCounter = 0;
-			registry_->ForEach<MeshType, BlendMode, DirtyTransform>([&](uint32_t entity, MeshType *meshType, BlendMode *blendMode, DirtyTransform *dirtyTransform) {
-				if (static_cast<MeshType>(i) == *meshType && static_cast<BlendMode>(j) == *blendMode) {
-					TransformationMatrix transformationMatrix;
-					Model *model = registry_->GetComponent<Model>(entity);
-					if (model && !registry_->HasComponent<SkinMesh>(entity)) {
-						transformationMatrix.worldMatrix = ModelManager::MakeLocalMatrix(model->modelData.rootNode);
-					}
-					EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
-					QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
-					if (eulerTransform) {
-						transformationMatrix.worldMatrix *= eulerTransform->worldMatrix;
-					} else if (quaternionTransform) {
-						transformationMatrix.worldMatrix *= quaternionTransform->worldMatrix;
-					}
-					transformationMatrix.worldInverseTransposeMatrix = transformationMatrix.worldMatrix.inverse().transpose();
-					meshWorldTransform_[i][j][meshWorldTransformCounter] = transformationMatrix;
-					registry_->RemoveComponent<DirtyTransform>(entity);
-					meshWorldTransformCounter++;
-				}
-				}, exclude<Disabled>());
+	registry_->ForEach<InstanceData, DirtyTransform>([&](uint32_t entity, InstanceData *instanceData, DirtyTransform *dirtyTransform) {
+		TransformationMatrix transformationMatrix;
+		Model *model = registry_->GetComponent<Model>(entity);
+		if (model && !registry_->HasComponent<SkinMesh>(entity)) {
+			transformationMatrix.worldMatrix = ModelManager::MakeLocalMatrix(model->modelData.rootNode);
 		}
-	}
+		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
+		QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
+		if (eulerTransform) {
+			transformationMatrix.worldMatrix *= eulerTransform->worldMatrix;
+		} else if (quaternionTransform) {
+			transformationMatrix.worldMatrix *= quaternionTransform->worldMatrix;
+		}
+		transformationMatrix.worldInverseTransposeMatrix = transformationMatrix.worldMatrix.inverse().transpose();
+		worldTransformData_[instanceData->instanceIndex] = transformationMatrix;
+		registry_->RemoveComponent<DirtyTransform>(entity);
+		}, exclude<Disabled>());
 }
 
 void World::TransferMaterial() {
-	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
-		for (size_t j = 0; j < static_cast<size_t>(BlendMode::kCountOfBlendMode); j++) {
-			uint32_t meshMaterialCounter = 0;
-			registry_->ForEach<MeshType, BlendMode, Material, DirtyMaterial>([&](uint32_t entity, MeshType *meshType, BlendMode *blendMode, Material *material, DirtyMaterial *dirtyMaterial) {
-				if (static_cast<MeshType>(i) == *meshType && static_cast<BlendMode>(j) == *blendMode) {
-					meshMaterial_[i][j][meshMaterialCounter] = *material;
-					registry_->RemoveComponent<DirtyMaterial>(entity);
-					meshMaterialCounter++;
-				}
-				}, exclude<Disabled>());
-		}
-	}
+	registry_->ForEach<Material, InstanceData, DirtyMaterial>([&](uint32_t entity, Material *material, InstanceData *instanceData, DirtyMaterial *dirtyMaterial) {
+		materialData_[instanceData->instanceIndex] = *material;
+		registry_->RemoveComponent<DirtyMaterial>(entity);
+		}, exclude<Disabled>());
 }
 
 void World::TransferTextureData() {
-	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
-		for (size_t j = 0; j < static_cast<size_t>(BlendMode::kCountOfBlendMode); j++) {
-			uint32_t meshTextureDataCounter = 0;
-			if (static_cast<MeshType>(i) == MeshType::kModel) {
-				registry_->ForEach<BlendMode, Model, DirtyTextureData>([&](uint32_t entity, BlendMode *blendMode, Model *model, DirtyTextureData *dirtyTextureData) {
-					if (static_cast<BlendMode>(j) == *blendMode) {
-						for (const MeshData &mesh : model->modelData.meshes) {
-							TextureData textureData{
-								.textureHandle = model->textureHandle[mesh.materialIndex],
-								.enableMipMaps = model->enableMipMaps[mesh.materialIndex]
-							};
-							meshTextureData_[i][j][meshTextureDataCounter] = textureData;
-							meshTextureDataCounter++;
-						}
-						registry_->RemoveComponent<DirtyTextureData>(entity);
-					}
-					}, exclude<Disabled>());
-			} else {
-				registry_->ForEach<MeshType, BlendMode, Primitive, DirtyTextureData>([&](uint32_t entity, MeshType *meshType, BlendMode *blendMode, Primitive *primitive, DirtyTextureData *dirtyTextureData) {
-					if (static_cast<MeshType>(i) == *meshType && static_cast<BlendMode>(j) == *blendMode) {
-						TextureData textureData{
-							.textureHandle = primitive->textureHandle,
-							.enableMipMaps = primitive->enableMipMaps
-						};
-						meshTextureData_[i][j][meshTextureDataCounter] = textureData;
-						registry_->RemoveComponent<DirtyTextureData>(entity);
-						meshTextureDataCounter++;
-					}
-					}, exclude<Disabled>());
+	registry_->ForEach<InstanceData, DirtyTextureData>([&](uint32_t entity, InstanceData *instanceData, DirtyTextureData *dirtyTextureData) {
+		if (auto model = registry_->GetComponent<Model>(entity)) {
+			for (const MeshData &mesh : model->modelData.meshes) {
+				TextureData textureData{
+					.textureHandle = model->textureHandle[mesh.materialIndex],
+					.enableMipMaps = model->enableMipMaps[mesh.materialIndex]
+				};
+				textureData_[instanceData->instanceIndex] = textureData;
 			}
+		} else if (auto primitive = registry_->GetComponent<Primitive>(entity)) {
+			TextureData textureData{
+				.textureHandle = primitive->textureHandle,
+				.enableMipMaps = primitive->enableMipMaps
+			};
+			textureData_[instanceData->instanceIndex] = textureData;
 		}
-	}
+		registry_->RemoveComponent<DirtyTextureData>(entity);
+		}, exclude<Disabled>());
 }
 
 void World::TransferSkybox() {
@@ -799,104 +775,90 @@ void World::TransferDissolveParam() {
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDissolveParam)]->CopyData(&dissolveParam_, sizeof(DissolveParam), 0);
 }
 
-void World::TransferPerFrame() {
+void World::TransferPerFrame(float deltaTime) {
 	perFrame_.time++;
+	perFrame_.deltaTime = deltaTime;
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPerFrame)]->CopyData(&perFrame_, sizeof(PerFrame), 0);
 }
 
 void World::TransferMeshLODData() {
-	cullingConstantsData_.meshCount = 0;
-	instanceCount_ = 0;
-	uint32_t meshLODCounter = 0;
+	uint32_t meshOffset = 0;
 	for (size_t i = 0; i < static_cast<size_t>(BlendMode::kCountOfBlendMode); i++) {
-		std::vector<std::string> meshNames;
-		uint32_t instanceOffset = 0;
-		registry_->ForEach<BlendMode, Model>([&](uint32_t entity, BlendMode *blendMode, Model *model) {
+		std::unordered_map<std::string, uint32_t> meshLODOffsets;
+		registry_->ForEach<BlendMode, Model, DirtyMeshLOD>([&](uint32_t entity, BlendMode *blendMode, Model *model, DirtyMeshLOD *dirtyMeshLOD) {
 			if (static_cast<BlendMode>(i) == *blendMode) {
 				for (const MeshData &mesh : model->modelData.meshes) {
 					for (const MeshLODData &lod : mesh.lods) {
-						bool found = false;
-						for (const std::string &name : meshNames) {
-							if (name == lod.meshName) {
-								found = true;
-								break;
+						auto it = meshLODOffsets.find(lod.meshName);
+						if (it == meshLODOffsets.end()) {
+							meshLODOffsets.emplace(lod.meshName, meshLODCounter_);
+							cullingMeshData_[cullingMeshDataOffset_].lodOffset = meshLODCounter_;
+
+							meshLODData_[meshLODCounter_].indirectCommand.meshOffset = meshOffset;
+							if (registry_->HasComponent<SkinMesh>(entity)) {
+								meshLODData_[meshLODCounter_].indirectCommand.vertexBufferView = skinClusterManager_->GetOutputVertexBufferView(model->skinClusterHandle);
+							} else {
+								meshLODData_[meshLODCounter_].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(lod.meshName);
 							}
-						}
-
-						if (found) {
-							continue;
-						}
-
-						meshNames.emplace_back(lod.meshName);
-						uint32_t instanceCount = meshManager_->GetInstanceCount(lod.meshName);
-						meshLODData_[meshLODCounter].indirectCommand.baseInstanceId = instanceOffset;
-						if (registry_->HasComponent<SkinMesh>(entity)) {
-							meshLODData_[meshLODCounter].indirectCommand.vertexBufferView = skinClusterManager_->GetOutputVertexBufferView(model->skinClusterHandle);
+							meshLODData_[meshLODCounter_].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(lod.meshName);
+							meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(lod.meshName);
+							meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.InstanceCount = 0;
+							meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.StartIndexLocation = 0;
+							meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.BaseVertexLocation = 0;
+							meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.StartInstanceLocation = 0;
+							meshLODData_[meshLODCounter_].error = lod.error;
+							meshLODCounter_++;
 						} else {
-							meshLODData_[meshLODCounter].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(lod.meshName);
+							cullingMeshData_[cullingMeshDataOffset_].lodOffset = it->second;
 						}
-						meshLODData_[meshLODCounter].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(lod.meshName);
-						meshLODData_[meshLODCounter].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(lod.meshName);
-						meshLODData_[meshLODCounter].indirectCommand.drawIndexedArguments.InstanceCount = instanceCount;
-						meshLODData_[meshLODCounter].indirectCommand.drawIndexedArguments.StartIndexLocation = 0;
-						meshLODData_[meshLODCounter].indirectCommand.drawIndexedArguments.BaseVertexLocation = 0;
-						meshLODData_[meshLODCounter].indirectCommand.drawIndexedArguments.StartInstanceLocation = 0;
-						meshLODData_[meshLODCounter].error = lod.error;
-						instanceOffset += instanceCount;
-						meshLODCounter++;
+						meshOffset++;
 					}
-					cullingConstantsData_.meshCount++;
-					instanceCount_++;
+					cullingMeshDataOffset_++;
 				}
 			}
+			registry_->RemoveComponent<DirtyMeshLOD>(entity);
 			}, exclude<Disabled>());
 	}
 
 	for (size_t i = 0; i < static_cast<size_t>(BlendMode::kCountOfBlendMode); i++) {
-		std::vector<std::string> meshNames;
-		uint32_t instanceOffset = 0;
-		registry_->ForEach<BlendMode, Primitive>([&](uint32_t entity, BlendMode *blendMode, Primitive *primitive) {
+		std::unordered_map<std::string, uint32_t> meshLODOffsets;
+		registry_->ForEach<BlendMode, Primitive, DirtyMeshLOD>([&](uint32_t entity, BlendMode *blendMode, Primitive *primitive, DirtyMeshLOD *dirtyMeshLOD) {
 			if (static_cast<BlendMode>(i) == *blendMode) {
-				bool found = false;
-				for (const std::string &name : meshNames) {
-					if (name == primitive->meshName) {
-						found = true;
-						break;
-					}
-				}
+				auto it = meshLODOffsets.find(primitive->meshName);
+				if (it == meshLODOffsets.end()) {
+					meshLODOffsets.emplace(primitive->meshName, meshLODCounter_);
+					cullingMeshData_[cullingMeshDataOffset_].lodOffset = meshLODCounter_;
 
-				if (!found) {
-					meshNames.emplace_back(primitive->meshName);
-					uint32_t instanceCount = meshManager_->GetInstanceCount(primitive->meshName);
-					meshLODData_[meshLODCounter].indirectCommand.baseInstanceId = instanceOffset;
-					meshLODData_[meshLODCounter].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(primitive->meshName);
-					meshLODData_[meshLODCounter].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(primitive->meshName);
-					meshLODData_[meshLODCounter].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(primitive->meshName);
-					meshLODData_[meshLODCounter].indirectCommand.drawIndexedArguments.InstanceCount = instanceCount;
-					meshLODData_[meshLODCounter].indirectCommand.drawIndexedArguments.StartIndexLocation = 0;
-					meshLODData_[meshLODCounter].indirectCommand.drawIndexedArguments.BaseVertexLocation = 0;
-					meshLODData_[meshLODCounter].indirectCommand.drawIndexedArguments.StartInstanceLocation = 0;
-					meshLODData_[meshLODCounter].error = primitive->error;
-					instanceOffset += instanceCount;
-					cullingConstantsData_.meshCount++;
-					meshLODCounter++;
+					meshLODData_[meshLODCounter_].indirectCommand.meshOffset = meshOffset;
+					meshLODData_[meshLODCounter_].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(primitive->meshName);
+					meshLODData_[meshLODCounter_].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(primitive->meshName);
+					meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(primitive->meshName);
+					meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.InstanceCount = 0;
+					meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.StartIndexLocation = 0;
+					meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.BaseVertexLocation = 0;
+					meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.StartInstanceLocation = 0;
+					meshLODData_[meshLODCounter_].error = primitive->error;
+					meshLODCounter_++;
+				} else {
+					cullingMeshData_[cullingMeshDataOffset_].lodOffset = it->second;
 				}
-				instanceCount_++;
+				meshOffset++;
+				cullingMeshDataOffset_++;
 			}
+			registry_->RemoveComponent<DirtyMeshLOD>(entity);
 			}, exclude<Disabled>());
 	}
+
+	cullingConstantsData_.meshCount = cullingMeshDataOffset_;
 }
 
 void World::TransferCullingData() {
 	uint32_t cullingObjectDataOffset = 0;
 	uint32_t cullingMeshDataOffset = 0;
-	uint32_t meshLODDataOffset = 0;
-	registry_->ForEach<Model, MeshType, BlendMode>([&](uint32_t entity, Model *model, MeshType *meshType, BlendMode *blendMode) {
-		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
-		QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
-		if (eulerTransform) {
+	registry_->ForEach<Model, MeshType, BlendMode, InstanceData, DirtyCullingData>([&](uint32_t entity, Model *model, MeshType *meshType, BlendMode *blendMode, InstanceData *instanceData, DirtyCullingData *dirtyCullingData) {
+		if (auto eulerTransform = registry_->GetComponent<EulerTransform>(entity)) {
 			cullingObjectData_[cullingObjectDataOffset].worldMatrix = eulerTransform->worldMatrix;
-		} else if (quaternionTransform) {
+		} else if (auto quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity)) {
 			cullingObjectData_[cullingObjectDataOffset].worldMatrix = quaternionTransform->worldMatrix;
 		} else {
 			cullingObjectData_[cullingObjectDataOffset].worldMatrix = MakeIdentity4x4();
@@ -904,48 +866,43 @@ void World::TransferCullingData() {
 		cullingObjectData_[cullingObjectDataOffset].meshType = *meshType;
 		cullingObjectData_[cullingObjectDataOffset].blendMode = *blendMode;
 		for (const MeshData &mesh : model->modelData.meshes) {
-			cullingMeshData_[cullingMeshDataOffset] = {
-				.aabb = {
+			cullingMeshData_[cullingMeshDataOffset].aabb = {
 					.min = { mesh.aabb.min.x, mesh.aabb.min.y, mesh.aabb.min.z, 1.0f },
 					.max = { mesh.aabb.max.x, mesh.aabb.max.y, mesh.aabb.max.z, 1.0f }
-				},
-				.objectHandle = cullingObjectDataOffset,
-				.lodOffset = meshLODDataOffset,
-				.lodCount = static_cast<uint32_t>(mesh.lods.size()),
-				.useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0
 			};
-			meshLODDataOffset += static_cast<uint32_t>(mesh.lods.size());
+			cullingMeshData_[cullingMeshDataOffset].objectIndex = cullingObjectDataOffset;
+			cullingMeshData_[cullingMeshDataOffset].lodCount = static_cast<uint32_t>(mesh.lods.size());
+			cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
+			instanceIndexData_[cullingMeshDataOffset] = instanceData->instanceIndex;
 			cullingMeshDataOffset++;
 		}
 		cullingObjectDataOffset++;
-		});
+		registry_->RemoveComponent<DirtyCullingData>(entity);
+		}, exclude<Disabled>());
 
-	registry_->ForEach<Primitive, MeshType, BlendMode>([&](uint32_t entity, Primitive *primitive, MeshType *meshType, BlendMode *blendMode) {
-		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
-		QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
-		if (eulerTransform) {
+	registry_->ForEach<Primitive, MeshType, BlendMode, InstanceData, DirtyCullingData>([&](uint32_t entity, Primitive *primitive, MeshType *meshType, BlendMode *blendMode, InstanceData *instanceData, DirtyCullingData *dirtyCullingData) {
+		if (auto eulerTransform = registry_->GetComponent<EulerTransform>(entity)) {
 			cullingObjectData_[cullingObjectDataOffset].worldMatrix = eulerTransform->worldMatrix;
-		} else if (quaternionTransform) {
+		} else if (auto quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity)) {
 			cullingObjectData_[cullingObjectDataOffset].worldMatrix = quaternionTransform->worldMatrix;
 		} else {
 			cullingObjectData_[cullingObjectDataOffset].worldMatrix = MakeIdentity4x4();
 		}
 		cullingObjectData_[cullingObjectDataOffset].meshType = *meshType;
 		cullingObjectData_[cullingObjectDataOffset].blendMode = *blendMode;
-		cullingMeshData_[cullingMeshDataOffset] = {
-			.aabb = {
+		cullingMeshData_[cullingMeshDataOffset].aabb = {
 				.min = { primitive->aabb.min.x, primitive->aabb.min.y, primitive->aabb.min.z, 1.0f },
 				.max = { primitive->aabb.max.x, primitive->aabb.max.y, primitive->aabb.max.z, 1.0f }
-			},
-			.objectHandle = cullingObjectDataOffset,
-			.lodOffset = meshLODDataOffset,
-			.lodCount = 1,
-			.useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0
 		};
-		meshLODDataOffset++;
+
+		cullingMeshData_[cullingMeshDataOffset].objectIndex = cullingObjectDataOffset;
+		cullingMeshData_[cullingMeshDataOffset].lodCount = 1;
+		cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
+		instanceIndexData_[cullingMeshDataOffset] = instanceData->instanceIndex;
 		cullingMeshDataOffset++;
 		cullingObjectDataOffset++;
-		});
+		registry_->RemoveComponent<DirtyCullingData>(entity);
+		}, exclude<Disabled>());
 }
 
 void World::TransferEmitterSphere() {

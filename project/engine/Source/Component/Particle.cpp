@@ -20,7 +20,7 @@ ParticleManager::ParticleManager(Device *device, TextureManager *textureManager,
 
 ParticleManager::~ParticleManager() = default;
 
-void ParticleManager::CreateParticleGroup(const std::string &name, MeshType meshType, const std::string &textureFileName, uint32_t count) {
+void ParticleManager::CreateParticleGroup(const std::string &name, MeshType meshType, const std::string &textureFileName) {
 	// すでに読み込まれている場合は何もしない
 	if (particleGroups_.contains(name)) {
 		Logger::Log(*logStream_, "Particle already created: " + name + "\n");
@@ -35,27 +35,19 @@ void ParticleManager::CreateParticleGroup(const std::string &name, MeshType mesh
 			break;
 		case MeshType::kPlane:
 			particleGroup.meshName = name + "Plane";
-			for (uint32_t i = 0; i < count; ++i) {
-				meshManager_->CreatePlane(particleGroup.meshName);
-			}
+			meshManager_->CreatePlane(particleGroup.meshName);
 			break;
 		case MeshType::kBox:
 			particleGroup.meshName = name + "Box";
-			for (uint32_t i = 0; i < count; ++i) {
-				meshManager_->CreateBox(particleGroup.meshName);
-			}
+			meshManager_->CreateBox(particleGroup.meshName);
 			break;
 		case MeshType::kRing:
 			particleGroup.meshName = name + "Ring";
-			for (uint32_t i = 0; i < count; ++i) {
-				meshManager_->CreateRing(particleGroup.meshName, 32, 0.5f, 0.1f);
-			}
+			meshManager_->CreateRing(particleGroup.meshName, 32, 0.5f, 0.1f);
 			break;
 		case MeshType::kCylinder:
 			particleGroup.meshName = name + "Cylinder";
-			for (uint32_t i = 0; i < count; ++i) {
-				meshManager_->CreateCylinder(particleGroup.meshName, 32, 1.0f, 1.0f, 3.0f, false);
-			}
+			meshManager_->CreateCylinder(particleGroup.meshName, 32, 1.0f, 1.0f, 3.0f, false);
 			break;
 		case MeshType::kCountOfMeshType:
 			break;
@@ -63,6 +55,7 @@ void ParticleManager::CreateParticleGroup(const std::string &name, MeshType mesh
 			break;
 	}
 	particleGroup.textureHandle = textureManager_->LoadTexture(textureFileName);
+	particleGroup.resourceHandle = static_cast<uint32_t>(particleResources_.size());
 	particleGroup.srvHandle = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 	particleGroup.uavHandle = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 	particleGroup.textureFileName = textureFileName;
@@ -95,17 +88,20 @@ void ParticleManager::CreateParticleGroup(const std::string &name, MeshType mesh
 	Logger::Log(*logStream_, "Particle UAVDescriptorIndex: " + std::to_string(particleGroup.uavHandle) + "\n");
 
 	// パーティクルグループとバッファをマップに登録
-	particleResources_.insert(std::make_pair(name, std::move(particleResource)));
+	particleResources_.emplace_back(std::move(particleResource));
 	particleGroups_.insert(std::make_pair(name, particleGroup));
 	Logger::Log(*logStream_, "Created particle: " + name + "\n");
 }
 
 ParticleGroup ParticleManager::FindParticleGroup(const std::string &name) {
-	ParticleGroup particleGroup;
 	if (particleGroups_.contains(name)) {
-		particleGroup = particleGroups_.at(name);
+		return particleGroups_.at(name);
 	}
-	return particleGroup;
+	return ParticleGroup{};
+}
+
+Resource *ParticleManager::GetParticleResource(uint32_t handle) {
+	return particleResources_[handle].get();
 }
 
 void ParticleManager::UpdateEmitterSphere(float deltaTime) {

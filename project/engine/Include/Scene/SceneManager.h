@@ -32,7 +32,8 @@ public:
 	void Initialize(Device *device, Input *input, Audio *audio, Renderer *renderer, std::ofstream *logStream);
 
 	/// @brief 更新
-	void Update();
+	/// @param deltaTime デルタタイム
+	void Update(float deltaTime);
 
 	/// @brief 次のシーンの設定
 	/// @param nextScene 次のシーン
@@ -57,6 +58,10 @@ public:
 	/// @brief レンダラーの取得
 	/// @return レンダラー
 	Renderer *GetRenderer() const { return renderer_; }
+
+	/// @brief ログ出力ストリームの取得
+	/// @return ログ出力ストリーム
+	std::ofstream *GetLogStream() const { return logStream_; }
 
 	/// @brief ワールドの取得
 	/// @return ワールド

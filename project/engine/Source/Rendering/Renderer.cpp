@@ -81,9 +81,12 @@ Renderer::Renderer(Device *device)
 	, skinningRootSignature_(device->GetSkinningRootSignature())
 	, initializeParticleRootSignature_(device->GetInitializeParticleRootSignature())
 	, emitParticleRootSignature_(device->GetEmitParticleRootSignature())
+	, updateParticleRootSignature_(device->GetUpdateParticleRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
+	, clearMeshCommandStatesRootSignature_(device->GetClearMeshCommandStatesRootSignature())
+	, setInstanceCountRootSignature_(device->GetSetInstanceCountRootSignature())
 	, footprintRootSignature_(device->GetFootprintRootSignature())
 	, footprintMapRootSignature_(device->GetFootprintMapRootSignature()) {
 }
@@ -269,6 +272,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> emitParticleCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/EmitParticle.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(emitParticleCSBlob);
 
+	// パーティクル更新のシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> updateParticleCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/UpdateParticle.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(updateParticleCSBlob);
+
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(depthStencilCopyCSBlob);
@@ -280,6 +287,14 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// オクルージョンカリングのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> occlusionCullingCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/OcclusionCulling.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(occlusionCullingCSBlob);
+
+	// メッシュコマンドステートのクリア用シェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> clearMeshCommandStatesCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/ClearMeshCommandStates.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(clearMeshCommandStatesCSBlob);
+
+	// インスタンス数の反映用シェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> setInstanceCountCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/SetInstanceCount.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(setInstanceCountCSBlob);
 
 	// フットプリントのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> footprintCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/FootprintStamp.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -584,6 +599,13 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create EmitParticlePipelineState\n");
 	emitParticlePipelineState_->SetName(L"EmitParticlePipelineState");
 
+	// パーティクル更新用パイプラインステートの生成
+	updateParticlePipelineState_ = PipelineState()
+		.SetComputeShader(updateParticleCSBlob->GetBufferPointer(), updateParticleCSBlob->GetBufferSize())	// コンピュートシェーダー
+		.Create(device_->GetDevice(), updateParticleRootSignature_);
+	Logger::Log(logStream, "Create UpdateParticlePipelineState\n");
+	updateParticlePipelineState_->SetName(L"UpdateParticlePipelineState");
+
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
 		.SetComputeShader(depthStencilCopyCSBlob->GetBufferPointer(), depthStencilCopyCSBlob->GetBufferSize())	// コンピュートシェーダー
@@ -604,6 +626,20 @@ void Renderer::Initialize(std::ofstream &logStream) {
 		.Create(device_->GetDevice(), occlusionCullingRootSignature_);
 	Logger::Log(logStream, "Create OcclusionCullingPipelineState\n");
 	occlusionCullingPipelineState_->SetName(L"OcclusionCullingPipelineState");
+
+	// メッシュコマンドステートのクリア用パイプラインステートの生成
+	clearMeshCommandStatesPipelineState_ = PipelineState()
+		.SetComputeShader(clearMeshCommandStatesCSBlob->GetBufferPointer(), clearMeshCommandStatesCSBlob->GetBufferSize())	// コンピュートシェーダー
+		.Create(device_->GetDevice(), clearMeshCommandStatesRootSignature_);
+	Logger::Log(logStream, "Create ClearMeshCommandStatesPipelineState\n");
+	clearMeshCommandStatesPipelineState_->SetName(L"ClearMeshCommandStatesPipelineState");
+
+	// インスタンス数の反映用パイプラインステートの生成
+	setInstanceCountPipelineState_ = PipelineState()
+		.SetComputeShader(setInstanceCountCSBlob->GetBufferPointer(), setInstanceCountCSBlob->GetBufferSize())	// コンピュートシェーダー
+		.Create(device_->GetDevice(), setInstanceCountRootSignature_);
+	Logger::Log(logStream, "Create SetInstanceCountPipelineState\n");
+	setInstanceCountPipelineState_->SetName(L"SetInstanceCountPipelineState");
 
 	// フットプリント用パイプラインステートの生成
 	footprintPipelineState_ = PipelineState()
@@ -678,6 +714,19 @@ void Renderer::EmitParticle() {
 	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, particleGroup->uavHandle);
 		commandList_->Dispatch(1, 1, 1);
+		particleManager_->GetParticleResource(particleGroup->resourceHandle)->UAVBarrier();
+		}, exclude<Disabled>());
+}
+
+void Renderer::UpdateParticle() {
+	commandList_->SetComputeRootSignature(updateParticleRootSignature_);
+	commandList_->SetPipelineState(updateParticlePipelineState_.Get());
+
+	world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToCompute(0, 0);
+
+	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, particleGroup->uavHandle);
+		commandList_->Dispatch(1, 1, 1);
 		}, exclude<Disabled>());
 }
 
@@ -688,7 +737,9 @@ void Renderer::Render() {
 	// オクルージョンカリングの実行
 	CopyDepthToHiZ();
 	GenerateHiZMipMap();
+	ClearMeshCommandStates();
 	OcclusionCulling();
+	SetInstanceCount();
 
 	// フットプリントの実行
 	Footprint();
@@ -746,6 +797,11 @@ void Renderer::SetTextureManager(TextureManager *textureManager) {
 void Renderer::SetSkinClusterManager(SkinClusterManager *skinClusterManager) {
 	assert(skinClusterManager);
 	skinClusterManager_ = skinClusterManager;
+}
+
+void Renderer::SetParticleManager(ParticleManager *particleManager) {
+	assert(particleManager);
+	particleManager_ = particleManager;
 }
 
 void Renderer::SetFootprintManager(FootprintManager *footprintManager) {
@@ -824,6 +880,24 @@ void Renderer::GenerateHiZMipMap() {
 	}
 }
 
+void Renderer::ClearMeshCommandStates() {
+	commandList_->SetComputeRootSignature(clearMeshCommandStatesRootSignature_);
+	commandList_->SetPipelineState(clearMeshCommandStatesPipelineState_.Get());
+
+	uint32_t meshLODCounter = world_->GetMeshLODCounter();
+	commandList_->SetComputeRoot32BitConstants(0, 1, &meshLODCounter, 0);
+
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetMeshCommandStateUAVHandle());
+
+	world_->GetMeshCommandStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+	uint32_t dispatchCount = (meshLODCounter + 63) / 64;
+	if (dispatchCount > 0) {
+		commandList_->Dispatch(dispatchCount, 1, 1);
+		world_->GetMeshCommandStateBuffer()->UAVBarrier();
+	}
+}
+
 void Renderer::OcclusionCulling() {
 	// オクルージョンカリング用ルートシグネチャとパイプラインステートの設定
 	commandList_->SetComputeRootSignature(occlusionCullingRootSignature_);
@@ -844,7 +918,8 @@ void Renderer::OcclusionCulling() {
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetStructuredBufferHandle(StructuredBufferType::kMeshLOD));
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetHiZTextureSRVHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetProcessedCommandHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetCommandCounterHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetMeshCommandStateUAVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(10, world_->GetCommandCounterHandle());
 
 	// コマンドバッファの転送
 	Resource *indirectCommandStructuredBuffer = world_->GetStructuredBuffer(StructuredBufferType::kMeshLOD);
@@ -856,7 +931,7 @@ void Renderer::OcclusionCulling() {
 	world_->GetProcessedCommandBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	world_->GetCommandCounterBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-	// オクルージョンカリングの実行前にUAVをクリアする
+	// オクルージョンカリングの実行前にカウンタをクリアする
 	UINT clearValues[4] = { 0, 0, 0, 0 };
 	commandList_->ClearUnorderedAccessViewUint(
 		gpuCbvSrvUavDescriptorHeap_->GetGPUDescriptorHandle(world_->GetCommandCounterHandle()),
@@ -867,13 +942,34 @@ void Renderer::OcclusionCulling() {
 		nullptr
 	);
 
+	world_->GetCommandCounterBuffer()->UAVBarrier();
+
 	// オクルージョンカリングの実行
 	uint32_t dispatchCount = (cullingConstantsData.meshCount + 63) / 64;
 	if (dispatchCount > 0) {
 		commandList_->Dispatch(dispatchCount, 1, 1);
 		world_->GetHiZTexture()->UAVBarrier();
 		world_->GetProcessedCommandBuffer()->UAVBarrier();
+		world_->GetMeshCommandStateBuffer()->UAVBarrier();
 		world_->GetCommandCounterBuffer()->UAVBarrier();
+	}
+}
+
+void Renderer::SetInstanceCount() {
+	commandList_->SetComputeRootSignature(setInstanceCountRootSignature_);
+	commandList_->SetPipelineState(setInstanceCountPipelineState_.Get());
+
+	uint32_t meshLODCounter = world_->GetMeshLODCounter();
+	commandList_->SetComputeRoot32BitConstants(0, 1, &meshLODCounter, 0);
+
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetMeshCommandStateSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetProcessedCommandHandle());
+
+	world_->GetMeshCommandStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	
+	uint32_t dispatchCount = (meshLODCounter + 63) / 64;
+	if (dispatchCount > 0) {
+		commandList_->Dispatch(dispatchCount, 1, 1);
 	}
 }
 
@@ -1083,23 +1179,22 @@ void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
 			.spotLightCount = static_cast<uint32_t>(registry_->GetComponentCount<SpotLight>())
 		};
 		commandList_->SetGraphicsRoot32BitConstants(4, 2, &lightData, 0);
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetStructuredBufferHandle(StructuredBufferType::kPointLight));
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, world_->GetStructuredBufferHandle(StructuredBufferType::kSpotLight));
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(5, world_->GetStructuredBufferHandle(StructuredBufferType::kInstanceIndex));
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(6, world_->GetStructuredBufferHandle(StructuredBufferType::kWorldTransform));
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetStructuredBufferHandle(StructuredBufferType::kMaterial));
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetStructuredBufferHandle(StructuredBufferType::kTextureData));
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, world_->GetStructuredBufferHandle(StructuredBufferType::kPointLight));
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, world_->GetStructuredBufferHandle(StructuredBufferType::kSpotLight));
 		registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(10, skybox->textureHandle);
+			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(11, skybox->textureHandle);
 			}, exclude<Disabled>());
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(11, 0);
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(12, 0);
 
 		// ブレンドモードごとに描画
 		for (uint32_t j = 0; j < static_cast<uint32_t>(BlendMode::kCountOfBlendMode); j++) {
 			label = blendModeNames[j] + "Blend";
 			PIXBeginEvent(commandList_, PIX_COLOR(255, 255, 255), ConvertString(label).c_str());
 			commandList_->SetPipelineState(meshPipelineState_[i][j].Get());
-
-			// メッシュごとのSRVを設定
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(5, world_->GetMeshStructuredBufferHandle(MeshStructuredBufferType::kWorldTransform, static_cast<MeshType>(i), static_cast<BlendMode>(j)));
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(6, world_->GetMeshStructuredBufferHandle(MeshStructuredBufferType::kMaterial, static_cast<MeshType>(i), static_cast<BlendMode>(j)));
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetMeshStructuredBufferHandle(MeshStructuredBufferType::kTextureData, static_cast<MeshType>(i), static_cast<BlendMode>(j)));
 
 			// メッシュの描画
 			uint32_t queueIndex = i * static_cast<uint32_t>(BlendMode::kCountOfBlendMode) + j;
@@ -1126,7 +1221,7 @@ void Renderer::DrawParticle(uint32_t cameraBufferLocationIndex) {
 		commandList_->SetGraphicsRootSignature(static_cast<MeshType>(i) == MeshType::kRing ? ringParticleRootSignature_ : particleRootSignature_);
 
 		// パーティクルのビューごとのデータのCBVを設定
-		world_->GetConstantBuffer(ConstantBufferType::kParticlePerView)->BindToGraphics(0, cameraBufferLocationIndex);
+		world_->GetConstantBuffer(ConstantBufferType::kParticlePerView)->BindToGraphics(0, cameraBufferLocationIndex - 1);
 
 		// パーティクルのテクスチャのSRVを設定
 		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, 0);
@@ -1143,7 +1238,7 @@ void Renderer::DrawParticle(uint32_t cameraBufferLocationIndex) {
 				if (*meshType == static_cast<MeshType>(i) && *blendMode == static_cast<BlendMode>(j)) {
 					commandList_->SetGraphicsRoot32BitConstant(1, particleGroup->textureHandle, 0);
 					gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, particleGroup->srvHandle);
-					meshManager_->Draw(particleGroup->meshName);
+					meshManager_->Draw(particleGroup->meshName, ParticleManager::kMaxParticle);
 				}
 				}, exclude<Disabled>());
 			PIXEndEvent(commandList_);
@@ -1164,7 +1259,7 @@ void Renderer::DrawSprite() {
 		// スプライトの描画
 		registry_->ForEach<BlendMode, Sprite>([&](uint32_t entity, BlendMode *blendMode, Sprite *sprite) {
 			if (*blendMode == static_cast<BlendMode>(i)) {
-				meshManager_->Draw(sprite->meshName);
+				meshManager_->Draw(sprite->meshName, 1);
 			}
 			}, exclude<Disabled>());
 	}
@@ -1187,7 +1282,7 @@ void Renderer::DrawSkybox(uint32_t cameraBufferLocationIndex) {
 	registry_->ForEach<Skybox>([&](uint32_t entity, Skybox *skybox) {
 		world_->GetConstantBuffer(ConstantBufferType::kSkybox)->BindToGraphics(0, 0);
 		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, skybox->textureHandle);
-		meshManager_->Draw(skybox->meshName);
+		meshManager_->Draw(skybox->meshName, 1);
 		}, exclude<Disabled>());
 }
 

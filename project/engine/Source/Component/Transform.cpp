@@ -8,7 +8,7 @@
 #endif // USE_IMGUI
 
 void TransformSystem::Update() {
-	registry_->ForEach<Relationship>([&](uint32_t entity, Relationship *relationship) {
+	registry_->ForEach<Relationship, DirtyTransform>([&](uint32_t entity, Relationship *relationship, DirtyTransform *dirtyTransform) {
 		if (relationship->parent == std::numeric_limits<uint32_t>::max()) {
 			UpdateWorldMatrix(entity, MakeIdentity4x4());
 		}

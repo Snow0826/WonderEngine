@@ -2,6 +2,7 @@
 #include "TreeGenerator.h"
 #include "EntityComponentSystem.h"
 #include "World.h"
+#include "InstanceAllocator.h"
 #include "Primitive.h"
 #include "Transform.h"
 #include "Material.h"
@@ -11,9 +12,9 @@ namespace {
 	uint32_t treeCounter = 0;	// 木のカウンター
 }
 
-uint32_t TreeGenerator::Generate(const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount, float minRadius, float gamma, float influenceRadius, float killRadius, float branchLength) {
+uint32_t TreeGenerator::Generate(const Vector3 &rootPosition, const Vector3 &rootDirection, const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount, float minRadius, float gamma, float influenceRadius, float killRadius, float branchLength) {
 	GenerateLeaves(crownCenter, crownRadius, leafCount);
-	GenerateRootBranch(influenceRadius, branchLength);
+	GenerateRootBranch(rootPosition, rootDirection);
 	uint32_t noProgressCount = 0;
 	size_t previousLeafCount = leaves_.size();
 	while (!leaves_.empty()) {
@@ -72,11 +73,11 @@ void TreeGenerator::GenerateLeaves(const Vector3 &crownCenter, const Vector3 &cr
 	}
 }
 
-void TreeGenerator::GenerateRootBranch(float influenceRadius, float branchLength) {
+void TreeGenerator::GenerateRootBranch(const Vector3 &rootPosition, const Vector3 &rootDirection) {
 	branches_.clear();
 	auto root = std::make_unique<Branch>();
-	root->position = { 0.0f, 0.0f, 0.0f };
-	root->direction = { 0.0f, 1.0f, 0.0f };
+	root->position = rootPosition;
+	root->direction = rootDirection;
 	branches_.emplace_back(std::move(root));
 }
 
@@ -184,6 +185,9 @@ uint32_t TreeGenerator::CreateBranchRecursive(Branch *branch, uint32_t parentEnt
 	registry_->AddComponent(currentEntity, DirtyTransform{});
 	registry_->AddComponent(currentEntity, DirtyMaterial{});
 	registry_->AddComponent(currentEntity, DirtyTextureData{});
+	registry_->AddComponent(currentEntity, DirtyMeshLOD{});
+	registry_->AddComponent(currentEntity, DirtyCullingData{});
+	registry_->AddComponent(currentEntity, instanceAllocator_->Allocate(currentEntity));
 	registry_->AddComponent(currentEntity, primitiveGenerator_->CreateCylinder("Branch" + std::to_string(treeCounter), 32, branch->radius, bottomRadius, branchLength, true, "Bark001_1K-JPG_Color.jpg"));
 	registry_->AddComponent(currentEntity, UseCulling{});
 

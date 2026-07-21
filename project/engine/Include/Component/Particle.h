@@ -19,6 +19,7 @@ struct Particle final {
 /// @brief パーティクルグループ
 struct ParticleGroup final {
 	uint32_t textureHandle = 0;		// テクスチャハンドル
+	uint32_t resourceHandle = 0;	// リソースハンドル
 	uint32_t srvHandle = 0;			// SRVハンドル
 	uint32_t uavHandle = 0;			// UAVハンドル
 	std::string meshName;			// メッシュ名
@@ -52,6 +53,8 @@ class Resource;
 /// @brief パーティクルマネージャー
 class ParticleManager final {
 public:
+	static inline constexpr uint32_t kMaxParticle = 1024;	// 最大パーティクル数
+
 	/// @brief コンストラクタ
 	/// @param device デバイス
 	/// @param textureManager テクスチャマネージャー
@@ -66,13 +69,17 @@ public:
 	/// @param name パーティクルグループ名
 	/// @param meshType メッシュタイプ
 	/// @param textureFileName テクスチャファイル名
-	/// @param count パーティクル数
-	void CreateParticleGroup(const std::string &name, MeshType meshType, const std::string &textureFileName, uint32_t count);
+	void CreateParticleGroup(const std::string &name, MeshType meshType, const std::string &textureFileName);
 
 	/// @brief パーティクルグループの検索
 	/// @param name パーティクルグループ名
 	/// @return パーティクルグループ
 	ParticleGroup FindParticleGroup(const std::string &name);
+
+	/// @brief パーティクルリソースの取得
+	/// @param handle パーティクルリソースハンドル
+	/// @return パーティクルリソース
+	Resource *GetParticleResource(uint32_t handle);
 
 	/// @brief 球状エミッターの更新
 	/// @param deltaTime デルタタイム
@@ -83,14 +90,13 @@ public:
 	void SetRegistry(Registry *registry) { registry_ = registry; }
 
 private:
-	static inline constexpr uint32_t kMaxParticle = 1024;							// 最大パーティクル数
-	Device *device_ = nullptr;														// デバイス
-	TextureManager *textureManager_ = nullptr;										// テクスチャマネージャー
-	MeshManager *meshManager_ = nullptr;											// メッシュマネージャー
-	Registry *registry_ = nullptr;													// レジストリ
-	std::ofstream *logStream_ = nullptr;											// ログ出力用のストリーム
-	std::unordered_map<std::string, std::unique_ptr<Resource>> particleResources_;	// パーティクルリソースマップ
-	std::unordered_map<std::string, ParticleGroup> particleGroups_;					// パーティクルグループマップ
+	Device *device_ = nullptr;										// デバイス
+	TextureManager *textureManager_ = nullptr;						// テクスチャマネージャー
+	MeshManager *meshManager_ = nullptr;							// メッシュマネージャー
+	Registry *registry_ = nullptr;									// レジストリ
+	std::ofstream *logStream_ = nullptr;							// ログ出力用のストリーム
+	std::vector<std::unique_ptr<Resource>> particleResources_;		// パーティクルリソースリスト
+	std::unordered_map<std::string, ParticleGroup> particleGroups_;	// パーティクルグループマップ
 };
 
 /// @brief パーティクルグループインスペクター

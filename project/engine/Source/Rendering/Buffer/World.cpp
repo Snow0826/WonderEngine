@@ -21,6 +21,7 @@
 #include "SpotLight.h"
 #include "FrustumRenderer.h"
 #include "AABBRenderer.h"
+#include "TreeGenerator.h"
 #include "Footprint.h"
 #include "FootprintMap.h"
 #include "Logger.h"
@@ -134,15 +135,15 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	srvBufferDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;							// 特になし
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 
-	// WorldTransform用StructuredBufferの作成
-	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kWorldTransform);
-	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(TransformationMatrix) * kMaxObject);
-	structuredBuffers_[structuredBufferIndex]->SetName("WorldTransform");
-	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&worldTransformData_));
+	// InstanceData用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kInstanceData);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(InstanceData) * kMaxObject);
+	structuredBuffers_[structuredBufferIndex]->SetName("InstanceData");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&instanceData_));
 	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
-	// WorldTransform用SRVの作成
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(TransformationMatrix);			// 構造体のサイズ
+	// InstanceData用SRVの作成
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(InstanceData);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 
 	// Material用StructuredBufferの作成
@@ -685,7 +686,7 @@ void World::TransferCamera() {
 }
 
 void World::TransferWorldTransform() {
-	registry_->ForEach<InstanceData, DirtyTransform>([&](uint32_t entity, InstanceData *instanceData, DirtyTransform *dirtyTransform) {
+	registry_->ForEach<InstanceHandle, DirtyTransform>([&](uint32_t entity, InstanceHandle *instanceHandle, DirtyTransform *dirtyTransform) {
 		TransformationMatrix transformationMatrix;
 		Model *model = registry_->GetComponent<Model>(entity);
 		if (model && !registry_->HasComponent<SkinMesh>(entity)) {
@@ -699,34 +700,39 @@ void World::TransferWorldTransform() {
 			transformationMatrix.worldMatrix *= quaternionTransform->worldMatrix;
 		}
 		transformationMatrix.worldInverseTransposeMatrix = transformationMatrix.worldMatrix.inverse().transpose();
-		worldTransformData_[instanceData->instanceIndex] = transformationMatrix;
+		instanceData_[instanceHandle->value].transformationMatrix = transformationMatrix;
+		if (auto branchData = registry_->GetComponent<BranchData>(entity)) {
+			instanceData_[instanceHandle->value].bottomRadius = branchData->bottomRadius;
+			instanceData_[instanceHandle->value].topRadius = branchData->topRadius;
+			instanceData_[instanceHandle->value].inverseBranchLength = branchData->inverseLength;
+		}
 		registry_->RemoveComponent<DirtyTransform>(entity);
 		}, exclude<Disabled>());
 }
 
 void World::TransferMaterial() {
-	registry_->ForEach<Material, InstanceData, DirtyMaterial>([&](uint32_t entity, Material *material, InstanceData *instanceData, DirtyMaterial *dirtyMaterial) {
-		materialData_[instanceData->instanceIndex] = *material;
+	registry_->ForEach<Material, InstanceHandle, DirtyMaterial>([&](uint32_t entity, Material *material, InstanceHandle *instanceHandle, DirtyMaterial *dirtyMaterial) {
+		materialData_[instanceHandle->value] = *material;
 		registry_->RemoveComponent<DirtyMaterial>(entity);
 		}, exclude<Disabled>());
 }
 
 void World::TransferTextureData() {
-	registry_->ForEach<InstanceData, DirtyTextureData>([&](uint32_t entity, InstanceData *instanceData, DirtyTextureData *dirtyTextureData) {
+	registry_->ForEach<InstanceHandle, DirtyTextureData>([&](uint32_t entity, InstanceHandle *instanceHandle, DirtyTextureData *dirtyTextureData) {
 		if (auto model = registry_->GetComponent<Model>(entity)) {
 			for (const MeshData &mesh : model->modelData.meshes) {
 				TextureData textureData{
 					.textureHandle = model->textureHandle[mesh.materialIndex],
 					.enableMipMaps = model->enableMipMaps[mesh.materialIndex]
 				};
-				textureData_[instanceData->instanceIndex] = textureData;
+				textureData_[instanceHandle->value] = textureData;
 			}
 		} else if (auto primitive = registry_->GetComponent<Primitive>(entity)) {
 			TextureData textureData{
 				.textureHandle = primitive->textureHandle,
 				.enableMipMaps = primitive->enableMipMaps
 			};
-			textureData_[instanceData->instanceIndex] = textureData;
+			textureData_[instanceHandle->value] = textureData;
 		}
 		registry_->RemoveComponent<DirtyTextureData>(entity);
 		}, exclude<Disabled>());
@@ -855,7 +861,7 @@ void World::TransferMeshLODData() {
 void World::TransferCullingData() {
 	uint32_t cullingObjectDataOffset = 0;
 	uint32_t cullingMeshDataOffset = 0;
-	registry_->ForEach<Model, MeshType, BlendMode, InstanceData, DirtyCullingData>([&](uint32_t entity, Model *model, MeshType *meshType, BlendMode *blendMode, InstanceData *instanceData, DirtyCullingData *dirtyCullingData) {
+	registry_->ForEach<Model, MeshType, BlendMode, InstanceHandle, DirtyCullingData>([&](uint32_t entity, Model *model, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyCullingData *dirtyCullingData) {
 		if (auto eulerTransform = registry_->GetComponent<EulerTransform>(entity)) {
 			cullingObjectData_[cullingObjectDataOffset].worldMatrix = eulerTransform->worldMatrix;
 		} else if (auto quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity)) {
@@ -873,14 +879,14 @@ void World::TransferCullingData() {
 			cullingMeshData_[cullingMeshDataOffset].objectIndex = cullingObjectDataOffset;
 			cullingMeshData_[cullingMeshDataOffset].lodCount = static_cast<uint32_t>(mesh.lods.size());
 			cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
-			instanceIndexData_[cullingMeshDataOffset] = instanceData->instanceIndex;
+			instanceIndexData_[cullingMeshDataOffset] = instanceHandle->value;
 			cullingMeshDataOffset++;
 		}
 		cullingObjectDataOffset++;
 		registry_->RemoveComponent<DirtyCullingData>(entity);
 		}, exclude<Disabled>());
 
-	registry_->ForEach<Primitive, MeshType, BlendMode, InstanceData, DirtyCullingData>([&](uint32_t entity, Primitive *primitive, MeshType *meshType, BlendMode *blendMode, InstanceData *instanceData, DirtyCullingData *dirtyCullingData) {
+	registry_->ForEach<Primitive, MeshType, BlendMode, InstanceHandle, DirtyCullingData>([&](uint32_t entity, Primitive *primitive, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyCullingData *dirtyCullingData) {
 		if (auto eulerTransform = registry_->GetComponent<EulerTransform>(entity)) {
 			cullingObjectData_[cullingObjectDataOffset].worldMatrix = eulerTransform->worldMatrix;
 		} else if (auto quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity)) {
@@ -898,7 +904,7 @@ void World::TransferCullingData() {
 		cullingMeshData_[cullingMeshDataOffset].objectIndex = cullingObjectDataOffset;
 		cullingMeshData_[cullingMeshDataOffset].lodCount = 1;
 		cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
-		instanceIndexData_[cullingMeshDataOffset] = instanceData->instanceIndex;
+		instanceIndexData_[cullingMeshDataOffset] = instanceHandle->value;
 		cullingMeshDataOffset++;
 		cullingObjectDataOffset++;
 		registry_->RemoveComponent<DirtyCullingData>(entity);

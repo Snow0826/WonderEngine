@@ -23,7 +23,7 @@ namespace {
 	constexpr Range<Vector3> crownCenterRange{ { 0.0f, 5.0f, 0.0f }, { 5.0f, 10.0f, 5.0f } };
 	constexpr Range<Vector3> crownRadiusRange{ { 5.0f, 2.5f, 5.0f }, { 15.0f, 7.5f, 15.0f } };
 	constexpr Range<uint32_t> leafCountRange{ 1000, 5000 };
-	constexpr Range<float> minRadiusRange{ 0.004f, 0.008f };
+	constexpr Range<float> minRadiusRange{ 0.01f, 0.04f };
 	constexpr Range<float> gammaRange{ 1.8f, 2.3f };
 	constexpr Range<float> influenceRadiusRange{ 4.0f, 8.0f };
 	constexpr Range<float> killRadiusRange{ 1.0f, 3.0f };
@@ -33,7 +33,7 @@ namespace {
 	Vector3 crownCenter{ 0.0f, 5.0f, 0.0f };
 	Vector3 crownRadius{ 10.0f, 5.0f, 10.0f };
 	uint32_t leafCount = 5000;
-	float minRadius = 0.004f;
+	float minRadius = 0.01f;
 	float gamma = 2.0f;
 	float influenceRadius = std::numeric_limits<float>::max();
 	float killRadius = 1.6f;
@@ -58,17 +58,17 @@ void SampleScene::OnInitialize() {
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator);
 
 	// アニメーションするキューブの作成
-	AnimatedCube animatedCube{ registry_.get(), modelManager, instanceAllocator_.get() };
-	animatedCube.Create({ 0.0f, 0.0f, 20.0f });
+	//AnimatedCube animatedCube{ registry_.get(), modelManager, instanceAllocator_.get() };
+	//animatedCube.Create({ 0.0f, 0.0f, 20.0f });
 
 	// シンプルスキンの作成
-	SimpleSkin simpleSkin{ registry_.get(), modelManager, instanceAllocator_.get() };
-	simpleSkin.Create({ -3.0f, 0.0f, 5.0f });
+	//SimpleSkin simpleSkin{ registry_.get(), modelManager, instanceAllocator_.get() };
+	//simpleSkin.Create({ -3.0f, 0.0f, 5.0f });
 
 	// ヒューマンの作成
-	Human human{ registry_.get(), modelManager, instanceAllocator_.get() };
-	human.Create("walk.gltf", { 0.0f, 0.0f, 5.0f });
-	human.Create("sneakWalk.gltf", { 3.0f, 0.0f, 5.0f });
+	//Human human{ registry_.get(), modelManager, instanceAllocator_.get() };
+	//human.Create("walk.gltf", { 0.0f, 0.0f, 5.0f });
+	//human.Create("sneakWalk.gltf", { 3.0f, 0.0f, 5.0f });
 
 	// ツリーの作成
 	//PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };

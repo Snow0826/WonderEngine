@@ -260,6 +260,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> noisePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Noise.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(noisePSBlob);
 
+	// 枝のシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> branchVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Branch.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(branchVSBlob);
+
 	// スキニングのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> skinningCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Skinning.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(skinningCSBlob);
@@ -312,6 +316,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
@@ -325,11 +330,12 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
 					.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
-					.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
+					.SetVertexShader(branchVSBlob->GetBufferPointer(), branchVSBlob->GetBufferSize())			// 頂点シェーダー
 					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
 					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
 					.Create(device_->GetDevice(), object3dRootSignature_);
@@ -338,6 +344,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
@@ -361,6 +368,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
@@ -374,6 +382,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
@@ -387,6 +396,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
@@ -408,6 +418,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 			.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 			.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 			.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+			.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 			.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 			.SetBlendState(blendDescList[i])															// BlendState
 			.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
@@ -699,46 +710,29 @@ void Renderer::InitializeParticle() {
 		}, exclude<Disabled>());
 }
 
-void Renderer::EmitParticle() {
-	// DescriptorHeapを設定する
-	ID3D12DescriptorHeap *descriptorHeaps[] = { gpuCbvSrvUavDescriptorHeap_->GetDescriptorHeap() };
-	commandList_->SetDescriptorHeaps(1, descriptorHeaps);
-
-	commandList_->SetComputeRootSignature(emitParticleRootSignature_);
-	commandList_->SetPipelineState(emitParticlePipelineState_.Get());
-
-	world_->GetConstantBuffer(ConstantBufferType::kEmitterSphere)->BindToCompute(0, 0);
-	world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToCompute(1, 0);
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetFreeCounterHandle());
-
-	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, particleGroup->uavHandle);
-		commandList_->Dispatch(1, 1, 1);
-		particleManager_->GetParticleResource(particleGroup->resourceHandle)->UAVBarrier();
-		}, exclude<Disabled>());
-}
-
-void Renderer::UpdateParticle() {
-	commandList_->SetComputeRootSignature(updateParticleRootSignature_);
-	commandList_->SetPipelineState(updateParticlePipelineState_.Get());
-
-	world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToCompute(0, 0);
-
-	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, particleGroup->uavHandle);
-		commandList_->Dispatch(1, 1, 1);
-		}, exclude<Disabled>());
-}
-
 void Renderer::Render() {
+	// パーティクルの発生
+	EmitParticle();
+
+	// パーティクルの更新
+	UpdateParticle();
+
 	// スキニングの実行
 	Skinning();
 
-	// オクルージョンカリングの実行
+	// 深度ステンシルテクスチャのHiZテクスチャへのコピー
 	CopyDepthToHiZ();
+	
+	// HiZミップマップの生成
 	GenerateHiZMipMap();
+	
+	// メッシュコマンドステートのクリア
 	ClearMeshCommandStates();
+	
+	// オクルージョンカリングの実行
 	OcclusionCulling();
+	
+	// インスタンス数の反映
 	SetInstanceCount();
 
 	// フットプリントの実行
@@ -807,6 +801,37 @@ void Renderer::SetParticleManager(ParticleManager *particleManager) {
 void Renderer::SetFootprintManager(FootprintManager *footprintManager) {
 	assert(footprintManager);
 	footprintManager_ = footprintManager;
+}
+
+void Renderer::EmitParticle() {
+	// DescriptorHeapを設定する
+	ID3D12DescriptorHeap *descriptorHeaps[] = { gpuCbvSrvUavDescriptorHeap_->GetDescriptorHeap() };
+	commandList_->SetDescriptorHeaps(1, descriptorHeaps);
+
+	commandList_->SetComputeRootSignature(emitParticleRootSignature_);
+	commandList_->SetPipelineState(emitParticlePipelineState_.Get());
+
+	world_->GetConstantBuffer(ConstantBufferType::kEmitterSphere)->BindToCompute(0, 0);
+	world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToCompute(1, 0);
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetFreeCounterHandle());
+
+	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, particleGroup->uavHandle);
+		commandList_->Dispatch(1, 1, 1);
+		particleManager_->GetParticleResource(particleGroup->resourceHandle)->UAVBarrier();
+		}, exclude<Disabled>());
+}
+
+void Renderer::UpdateParticle() {
+	commandList_->SetComputeRootSignature(updateParticleRootSignature_);
+	commandList_->SetPipelineState(updateParticlePipelineState_.Get());
+
+	world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToCompute(0, 0);
+
+	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, particleGroup->uavHandle);
+		commandList_->Dispatch(1, 1, 1);
+		}, exclude<Disabled>());
 }
 
 void Renderer::Skinning() {
@@ -1180,7 +1205,7 @@ void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
 		};
 		commandList_->SetGraphicsRoot32BitConstants(4, 2, &lightData, 0);
 		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(5, world_->GetStructuredBufferHandle(StructuredBufferType::kInstanceIndex));
-		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(6, world_->GetStructuredBufferHandle(StructuredBufferType::kWorldTransform));
+		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(6, world_->GetStructuredBufferHandle(StructuredBufferType::kInstanceData));
 		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(7, world_->GetStructuredBufferHandle(StructuredBufferType::kMaterial));
 		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(8, world_->GetStructuredBufferHandle(StructuredBufferType::kTextureData));
 		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(9, world_->GetStructuredBufferHandle(StructuredBufferType::kPointLight));

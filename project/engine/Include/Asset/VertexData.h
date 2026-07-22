@@ -6,9 +6,10 @@
 
 /// @brief 頂点データ
 struct VertexData final {
-	Vector4 position;	// 頂点座標
-	Vector2 texcoord;	// テクスチャ座標
-	Vector3 normal;		// 法線
+	Vector4 position;		// 頂点座標
+	Vector2 texcoord;		// テクスチャ座標
+	Vector3 normal;			// 法線
+	uint32_t section = 0;	// セクション番号
 
 	/// @brief 等価演算子
 	/// @param other 比較対象の頂点データ

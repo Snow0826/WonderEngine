@@ -5,30 +5,30 @@
 #include <imgui.h>
 #endif // USE_IMGUI
 
-InstanceData InstanceAllocator::Allocate(uint32_t entity) {
-	InstanceData instanceData{ .instanceIndex = static_cast<uint32_t>(entities_.size()) };
+InstanceHandle InstanceAllocator::Allocate(uint32_t entity) {
+	InstanceHandle instanceHandle{ .value = static_cast<uint32_t>(entities_.size()) };
 	entities_.emplace_back(entity);
-	return instanceData;
+	return instanceHandle;
 }
 
 void InstanceAllocator::Free(uint32_t entity) {
-    auto instanceData = registry_->GetComponent<InstanceData>(entity);
-    if (!instanceData) {
+    auto instanceHandle = registry_->GetComponent<InstanceHandle>(entity);
+    if (!instanceHandle) {
         return;
     }
 
-    uint32_t removeIndex = instanceData->instanceIndex;
+    uint32_t removeIndex = instanceHandle->value;
     uint32_t lastIndex = static_cast<uint32_t>(entities_.size() - 1);
     if (removeIndex != lastIndex) {
         uint32_t movedEntity = entities_[lastIndex];
         entities_[removeIndex] = movedEntity;
-        if (auto *movedInstanceData = registry_->GetComponent<InstanceData>(movedEntity)) {
-            movedInstanceData->instanceIndex = removeIndex;
+        if (auto *movedInstanceData = registry_->GetComponent<InstanceHandle>(movedEntity)) {
+            movedInstanceData->value = removeIndex;
         }
     }
 
     entities_.pop_back();
-    instanceData->instanceIndex = UINT32_MAX;
+    instanceHandle->value = UINT32_MAX;
 }
 
 void InstanceAllocator::Debug() const {

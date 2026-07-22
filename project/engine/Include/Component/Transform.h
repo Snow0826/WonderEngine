@@ -40,6 +40,14 @@ struct TransformationMatrix final {
 	Matrix4x4 worldInverseTransposeMatrix = MakeIdentity4x4();	// ワールド逆転置行列
 };
 
+/// @brief インスタンスデータ
+struct InstanceData final {
+	TransformationMatrix transformationMatrix;	// 変換行列データ
+	float bottomRadius = 0.0f;					// 下半径
+	float topRadius = 0.0f;						// 上半径
+	float inverseBranchLength = 0.0f;			// 枝の長さの逆数
+};
+
 class Registry;
 
 /// @brief 変換システム

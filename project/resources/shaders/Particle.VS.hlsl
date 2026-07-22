@@ -14,6 +14,7 @@ struct VertexShaderInput
     float4 position : POSITION0;
     float2 texcoord : TEXCOORD0;
     float3 normal : NORMAL0;
+    uint section : SECTION0; // 0 = side, 1 = top, 2 = bottom
 };
 
 VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID)

@@ -201,7 +201,7 @@ enum class ConstantBufferType {
 /// @brief 構造化バッファの種類
 enum class StructuredBufferType {
 	kInstanceIndex,					// インスタンスインデックス
-	kWorldTransform,				// ワールド変換
+	kInstanceData,					// インスタンスデータ
 	kMaterial,						// マテリアル
 	kTextureData,					// テクスチャデータ
 	kLine,							// ライン
@@ -240,7 +240,7 @@ namespace Rendering {
 }
 struct PointLight;
 struct SpotLight;
-struct TransformationMatrix;
+struct InstanceData;
 struct Material;
 
 /// @brief ワールド
@@ -480,7 +480,7 @@ private:
 	Int4 *colorData_ = nullptr;											// 色データ
 	MeshLOD *meshLODData_ = nullptr;									// メッシュLODデータ
 	uint32_t *instanceIndexData_ = nullptr;								// インスタンスインデックスデータ
-	TransformationMatrix *worldTransformData_ = nullptr;				// ワールド変換データ
+	InstanceData *instanceData_ = nullptr;								// インスタンスデータ
 	Material *materialData_ = nullptr;									// マテリアルデータ
 	TextureData *textureData_ = nullptr;								// テクスチャデータ
 	Rendering::Line *lineData_ = nullptr;								// ラインデータ

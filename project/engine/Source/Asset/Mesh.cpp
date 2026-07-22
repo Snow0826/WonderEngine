@@ -307,12 +307,14 @@ void MeshManager::CreateCylinder(const std::string &meshName, uint32_t divide, f
 		vertices.emplace_back(VertexData{
 			.position = { -sin * topRadius, height, cos * topRadius, 1.0f },
 			.texcoord = { u, 0.0f },
-			.normal = Vector3{ -sin, slope, cos }.normalized()
+			.normal = Vector3{ -sin, slope, cos }.normalized(),
+			.section = 0
 			});
 		vertices.emplace_back(VertexData{
 			.position = { -sin * bottomRadius, 0.0f, cos * bottomRadius, 1.0f },
 			.texcoord = { u, 1.0f },
-			.normal = Vector3{ -sin, slope, cos }.normalized()
+			.normal = Vector3{ -sin, slope, cos }.normalized(),
+			.section = 0
 			});
 	}
 
@@ -326,7 +328,8 @@ void MeshManager::CreateCylinder(const std::string &meshName, uint32_t divide, f
 		vertices.emplace_back(VertexData{
 			.position = { 0.0f, height, 0.0f, 1.0f },
 			.texcoord = { 0.5f, 0.5f },
-			.normal = { 0.0f, 1.0f, 0.0f }
+			.normal = { 0.0f, 1.0f, 0.0f },
+			.section = 1
 			});
 
 		topBaseIndex = static_cast<uint32_t>(vertices.size());
@@ -336,7 +339,8 @@ void MeshManager::CreateCylinder(const std::string &meshName, uint32_t divide, f
 			vertices.emplace_back(VertexData{
 				.position = { -sin * topRadius, height, cos * topRadius, 1.0f },
 				.texcoord = { -sin * 0.5f + 0.5f, -cos * 0.5f + 0.5f },
-				.normal = { 0.0f, 1.0f, 0.0f }
+				.normal = { 0.0f, 1.0f, 0.0f },
+				.section = 1
 				});
 		}
 
@@ -345,7 +349,8 @@ void MeshManager::CreateCylinder(const std::string &meshName, uint32_t divide, f
 		vertices.emplace_back(VertexData{
 			.position = { 0.0f, 0.0f, 0.0f, 1.0f },
 			.texcoord = { 0.5f, 0.5f },
-			.normal = { 0.0f, -1.0f, 0.0f }
+			.normal = { 0.0f, -1.0f, 0.0f },
+			.section = 2
 			});
 
 		bottomBaseIndex = static_cast<uint32_t>(vertices.size());
@@ -355,7 +360,8 @@ void MeshManager::CreateCylinder(const std::string &meshName, uint32_t divide, f
 			vertices.emplace_back(VertexData{
 				.position = { -sin * bottomRadius, 0.0f, cos * bottomRadius, 1.0f },
 				.texcoord = { -sin * 0.5f + 0.5f, cos * 0.5f + 0.5f },
-				.normal = { 0.0f, -1.0f, 0.0f }
+				.normal = { 0.0f, -1.0f, 0.0f },
+				.section = 2
 				});
 		}
 	}

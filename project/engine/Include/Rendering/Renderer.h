@@ -32,12 +32,6 @@ public:
 	/// @brief パーティクルの初期化
 	void InitializeParticle();
 
-	/// @brief パーティクルの発生
-	void EmitParticle();
-
-	/// @brief パーティクルの更新
-	void UpdateParticle();
-
 	/// @brief 描画
 	void Render();
 
@@ -157,6 +151,12 @@ private:
 	bool isSceneViewVisible_ = true;															// シーンビューの表示フラグ
 	bool isGameViewVisible_ = true;																// ゲームビューの表示フラグ
 	bool isGameFinished_ = false;																// ゲーム終了フラグ
+
+	/// @brief パーティクルの発生
+	void EmitParticle();
+
+	/// @brief パーティクルの更新
+	void UpdateParticle();
 
 	/// @brief スキニング
 	void Skinning();

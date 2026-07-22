@@ -20,6 +20,13 @@ struct Branch final {
 	uint32_t growCount = 0;			// 成長カウント
 };
 
+/// @brief 枝のデータ
+struct BranchData final {
+	float bottomRadius = 0.0f;	// 下半径
+	float topRadius = 0.0f;		// 上半径
+	float inverseLength = 0.0f;	// 長さの逆数
+};
+
 class Registry;
 class PrimitiveGenerator;
 class InstanceAllocator;

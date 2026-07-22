@@ -152,12 +152,12 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	// Object3d用ルートシグネチャの作成
 	object3dRootSignature_ = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:ViewProjection
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1)																	// 1:MeshOffset
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1)																	// 1:MeshData
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)																			// 2:CameraPosition
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)																			// 3:DirectionalLight
 		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 2, 2)																	// 4:LightData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 5:InstanceIndices
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 1)								// 6:WorldTransform
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 1)								// 6:InstanceData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)								// 7:Material
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)								// 8:TextureData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 2)								// 9:PointLight
@@ -173,12 +173,12 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	// RingObject3d用ルートシグネチャの作成
 	ringObject3dRootSignature_ = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)																			// 0:ViewProjection
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1)																	// 1:MeshOffset
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_VERTEX, 1, 1)																	// 1:MeshData
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)																			// 2:CameraPosition
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)																			// 3:DirectionalLight
 		.Add32BitConstant(D3D12_SHADER_VISIBILITY_PIXEL, 2, 2)																	// 4:LightData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 0)								// 5:InstanceIndices
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 1)								// 6:WorldTransform
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_VERTEX, 1)								// 6:InstanceData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)								// 7:Material
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)								// 8:TextureData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 2)								// 9:PointLight

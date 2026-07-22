@@ -1,9 +1,9 @@
 #pragma once
 #include <vector>
 
-/// @brief インスタンスデータ
-struct InstanceData final {
-	uint32_t instanceIndex = 0;	// インスタンスインデックス
+/// @brief インスタンスハンドル
+struct InstanceHandle final {
+	uint32_t value = 0;	// 値
 };
 
 class Registry;
@@ -15,12 +15,12 @@ public:
 	/// @param registry レジストリ
 	InstanceAllocator(Registry *registry) : registry_(registry) {}
 
-	/// @brief インスタンスデータを割り当て
+	/// @brief インスタンスハンドルを割り当て
 	/// @param entity エンティティ
-	/// @return 割り当てられたインスタンスデータ
-	InstanceData Allocate(uint32_t entity);
+	/// @return 割り当てられたインスタンスハンドル
+	InstanceHandle Allocate(uint32_t entity);
 
-	/// @brief インスタンスデータを解放
+	/// @brief インスタンスハンドルを解放
 	/// @param entity エンティティ
 	void Free(uint32_t entity);
 

@@ -335,12 +335,6 @@ void BaseScene::Update(float deltaTime) {
 	// ワールドの更新
 	world->Update(deltaTime);
 
-	// パーティクルの発生
-	renderer->EmitParticle();
-
-	// パーティクルの更新
-	renderer->UpdateParticle();
-
 	// デバッグレンダラーのフレーム終了
 	debugRenderer_->EndFrame();
 }

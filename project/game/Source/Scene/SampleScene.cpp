@@ -95,7 +95,6 @@ void SampleScene::OnUpdate() {
 		}
 		ImGui::TreePop();
 	}
-#endif // USE_IMGUI
 
 	// アニメーションするキューブの作成
 	if (ImGui::TreeNode("AnimatedCube")) {
@@ -140,6 +139,7 @@ void SampleScene::OnUpdate() {
 		}
 		ImGui::TreePop();
 	}
+#endif // USE_IMGUI
 
 	// メインカメラの更新
 	if (!isDebugCameraActive_) {

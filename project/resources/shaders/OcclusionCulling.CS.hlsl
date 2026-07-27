@@ -1,8 +1,9 @@
 #include "IndirectCommand.hlsli"
+#include "AABB.hlsli"
 
 static const uint kMaxMeshType = 5; // Number of mesh types (Model, Plane, Box, Ring, Cylinder)
 static const uint kMaxBlendMode = 6; // Number of blend modes (None, Normal, Additive, Subtractive, Multiplicative, Screen)
-static const uint kCreatingCommandIndex = (uint) -2;
+static const uint kCreatingCommandIndex = (uint) -2; // Special value indicating that a command is being created
 
 struct Object
 {
@@ -11,32 +12,25 @@ struct Object
     uint blendMode; // Blend mode for the object (0: None, 1: Normal, 2: Additive, 3: Subtractive, 4: Multiplicative, 5: Screen)
 };
 
-struct AABB
-{
-    float4 min; // Minimum corner of the bounding box
-    float4 max; // Maximum corner of the bounding box
-};
-
 struct Mesh
 {
-    AABB box;
-    uint objectHandle;
-    uint lodOffset;
-    uint lodCount;
-    uint useCulling;
+    uint objectHandle; // Index of the object this mesh belongs to
+    uint lodOffset; // Offset into the meshLODs buffer for this mesh's LODs
+    uint lodCount; // Number of LODs for this mesh
+    uint useCulling; // Flag indicating whether to use culling for this mesh (0: no culling, 1: use culling)
 };
 
 struct UVAABB
 {
-    float2 min;
-    float2 max;
-    float minZ;
+    float2 min; // Minimum corner of the bounding box in UV space
+    float2 max; // Maximum corner of the bounding box in UV space
+    float minZ; // Minimum Z value in NDC space for the bounding box
 };
 
 struct MeshLOD
 {
-    IndirectCommand command;
-    float error;
+    IndirectCommand command; // Indirect command for this LOD
+    float error; // Error metric for this LOD (used for LOD selection)
 };
 
 cbuffer Frustum : register(b0)
@@ -65,11 +59,14 @@ cbuffer Constants : register(b3)
 StructuredBuffer<Object> objects : register(t0); // SRV: Object data
 StructuredBuffer<Mesh> meshes : register(t1); // SRV: Meshes
 StructuredBuffer<MeshLOD> meshLODs : register(t2); // SRV: Mesh LODs
-Texture2D<float> gHiZTexture : register(t3);
-SamplerState gSampler : register(s0);
-RWStructuredBuffer<IndirectCommand> commands : register(u0); // UAV: Processed Indirect Commands
-RWStructuredBuffer<MeshCommandState> meshCommandStates : register(u1); // UAV: Mesh Command States
-RWByteAddressBuffer commandCounters : register(u2); // UAV: Command Counters for Processed Indirect Commands
+StructuredBuffer<uint> instanceIndices : register(t3); // SRV: Instance Indices
+StructuredBuffer<AABB> boxes : register(t4); // SRV: boxes
+Texture2D<float> gHiZTexture : register(t5); // SRV: Hi-Z texture for occlusion culling
+SamplerState gSampler : register(s0); // Sampler for Hi-Z texture
+RWStructuredBuffer<MeshCommandState> meshCommandStates : register(u0); // UAV: Mesh Command States
+RWStructuredBuffer<MeshLODState> meshLODStates : register(u1); // UAV: Mesh LOD States
+RWStructuredBuffer<IndirectCommand> commands : register(u2); // UAV: Processed Indirect Commands
+RWByteAddressBuffer commandCounters : register(u3); // UAV: Command Counters for Processed Indirect Commands
 
 UVAABB GetBoxInUVSpace(AABB box);
 
@@ -85,31 +82,35 @@ void main(uint3 DTid : SV_DispatchThreadID)
         return; // Out of bounds
     }
     
+    meshLODStates[DTid.x].meshLODIndex = 0; // Initialize mesh LOD index to 0
+    meshLODStates[DTid.x].visible = 0; // Initialize visibility to false
+    meshLODStates[DTid.x].instanceIndex = 0; // Initialize instance index to 0
     Mesh mesh = meshes[DTid.x]; // Get culling data for this thread
+    AABB box = boxes[DTid.x]; // Get bounding box for this mesh
     Object object = objects[mesh.objectHandle]; // Get object data for this mesh
-    float3 center = (mesh.box.min.xyz + mesh.box.max.xyz) * 0.5f;
-    float3 extent = (mesh.box.max.xyz - mesh.box.min.xyz) * 0.5f;
+    float3 center = (box.min.xyz + box.max.xyz) * 0.5f;
+    float3 extent = (box.max.xyz - box.min.xyz) * 0.5f;
     center = mul(float4(center, 1.0f), object.world).xyz; // Transform center to world space
     extent = mul(extent, abs((float3x3) object.world)); // Transform extent to world space (ignore translation)
-    AABB box;
-    box.min.xyz = center - extent;
-    box.min.w = 1.0f; // Set w to 1 for homogeneous coordinates
-    box.max.xyz = center + extent;
-    box.max.w = 1.0f; // Set w to 1 for homogeneous coordinates
+    AABB worldAABB;
+    worldAABB.min.xyz = center - extent;
+    worldAABB.min.w = 1.0f; // Set w to 1 for homogeneous coordinates
+    worldAABB.max.xyz = center + extent;
+    worldAABB.max.w = 1.0f; // Set w to 1 for homogeneous coordinates
     uint selectedLOD = 0;
     if (mesh.useCulling)
     {
-        if (box.min.x > box.max.x || box.min.y > box.max.y || box.min.z > box.max.z)
+        if (worldAABB.min.x > worldAABB.max.x || worldAABB.min.y > worldAABB.max.y || worldAABB.min.z > worldAABB.max.z)
         {
             return; // Cull invalid box
         }
     
-        if (!isBoxInFrustum(box))
+        if (!isBoxInFrustum(worldAABB))
         {
             return; // Cull box if outside frustum
         }
         
-        if (!isOccludedInHiZ(box))
+        if (!isOccludedInHiZ(worldAABB))
         {
             return; // Cull box if behind HiZ depth
         }
@@ -129,20 +130,23 @@ void main(uint3 DTid : SV_DispatchThreadID)
         }
     }
     
-    uint stateIndex = mesh.lodOffset + selectedLOD;
-    IndirectCommand command = meshLODs[stateIndex].command;
+    uint meshLODIndex = mesh.lodOffset + selectedLOD;
+    meshLODStates[DTid.x].meshLODIndex = meshLODIndex; // Store selected LOD index
+    meshLODStates[DTid.x].visible = 1; // Mark mesh as visible
+    meshLODStates[DTid.x].instanceIndex = instanceIndices[DTid.x]; // Store instance index for this mesh
+    
     uint old;
-    InterlockedCompareExchange(meshCommandStates[stateIndex].commandIndex, kInvalidCommandIndex, kCreatingCommandIndex, old);
+    InterlockedCompareExchange(meshCommandStates[meshLODIndex].commandIndex, kInvalidCommandIndex, kCreatingCommandIndex, old);
     if (old == kInvalidCommandIndex)
     {
         uint queueIndex = object.meshType * kMaxBlendMode + object.blendMode;
         uint commandIndex;
         commandCounters.InterlockedAdd(queueIndex * 4, 1, commandIndex);
         uint queueOffset = queueOffsets[queueIndex / 4][queueIndex % 4];
-        commands[queueOffset + commandIndex] = command;
-        meshCommandStates[stateIndex].commandIndex = queueOffset + commandIndex;
+        commands[queueOffset + commandIndex] = meshLODs[meshLODIndex].command;
+        meshCommandStates[meshLODIndex].commandIndex = queueOffset + commandIndex;
     }
-    InterlockedAdd(meshCommandStates[stateIndex].instanceCount, 1);
+    InterlockedAdd(meshCommandStates[meshLODIndex].instanceCount, 1);
 }
 
 UVAABB GetBoxInUVSpace(AABB box)

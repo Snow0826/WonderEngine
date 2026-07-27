@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "Mesh.h"
+#include "Device.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 #include "Collision.h"
@@ -414,9 +415,12 @@ void MeshManager::CreateCylinder(const std::string &meshName, uint32_t divide, f
 }
 
 void MeshManager::Draw(const std::string &meshName, uint32_t instanceCount) const {
-	meshes_.at(meshName)->vertexBuffer->IASetVertexBuffers();	// VBVの設定
-	meshes_.at(meshName)->indexBuffer->IASetIndexBuffer();		// IBVの設定
-	meshes_.at(meshName)->indexBuffer->DrawIndexedInstanced(instanceCount);	// 描画
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferView = meshes_.at(meshName)->vertexBuffer->GetVertexBufferView();
+	D3D12_INDEX_BUFFER_VIEW indexBufferView = meshes_.at(meshName)->indexBuffer->GetIndexBufferView();
+	UINT indexCount = meshes_.at(meshName)->indexBuffer->GetIndices();
+	device_->GetCommandList()->IASetVertexBuffers(0, 1, &vertexBufferView);	// VBVの設定
+	device_->GetCommandList()->IASetIndexBuffer(&indexBufferView);	// IBVの設定
+	device_->GetCommandList()->DrawIndexedInstanced(indexCount, instanceCount, 0, 0, 0);	// 描画
 }
 
 VertexData *MeshManager::GetVertexData(const std::string &meshName) const {

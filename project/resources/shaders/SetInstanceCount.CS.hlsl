@@ -20,6 +20,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     MeshCommandState state = meshCommandStates[meshId];
     if (state.commandIndex != kInvalidCommandIndex)
     {
+        commands[state.commandIndex].meshOffset = state.startInstanceLocation;
         commands[state.commandIndex].drawIndexedArguments.InstanceCount = state.instanceCount;
     }
 }

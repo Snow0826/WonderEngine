@@ -18,4 +18,6 @@ void main(uint3 DTid : SV_DispatchThreadID)
     
     meshCommandStates[meshId].commandIndex = kInvalidCommandIndex;
     meshCommandStates[meshId].instanceCount = 0;
+    meshCommandStates[meshId].currentOffset = 0;
+    meshCommandStates[meshId].startInstanceLocation = 0;
 }

@@ -29,8 +29,9 @@ void FootprintManager::RemoveFootprint(uint32_t entity) {
 void FootprintManager::RemoveOnceFootprint() {
 	registry_->ForEach<OnceFootprint>([this](uint32_t entity, OnceFootprint *onceFootprint) {
 		RemoveFootprint(entity);
-		registry_->RemoveComponent<OnceFootprint>(entity);
 		});
+
+	registry_->ClearComponent<OnceFootprint>();
 }
 
 void FootprintManager::Debug() const {

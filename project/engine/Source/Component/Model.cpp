@@ -51,9 +51,6 @@ Model ModelManager::FindModel(const std::string &fileName) {
 		for (MeshData &mesh : model.modelData.meshes) {
 			for (const MeshLODData &lod : mesh.lods) {
 				meshManager_->CreateMesh(lod.meshName, lod);
-				mesh.aabb = meshManager_->CreateLocalAABB(lod.meshName);
-				mesh.obb = meshManager_->CreateLocalOBB(lod.meshName);
-				mesh.sphere = meshManager_->CreateLocalSphere(lod.meshName);
 			}
 		}
 	}

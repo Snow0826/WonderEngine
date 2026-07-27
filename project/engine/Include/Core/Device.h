@@ -166,6 +166,14 @@ public:
 	/// @return パーティクル更新用ルートシグネチャ
 	ID3D12RootSignature *GetUpdateParticleRootSignature() const { return updateParticleRootSignature_.Get(); }
 
+	/// @brief 円柱のAABB生成用ルートシグネチャを取得
+	/// @return 円柱のAABB生成用ルートシグネチャ
+	ID3D12RootSignature *GetCreateCylinderAABBRootSignature() const { return createCylinderAABBRootSignature_.Get(); }
+
+	/// @brief モデルのAABB生成用ルートシグネチャを取得
+	/// @return モデルのAABB生成用ルートシグネチャ
+	ID3D12RootSignature *GetCreateModelAABBRootSignature() const { return createModelAABBRootSignature_.Get(); }
+
 	/// @brief 深度ステンシルテクスチャコピー用ルートシグネチャを取得
 	/// @return 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *GetDepthStencilCopyRootSignature() const { return depthStencilCopyRootSignature_.Get(); }
@@ -182,9 +190,17 @@ public:
 	/// @return メッシュコマンドステートのクリア用ルートシグネチャ
 	ID3D12RootSignature *GetClearMeshCommandStatesRootSignature() const { return clearMeshCommandStatesRootSignature_.Get(); }
 
+	/// @brief 累積和計算用ルートシグネチャを取得
+	/// @return 累積和計算用ルートシグネチャ
+	ID3D12RootSignature *GetPrefixSumRootSignature() const { return prefixSumRootSignature_.Get(); }
+
 	/// @brief インスタンス数の反映用ルートシグネチャを取得
 	/// @return インスタンス数の反映用ルートシグネチャ
 	ID3D12RootSignature *GetSetInstanceCountRootSignature() const { return setInstanceCountRootSignature_.Get(); }
+
+	/// @brief インスタンスインデックスの反映用ルートシグネチャを取得
+	/// @return インスタンスインデックスの反映用ルートシグネチャ
+	ID3D12RootSignature *GetSetInstanceIndexRootSignature() const { return setInstanceIndexRootSignature_.Get(); }
 
 	/// @brief フットプリント用ルートシグネチャを取得
 	/// @return フットプリント用ルートシグネチャ
@@ -238,11 +254,15 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> initializeParticleRootSignature_ = nullptr;		// パーティクル初期化用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> emitParticleRootSignature_ = nullptr;			// パーティクル発生用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> updateParticleRootSignature_ = nullptr;			// パーティクル更新用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> createCylinderAABBRootSignature_ = nullptr;		// 円柱のAABB生成用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> createModelAABBRootSignature_ = nullptr;		// モデルのAABB生成用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthStencilCopyRootSignature_ = nullptr;		// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> generateHiZMipMapRootSignature_ = nullptr;		// HiZミップマップ生成用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> clearMeshCommandStatesRootSignature_ = nullptr;	// メッシュコマンドステートのクリア用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> occlusionCullingRootSignature_ = nullptr;		// オクルージョンカリング用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> prefixSumRootSignature_ = nullptr;				// 累積和計算用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> setInstanceCountRootSignature_ = nullptr;		// インスタンス数の反映用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> setInstanceIndexRootSignature_ = nullptr;		// インスタンスインデックスの反映用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> footprintRootSignature_ = nullptr;				// フットプリント用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> footprintMapRootSignature_ = nullptr;			// フットプリントマップ用ルートシグネチャ
 	D3D12_VIEWPORT viewport_{};																	// ビューポート

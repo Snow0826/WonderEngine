@@ -9,6 +9,7 @@ struct Vertex
     float4 position;
     float2 texcoord;
     float3 normal;
+    uint section;
 };
 
 struct VertexInfluence
@@ -42,6 +43,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     skinned.position = float4(0, 0, 0, 0);
     skinned.texcoord = input.texcoord;
     skinned.normal = float3(0, 0, 0);
+    skinned.section = input.section;
     for (int i = 0; i < 4; ++i)
     {
         int index = influence.index[i];

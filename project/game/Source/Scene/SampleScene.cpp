@@ -38,6 +38,10 @@ namespace {
 	float influenceRadius = std::numeric_limits<float>::max();
 	float killRadius = 1.6f;
 	float branchLength = 0.3f;
+	Vector3 animatedCubePosition{ 0.0f, 0.0f, 20.0f };
+	Vector3 simpleSkinPosition{ -3.0f, 0.0f, 5.0f };
+	Vector3 walkHumanPosition{ 0.0f, 0.0f, 5.0f };
+	Vector3 sneakWalkHumanPosition{ 3.0f, 0.0f, 5.0f };
 }
 
 SampleScene::SampleScene() = default;
@@ -56,41 +60,6 @@ void SampleScene::OnInitialize() {
 
 	// スカイボックスエンティティの作成
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator);
-
-	// アニメーションするキューブの作成
-	//AnimatedCube animatedCube{ registry_.get(), modelManager, instanceAllocator_.get() };
-	//animatedCube.Create({ 0.0f, 0.0f, 20.0f });
-
-	// シンプルスキンの作成
-	//SimpleSkin simpleSkin{ registry_.get(), modelManager, instanceAllocator_.get() };
-	//simpleSkin.Create({ -3.0f, 0.0f, 5.0f });
-
-	// ヒューマンの作成
-	//Human human{ registry_.get(), modelManager, instanceAllocator_.get() };
-	//human.Create("walk.gltf", { 0.0f, 0.0f, 5.0f });
-	//human.Create("sneakWalk.gltf", { 3.0f, 0.0f, 5.0f });
-
-	// ツリーの作成
-	//PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };
-	//TreeGenerator treeGenerator{ registry_.get(), &primitiveGenerator, instanceAllocator_.get() };
-	//for (size_t i = 0; i < treeCount; i++) {
-	//	Vector3 rootPositionRandom = Random::generate(rootPositionRange.min, rootPositionRange.max);
-	//	Vector3 crownCenterRandom = rootPositionRandom + crownCenter;
-	//	Vector3 crownRadiusRandom = Random::generate(crownRadiusRange.min, crownRadiusRange.max);
-	//	uint32_t leafCountRandom = Random::generate(leafCountRange.min, leafCountRange.max);
-	//	float minRadiusRandom = Random::generate(minRadiusRange.min, minRadiusRange.max);
-	//	float gammaRandom = Random::generate(gammaRange.min, gammaRange.max);
-	//	float influenceRadiusRandom = Random::generate(influenceRadiusRange.min, influenceRadiusRange.max);
-	//	float killRadiusRandom = Random::generate(killRadiusRange.min, killRadiusRange.max);
-	//	float branchLengthRandom = Random::generate(branchLengthRange.min, branchLengthRange.max);
-	//	uint32_t treeEntity = treeGenerator.Generate(rootPositionRandom, rootDirection, crownCenterRandom, crownRadiusRandom, leafCountRandom, minRadiusRandom, gammaRandom, influenceRadiusRandom, killRadiusRandom, branchLengthRandom);
-	//	treeEntities_.emplace_back(treeEntity);
-	//	Logger::Log(*logStream, "Tree generated " + std::to_string(i) + "\n");
-	//}
-
-	// パーティクルオブジェクトの作成
-	ParticleObject particleObject{ registry_.get(), particleManager };
-	particleObject.Create();
 
 	// メインカメラの作成
 	mainCamera_ = std::make_unique<DebugCamera>(registry_.get(), sceneManager_->GetInput());
@@ -127,6 +96,50 @@ void SampleScene::OnUpdate() {
 		ImGui::TreePop();
 	}
 #endif // USE_IMGUI
+
+	// アニメーションするキューブの作成
+	if (ImGui::TreeNode("AnimatedCube")) {
+		ImGui::DragFloat3("Position", &animatedCubePosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		if (ImGui::Button("Generate")) {
+			ModelManager *modelManager = sceneManager_->GetModelManager();
+			AnimatedCube animatedCube{ registry_.get(), modelManager, instanceAllocator_.get() };
+			animatedCube.Create(animatedCubePosition);
+		}
+		ImGui::TreePop();
+	}
+
+	// シンプルスキンの作成
+	if (ImGui::TreeNode("SimpleSkin")) {
+		ImGui::DragFloat3("Position", &simpleSkinPosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		if (ImGui::Button("Generate")) {
+			ModelManager *modelManager = sceneManager_->GetModelManager();
+			SimpleSkin simpleSkin{ registry_.get(), modelManager, instanceAllocator_.get() };
+			simpleSkin.Create(simpleSkinPosition);
+		}
+		ImGui::TreePop();
+	}
+
+	// 歩く人間の作成
+	if (ImGui::TreeNode("WalkHuman")) {
+		ImGui::DragFloat3("Position", &walkHumanPosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		if (ImGui::Button("Generate")) {
+			ModelManager *modelManager = sceneManager_->GetModelManager();
+			Human human{ registry_.get(), modelManager, instanceAllocator_.get() };
+			human.Create("walk.gltf", walkHumanPosition);
+		}
+		ImGui::TreePop();
+	}
+
+	// スニークで歩く人間の作成
+	if (ImGui::TreeNode("SneakWalkHuman")) {
+		ImGui::DragFloat3("Position", &sneakWalkHumanPosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+		if (ImGui::Button("Generate")) {
+			ModelManager *modelManager = sceneManager_->GetModelManager();
+			Human human{ registry_.get(), modelManager, instanceAllocator_.get() };
+			human.Create("sneakWalk.gltf", sneakWalkHumanPosition);
+		}
+		ImGui::TreePop();
+	}
 
 	// メインカメラの更新
 	if (!isDebugCameraActive_) {

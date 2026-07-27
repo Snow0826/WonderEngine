@@ -33,6 +33,9 @@ public:
 	/// @brief コンポーネント数の取得
 	/// @return コンポーネント数
 	virtual size_t GetSize() const = 0;
+
+	/// @brief コンポーネントをクリア
+	virtual void ClearComponent() = 0;
 };
 
 /// @brief コンポーネントプール
@@ -106,6 +109,13 @@ public:
 	/// @brief コンポーネント数の取得
 	/// @return コンポーネント数
 	size_t GetSize() const override { return dense_.size(); }
+
+	/// @brief コンポーネントをクリア
+	void ClearComponent() override {
+		dense_.clear();
+		entities_.clear();
+		std::fill(sparse_.begin(), sparse_.end(), kInvalid);
+	}
 
 private:
 	static inline constexpr uint32_t kInvalid = UINT32_MAX;	// 無効なインデックス値
@@ -254,6 +264,15 @@ public:
 		return pools_[typeId]->GetSize();
 	}
 
+	/// @brief 指定したコンポーネントをクリア
+	/// @tparam T コンポーネントの型
+	template<typename T>
+	void ClearComponent() {
+		size_t typeId = GetTypeId<T>();
+		if (typeId >= pools_.size() || !pools_[typeId]) return;
+		pools_[typeId]->ClearComponent();
+	}
+
 	/// @brief エンティティの数を取得
 	/// @return エンティティの数
 	uint32_t GetEntityCount() const {
@@ -298,6 +317,17 @@ public:
 
 			// 関数を実行
 			func(entity, GetComponent<Require>(entity)...);
+		}
+	}
+
+	/// @brief 指定したコンポーネントを持つ全てのエンティティに対して新しいコンポーネントを追加する
+	/// @tparam Add 追加するコンポーネントの型
+	/// @tparam Require 必須コンポーネントの型
+	template <typename Add, typename Require>
+	void AddComponentToAll() {
+		const auto &entities = GetComponentEntities<Require>();
+		for (uint32_t entity : entities) {
+			AddComponent<Add>(entity);
 		}
 	}
 

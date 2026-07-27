@@ -33,6 +33,15 @@ struct MeshCommandState
 {
     uint commandIndex;
     uint instanceCount;
+    uint currentOffset;
+    uint startInstanceLocation;
+};
+
+struct MeshLODState
+{
+    uint meshLODIndex;
+    uint visible;
+    uint instanceIndex;
 };
 
 static const uint kInvalidCommandIndex = (uint) -1;

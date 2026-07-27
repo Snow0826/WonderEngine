@@ -19,9 +19,6 @@ struct MeshLODData final {
 struct MeshData final {
 	std::vector<MeshLODData> lods;	// LODデータリスト
 	uint32_t materialIndex = 0;		// マテリアルインデックス
-	Collision::Sphere sphere;		// 球
-	Collision::AABB aabb;			// AABB
-	Collision::OBB obb;				// OBB
 };
 
 class VertexBuffer;

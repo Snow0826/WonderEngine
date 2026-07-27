@@ -13,13 +13,6 @@ public:
 	/// @param indices インデックス数
 	void Initialize(Device *device, size_t indices);
 
-	/// @brief IBVの設定
-	void IASetIndexBuffer() const;
-
-	/// @brief 描画
-	/// @param instanceCount インスタンス数
-	void DrawIndexedInstanced(UINT instanceCount) const;
-
 	/// @brief インデックスバッファビューを取得する
 	/// @return インデックスバッファビュー
 	D3D12_INDEX_BUFFER_VIEW GetIndexBufferView() const { return indexBufferView_; }
@@ -33,9 +26,8 @@ public:
 	UINT GetIndices() const { return static_cast<UINT>(indices_); }
 
 private:
-	ID3D12GraphicsCommandList *commandList_ = nullptr;	// コマンドリスト
-	std::unique_ptr<Resource> resource_ = nullptr;		// リソース
-	D3D12_INDEX_BUFFER_VIEW indexBufferView_{};			// インデックスバッファビュー
-	uint32_t *indexData_ = nullptr;						// インデックスデータ
-	size_t indices_ = 0;								// インデックス数
+	std::unique_ptr<Resource> resource_ = nullptr;	// リソース
+	D3D12_INDEX_BUFFER_VIEW indexBufferView_{};		// インデックスバッファビュー
+	uint32_t *indexData_ = nullptr;					// インデックスデータ
+	size_t indices_ = 0;							// インデックス数
 };

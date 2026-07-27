@@ -8,9 +8,6 @@ struct Primitive final {
 	uint32_t textureHandle = 0;	// テクスチャハンドル
 	bool enableMipMaps = false;	// ミップマップの有効化
 	float error = 0.0f;			// LODエラー
-	Collision::Sphere sphere;	// 球
-	Collision::AABB aabb;		// AABB
-	Collision::OBB obb;			// OBB
 };
 
 class MeshManager;

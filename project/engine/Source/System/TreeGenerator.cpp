@@ -45,6 +45,7 @@ void TreeGenerator::Delete(uint32_t entity) {
 	for (uint32_t child : children) {
 		Delete(child);
 	}
+	instanceAllocator_->Free(entity);
 	registry_->RemoveAllComponents(entity);
 }
 
@@ -190,6 +191,7 @@ uint32_t TreeGenerator::CreateBranchRecursive(Branch *branch, uint32_t parentEnt
 	registry_->AddComponent(currentEntity, instanceAllocator_->Allocate(currentEntity));
 	registry_->AddComponent(currentEntity, primitiveGenerator_->CreateCylinder("Branch" + std::to_string(treeCounter), 32, 1.0f, 1.0f, branchLength, true, "Bark001_1K-JPG_Color.jpg"));
 	registry_->AddComponent(currentEntity, BranchData{ .bottomRadius = bottomRadius, .topRadius = branch->radius, .inverseLength = 1.0f / branchLength });
+	registry_->AddComponent(currentEntity, Cylinder{ .radius = std::max(bottomRadius, branch->radius), .height = branchLength });
 	registry_->AddComponent(currentEntity, UseCulling{});
 
 	//-----------------------------------

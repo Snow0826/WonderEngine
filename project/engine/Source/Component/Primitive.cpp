@@ -9,9 +9,6 @@ Primitive PrimitiveGenerator::CreatePlane(const std::string &meshName, const std
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
 		.error = 0.0f,																// LODエラー
-		.sphere = meshManager_->CreateLocalSphere(plane.meshName),					// 球
-		.aabb = meshManager_->CreateLocalAABB(plane.meshName),						// AABB
-		.obb = meshManager_->CreateLocalOBB(plane.meshName),						// OBB
 	};
 	return plane;
 }
@@ -23,9 +20,6 @@ Primitive PrimitiveGenerator::CreateBox(const std::string &meshName, const std::
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
 		.error = 0.0f,																// LODエラー
-		.sphere = meshManager_->CreateLocalSphere(box.meshName),					// 球
-		.aabb = meshManager_->CreateLocalAABB(box.meshName),						// AABB
-		.obb = meshManager_->CreateLocalOBB(box.meshName),							// OBB
 	};
 	return box;
 }
@@ -37,9 +31,6 @@ Primitive PrimitiveGenerator::CreateRing(const std::string &meshName, uint32_t d
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
 		.error = 0.0f,																// LODエラー
-		.sphere = meshManager_->CreateLocalSphere(ring.meshName),					// 球
-		.aabb = meshManager_->CreateLocalAABB(ring.meshName),						// AABB
-		.obb = meshManager_->CreateLocalOBB(ring.meshName),							// OBB
 	};
 	return ring;
 }
@@ -51,9 +42,6 @@ Primitive PrimitiveGenerator::CreateCylinder(const std::string &meshName, uint32
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
 		.error = 0.0f,																// LODエラー
-		.sphere = meshManager_->CreateLocalSphere(cylinder.meshName),				// 球
-		.aabb = meshManager_->CreateLocalAABB(cylinder.meshName),					// AABB
-		.obb = meshManager_->CreateLocalOBB(cylinder.meshName),						// OBB
 	};
 	return cylinder;
 }

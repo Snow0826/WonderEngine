@@ -335,6 +335,13 @@ void BaseScene::Update(float deltaTime) {
 	// ワールドの更新
 	world->Update(deltaTime);
 
+	// DirtyComponentのクリア
+	registry_->ClearComponent<DirtyTransform>();
+	registry_->ClearComponent<DirtyMaterial>();
+	registry_->ClearComponent<DirtyTextureData>();
+	registry_->ClearComponent<DirtyMeshLOD>();
+	registry_->ClearComponent<DirtyCullingData>();
+
 	// デバッグレンダラーのフレーム終了
 	debugRenderer_->EndFrame();
 }

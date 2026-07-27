@@ -4,7 +4,6 @@
 #include "Vector2.h"
 #include "Vector4.h"
 #include "Camera.h"
-#include "CPUTimer.h"
 #include <array>
 #include <vector>
 #include <memory>
@@ -14,6 +13,25 @@
 struct ParticlePerViewData final {
 	ViewProjectionData viewProjection;	// ビュープロジェクションデータ
 	Matrix4x4 billboardMatrix;	// ビルボード行列
+};
+
+/// @brief 円柱
+struct Cylinder final {
+	float radius = 0.0f;	// 半径
+	float height = 0.0f;	// 高さ
+	uint32_t aabbIndex = 0;	// AABBインデックス
+};
+
+/// @brief AABB用のメッシュ情報
+struct MeshInfoForAABB final {
+	uint32_t vertexOffset = 0;	// 頂点オフセット
+	uint32_t vertexCount = 0;	// 頂点数
+	uint32_t aabbIndex = 0;		// AABBインデックス
+};
+
+/// @brief AABB用の頂点データ
+struct VertexDataForAABB final {
+	Vector4 position;	// 位置
 };
 
 /// @brief uint型4要素ベクトル
@@ -49,7 +67,6 @@ struct AABBForGPU final {
 
 /// @brief カリングデータ(GPU)
 struct CullingMeshData final {
-	AABBForGPU aabb;			// AABB
 	uint32_t objectIndex = 0;	// オブジェクトインデックス
 	uint32_t lodOffset = 0;		// LODオフセット
 	uint32_t lodCount = 0;		// LOD数
@@ -81,9 +98,18 @@ struct MeshLOD final {
 struct DirtyMeshLOD final {};
 
 /// @brief メッシュコマンドステート
-struct MeshCommandState {
-	uint32_t commandIndex;
-	uint32_t instanceCount;
+struct MeshCommandState final {
+	uint32_t commandIndex = 0;
+	uint32_t instanceCount = 0;
+	uint32_t currentOffset = 0;
+	uint32_t startInstanceLocation = 0;
+};
+
+/// @brief メッシュLODステート
+struct MeshLODState final {
+	uint32_t meshLODIndex = 0;
+	uint32_t visible = 0;
+	uint32_t instanceIndex = 0;
 };
 
 /// @brief カリングコンポーネント
@@ -207,6 +233,9 @@ enum class StructuredBufferType {
 	kLine,							// ライン
 	kPointLight,					// 点光源
 	kSpotLight,						// スポットライト
+	kCylinder,						// 円柱
+	kMeshInfoForAABB,				// AABB用のメッシュ情報
+	kVertexDataForAABB,				// AABB用の頂点データ
 	kCullingMeshData,				// カリングメッシュデータ
 	kCullingObjectData,				// カリングオブジェクトデータ
 	kMeshLOD,						// メッシュLOD
@@ -316,9 +345,17 @@ public:
 	/// @return カリング済みコマンドバッファ
 	Resource *GetProcessedCommandBuffer() { return processedCommandBuffer_.get(); }
 
-	/// @brief メッシュコマンドの状態バッファを取得
-	/// @return メッシュコマンドの状態バッファ
+	/// @brief メッシュコマンドステートバッファを取得
+	/// @return メッシュコマンドステートバッファ
 	Resource *GetMeshCommandStateBuffer() { return meshCommandStateBuffer_.get(); }
+
+	/// @brief メッシュLODステートバッファを取得
+	/// @return メッシュLODステートバッファ
+	Resource *GetMeshLODStateBuffer() { return meshLODStateBuffer_.get(); }
+
+	/// @brief カリング済みインスタンスインデックスバッファを取得
+	/// @return カリング済みインスタンスインデックスバッファ
+	Resource *GetProcessedInstanceIndexBuffer() { return processedInstanceIndexBuffer_.get(); }
 
 	/// @brief コマンドカウンターバッファを取得
 	/// @return コマンドカウンターバッファ
@@ -331,6 +368,14 @@ public:
 	/// @brief メッシュLODカウンターを取得
 	/// @return メッシュLODカウンター
 	uint32_t GetMeshLODCounter() const { return meshLODCounter_; }
+
+	/// @brief 円柱カウンターを取得
+	/// @return 円柱カウンター
+	uint32_t GetCylinderCounter() const { return cylinderCounter_; }
+
+	/// @brief AABB用のメッシュ情報カウンターを取得
+	/// @return AABB用のメッシュ情報カウンター
+	uint32_t GetMeshInfoForAABBCounter() const { return meshInfoForAABBCounter_; }
 
 	/// @brief カリング定数データを取得
 	/// @return カリング定数データ
@@ -399,21 +444,41 @@ public:
 	/// @return Hi-Zミップマップ書き込みハンドル
 	uint32_t GetHiZMipMapWriteHandle(uint32_t index) const { return hiZMipMapWriteHandles_[index]; }
 
-	/// @brief フットプリントマップハンドルを取得
-	/// @return フットプリントマップハンドル
-	uint32_t GetFootprintMapHandle() const { return footprintMapHandle_; }
+	/// @brief AABB用SRVハンドルを取得
+	/// @return AABB用SRVハンドル
+	uint32_t GetAABBSRVHandle() const { return aabbSRVHandle_; }
+
+	/// @brief AABB用UAVハンドルを取得
+	/// @return AABB用UAVハンドル
+	uint32_t GetAABBUAVHandle() const { return aabbUAVHandle_; }
 
 	/// @brief カリング済みコマンドハンドルを取得
 	/// @return カリング済みコマンドハンドル
 	uint32_t GetProcessedCommandHandle() const { return processedCommandHandle_; }
 
-	/// @brief メッシュコマンドの状態SRVハンドルを取得
-	/// @return メッシュコマンドの状態SRVハンドル
+	/// @brief メッシュコマンドステートSRVハンドルを取得
+	/// @return メッシュコマンドステートSRVハンドル
 	uint32_t GetMeshCommandStateSRVHandle() const { return meshCommandStateSRVHandle_; }
 
-	/// @brief メッシュコマンドの状態UAVハンドルを取得
-	/// @return メッシュコマンドの状態UAVハンドル
+	/// @brief メッシュコマンドステートUAVハンドルを取得
+	/// @return メッシュコマンドステートUAVハンドル
 	uint32_t GetMeshCommandStateUAVHandle() const { return meshCommandStateUAVHandle_; }
+
+	/// @brief メッシュLODステートSRVハンドルを取得
+	/// @return メッシュLODステートSRVハンドル
+	uint32_t GetMeshLODStateSRVHandle() const { return meshLODStateSRVHandle_; }
+
+	/// @brief メッシュLODステートUAVハンドルを取得
+	/// @return メッシュLODステートUAVハンドル
+	uint32_t GetMeshLODStateUAVHandle() const { return meshLODStateUAVHandle_; }
+
+	/// @brief カリング済みインスタンスインデックスSRVハンドルを取得
+	/// @return カリング済みインスタンスインデックスSRVハンドル
+	uint32_t GetProcessedInstanceIndexSRVHandle() const { return processedInstanceIndexSRVHandle_; }
+
+	/// @brief カリング済みインスタンスインデックスUAVハンドルを取得
+	/// @return カリング済みインスタンスインデックスUAVハンドル
+	uint32_t GetProcessedInstanceIndexUAVHandle() const { return processedInstanceIndexUAVHandle_; }
 
 	/// @brief コマンドカウンターハンドルを取得
 	/// @return コマンドカウンターハンドル
@@ -422,6 +487,10 @@ public:
 	/// @brief フリーカウンターハンドルを取得
 	/// @return フリーカウンターハンドル
 	uint32_t GetFreeCounterHandle() const { return freeCounterHandle_; }
+
+	/// @brief フットプリントマップハンドルを取得
+	/// @return フットプリントマップハンドル
+	uint32_t GetFootprintMapHandle() const { return footprintMapHandle_; }
 
 	/// @brief 結果表示フラグを取得
 	/// @return 結果表示フラグ
@@ -439,11 +508,12 @@ private:
 	using ConstantBuffers = std::array<std::unique_ptr<ConstantBuffer>, static_cast<size_t>(ConstantBufferType::kCountOfConstantBufferType)>;
 	using StructuredBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
 	using StructuredBufferHandles = std::array<uint32_t, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
-	static inline constexpr uint32_t kMaxObject = 1000000;				// 最大オブジェクト数
 	static inline constexpr uint32_t kMaxLine = 65536;					// 最大ライン数
 	static inline constexpr uint32_t kMaxPointLight = 32;				// 最大点光源数
 	static inline constexpr uint32_t kMaxSpotLight = 32;				// 最大スポットライト数
+	static inline constexpr uint32_t kMaxObject = 1000000;				// 最大オブジェクト数
 	static inline constexpr uint32_t kMaxAABB = 1000000;				// 最大AABB数
+	static inline constexpr uint32_t kMaxVertices = 1000000;			// 最大頂点数
 	static inline constexpr uint32_t kMaxFootprint = 64;				// 最大フットプリント数
 	static inline constexpr uint32_t kMaxCommandPerQueue = 1024;		// コマンドキューあたりの最大コマンド数
 	Registry *registry_ = nullptr;										// レジストリ
@@ -456,15 +526,19 @@ private:
 	std::unique_ptr<Resource> gameRenderTexture_ = nullptr;				// ゲームのレンダーテクスチャ
 	std::unique_ptr<Resource> postEffectRenderTexture_ = nullptr;		// ポストエフェクトのレンダーテクスチャ
 	std::unique_ptr<Resource> hiZTexture_ = nullptr;					// Hi-Zテクスチャ
+	std::unique_ptr<Resource> aabbBuffer_ = nullptr;					// AABBバッファ
 	std::unique_ptr<Resource> commandUploadBuffer_ = nullptr;			// コマンドアップロードバッファ
 	std::unique_ptr<Resource> processedCommandBuffer_ = nullptr;		// カリング済みコマンドバッファ
-	std::unique_ptr<Resource> meshCommandStateBuffer_ = nullptr;		// メッシュコマンドの状態バッファ
+	std::unique_ptr<Resource> meshCommandStateBuffer_ = nullptr;		// メッシュコマンドステートバッファ
+	std::unique_ptr<Resource> meshLODStateBuffer_ = nullptr;			// メッシュLODステートバッファ
+	std::unique_ptr<Resource> processedInstanceIndexBuffer_ = nullptr;	// カリング済みインスタンスインデックスバッファ
 	std::unique_ptr<Resource> commandCounterBuffer_ = nullptr;			// コマンドカウンターバッファ
 	std::unique_ptr<Resource> freeCounterBuffer_ = nullptr;				// フリーカウンターバッファ
 	std::unique_ptr<Resource> footprintMapBuffer_ = nullptr;			// フットプリントマップバッファ
 	std::unique_ptr<Resource> footprintMapReadbackBuffer_ = nullptr;	// フットプリントマップ読み戻しバッファ
 	uint32_t meshLODCounter_ = 0;										// メッシュLODカウンター
-	uint32_t cullingMeshDataOffset_ = 0;								// カリングメッシュデータのオフセット
+	uint32_t cylinderCounter_ = 0;										// 円柱カウンター
+	uint32_t meshInfoForAABBCounter_ = 0;								// AABB用のメッシュ情報カウンター
 	CullingConstantsData cullingConstantsData_;							// カリング定数データ
 	GrayscaleColor grayscaleColor_;										// グレースケールカラー
 	VignetteParam vignetteParam_;										// ビネットパラメータ
@@ -486,6 +560,9 @@ private:
 	Rendering::Line *lineData_ = nullptr;								// ラインデータ
 	PointLight *pointLightData_ = nullptr;								// 点光源データ
 	SpotLight *spotLightData_ = nullptr;								// スポットライトデータ
+	Cylinder *cylinderData_ = nullptr;									// 円柱データ
+	MeshInfoForAABB *meshInfoForAABB_ = nullptr;						// AABB用のメッシュ情報
+	VertexDataForAABB *vertexDataForAABB_ = nullptr;					// AABB用の頂点データ
 	CullingMeshData *cullingMeshData_ = nullptr;						// カリングメッシュデータ
 	CullingObjectData *cullingObjectData_ = nullptr;					// カリングオブジェクトデータ
 	uint32_t mipLevels_ = 0;											// ミップレベル数
@@ -501,9 +578,15 @@ private:
 	uint32_t hiZTextureUAVHandle_ = 0;									// Hi-ZテクスチャUAVハンドル
 	std::vector<uint32_t> hiZMipMapReadHandles_;						// Hi-Zミップマップ読み取りハンドル
 	std::vector<uint32_t> hiZMipMapWriteHandles_;						// Hi-Zミップマップ書き込みハンドル
+	uint32_t aabbSRVHandle_ = 0;										// AABB用SRVハンドル
+	uint32_t aabbUAVHandle_ = 0;										// AABB用UAVハンドル
 	uint32_t processedCommandHandle_ = 0;								// カリング済みコマンドハンドル
-	uint32_t meshCommandStateSRVHandle_ = 0;							// メッシュコマンドの状態SRVハンドル
-	uint32_t meshCommandStateUAVHandle_ = 0;							// メッシュコマンドの状態UAVハンドル
+	uint32_t meshCommandStateSRVHandle_ = 0;							// メッシュコマンドステートSRVハンドル
+	uint32_t meshCommandStateUAVHandle_ = 0;							// メッシュコマンドステートUAVハンドル
+	uint32_t meshLODStateSRVHandle_ = 0;								// メッシュLODステートSRVハンドル
+	uint32_t meshLODStateUAVHandle_ = 0;								// メッシュLODステートUAVハンドル
+	uint32_t processedInstanceIndexSRVHandle_ = 0;						// カリング済みインスタンスインデックスSRVハンドル
+	uint32_t processedInstanceIndexUAVHandle_ = 0;						// カリング済みインスタンスインデックスUAVハンドル
 	uint32_t commandCounterHandle_ = 0;									// コマンドカウンターハンドル
 	uint32_t freeCounterHandle_ = 0;									// フリーカウンターハンドル
 	uint32_t footprintMapHandle_ = 0;									// フットプリントマップハンドル
@@ -531,6 +614,12 @@ private:
 
 	/// @brief テクスチャデータの転送
 	void TransferTextureData();
+
+	/// @brief メッシュLODデータの転送
+	void TransferMeshLODData();
+
+	/// @brief カリングデータの転送
+	void TransferCullingData();
 
 	/// @brief スカイボックスの転送
 	void TransferSkybox();
@@ -561,12 +650,6 @@ private:
 
 	/// @brief フレームごとのデータの転送
 	void TransferPerFrame(float deltaTime);
-
-	/// @brief メッシュLODデータの転送
-	void TransferMeshLODData();
-
-	/// @brief カリングデータの転送
-	void TransferCullingData();
 
 	/// @brief 球状エミッターの転送
 	void TransferEmitterSphere();

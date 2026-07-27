@@ -79,7 +79,7 @@ uint32_t SkinClusterManager::CreateSkinCluster(const ModelData &modelData) {
 	Logger::Log(*logStream_, "OutputVertex UAVDescriptorIndex: " + std::to_string(skinCluster->vertexUAVHandle) + "\n");
 
 	// OutputVertex用のVertexBufferViewを作成
-	skinCluster->outputVertexBufferView.BufferLocation = skinCluster->outputVertexResource->GetResource()->GetGPUVirtualAddress();
+	skinCluster->outputVertexBufferView.BufferLocation = skinCluster->outputVertexResource->GetGPUVirtualAddress();
 	skinCluster->outputVertexBufferView.SizeInBytes = static_cast<UINT>(sizeof(VertexData) * vertices.size());
 	skinCluster->outputVertexBufferView.StrideInBytes = sizeof(VertexData);
 

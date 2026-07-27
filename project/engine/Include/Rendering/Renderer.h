@@ -114,11 +114,15 @@ private:
 	ID3D12RootSignature *initializeParticleRootSignature_ = nullptr;							// パーティクル初期化用ルートシグネチャ
 	ID3D12RootSignature *emitParticleRootSignature_ = nullptr;									// パーティクル発生用ルートシグネチャ
 	ID3D12RootSignature *updateParticleRootSignature_ = nullptr;								// パーティクル更新用ルートシグネチャ
+	ID3D12RootSignature *createCylinderAABBRootSignature_ = nullptr;							// 円柱のAABB生成用ルートシグネチャ
+	ID3D12RootSignature *createModelAABBRootSignature_ = nullptr;								// モデルのAABB生成用ルートシグネチャ
 	ID3D12RootSignature *depthStencilCopyRootSignature_ = nullptr;								// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *generateHiZMipMapRootSignature_ = nullptr;								// HiZミップマップ生成用ルートシグネチャ
 	ID3D12RootSignature *clearMeshCommandStatesRootSignature_ = nullptr;						// メッシュコマンドステートのクリア用ルートシグネチャ
 	ID3D12RootSignature *occlusionCullingRootSignature_ = nullptr;								// オクルージョンカリング用ルートシグネチャ
+	ID3D12RootSignature *prefixSumRootSignature_ = nullptr;										// 累積和計算用ルートシグネチャ
 	ID3D12RootSignature *setInstanceCountRootSignature_ = nullptr;								// インスタンス数の反映用ルートシグネチャ
+	ID3D12RootSignature *setInstanceIndexRootSignature_ = nullptr;								// インスタンスインデックスの反映用ルートシグネチャ
 	ID3D12RootSignature *footprintRootSignature_ = nullptr;										// フットプリント用ルートシグネチャ
 	ID3D12RootSignature *footprintMapRootSignature_ = nullptr;									// フットプリントマップ用ルートシグネチャ
 	MeshPipelineState meshPipelineState_;														// Mesh用パイプラインステート
@@ -140,11 +144,15 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> initializeParticlePipelineState_ = nullptr;		// パーティクル初期化用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> emitParticlePipelineState_ = nullptr;			// パーティクル発生用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> updateParticlePipelineState_ = nullptr;			// パーティクル更新用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> createCylinderAABBPipelineState_ = nullptr;		// 円柱のAABB生成用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> createModelAABBPipelineState_ = nullptr;		// モデルのAABB生成用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthStencilCopyPipelineState_ = nullptr;		// 深度ステンシルテクスチャコピー用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> generateHiZMipMapPipelineState_ = nullptr;		// HiZミップマップ生成用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> clearMeshCommandStatesPipelineState_ = nullptr;	// メッシュコマンドステートのクリア用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> occlusionCullingPipelineState_ = nullptr;		// オクルージョンカリング用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> prefixSumPipelineState_ = nullptr;				// 累積和計算用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState>	setInstanceCountPipelineState_ = nullptr;		// インスタンス数の反映用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>	setInstanceIndexPipelineState_ = nullptr;		// インスタンスインデックスの反映用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintPipelineState_ = nullptr;				// フットプリント用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintMapPipelineState_ = nullptr;			// フットプリントマップ用パイプラインステート
 	MeshCommandSignature meshCommandSignature_;													// メッシュコマンドシグネチャ
@@ -161,6 +169,12 @@ private:
 	/// @brief スキニング
 	void Skinning();
 
+	/// @brief 円柱のAABB生成
+	void CreateCylinderAABB();
+
+	/// @brief モデルのAABB生成
+	void CreateModelAABB();
+
 	/// @brief 深度テクスチャをHiZテクスチャにコピー
 	void CopyDepthToHiZ();
 
@@ -173,8 +187,14 @@ private:
 	/// @brief オクルージョンカリング
 	void OcclusionCulling();
 
+	/// @brief 累積和計算
+	void PrefixSum();
+
 	/// @brief インスタンス数の反映
 	void SetInstanceCount();
+
+	/// @brief インスタンスインデックスの反映
+	void SetInstanceIndex();
 
 	/// @brief フットプリント
 	void Footprint();

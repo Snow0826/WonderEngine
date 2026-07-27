@@ -15,9 +15,7 @@ ViewProjectionData MakeViewProjection(const Camera &camera, const QuaternionTran
 
 void CameraSystem::SwitchRenderingCamera(uint32_t cameraEntity) {
 	// RenderingCameraコンポーネントを無効化
-	registry_->ForEach<RenderingCamera>([this](uint32_t entity, RenderingCamera *renderingCamera) {
-		registry_->RemoveComponent<RenderingCamera>(entity);
-		}, exclude<Disabled>());
+	registry_->ClearComponent<RenderingCamera>();
 
 	// 指定されたカメラにRenderingCameraコンポーネントを有効化
 	registry_->AddComponent(cameraEntity, RenderingCamera{});

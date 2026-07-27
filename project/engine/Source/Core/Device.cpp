@@ -361,6 +361,24 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create UpdateParticleRootSignature\n");
 	updateParticleRootSignature_->SetName(L"UpdateParticleRootSignature");
 
+	// 円柱のAABB生成用ルートシグネチャの作成
+	createCylinderAABBRootSignature_ = RootSignature()
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)	// 0:CylinderCount
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:Cylinder
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 2:AABB
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create CreateCylinderAABBRootSignature\n");
+	createCylinderAABBRootSignature_->SetName(L"CreateCylinderAABBRootSignature");
+
+	// モデルのAABB生成用ルートシグネチャの作成
+	createModelAABBRootSignature_ = RootSignature()
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 0:Mesh
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 1:Vertex
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 2:AABB
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create CreateModelAABBRootSignature\n");
+	createModelAABBRootSignature_->SetName(L"CreateModelAABBRootSignature");
+
 	// 深度ステンシルテクスチャコピー用ルートシグネチャの作成
 	depthStencilCopyRootSignature_ = RootSignature()
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 0:DepthStencil
@@ -379,7 +397,7 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 
 	// メッシュコマンドステートのクリア用ルートシグネチャの作成
 	clearMeshCommandStatesRootSignature_ = RootSignature()
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:Constant
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:MeshLODCount
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:MeshCommandState
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create ClearMeshCommandStatesRootSignature\n");
@@ -394,23 +412,44 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 4:Object
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 5:Mesh
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 6:MeshLOD
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 3)	// 7:HiZTexture
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 8:ProcessedIndirectCommand
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 9:MeshCommandState
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 10:ProcessedIndirectCommandCounter
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 3)	// 7:InstanceIndex
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 4)	// 8:AABB
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 5)	// 9:HiZTexture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 10:MeshCommandState
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 11:MeshLODState
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 12:ProcessedIndirectCommand
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 3)	// 13:ProcessedIndirectCommandCounter
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_ALL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create OcclusionCullingRootSignature\n");
 	occlusionCullingRootSignature_->SetName(L"OcclusionCullingRootSignature");
 
+	// 累積和計算用ルートシグネチャの作成
+	prefixSumRootSignature_ = RootSignature()
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:MeshLODCount
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:MeshCommandState
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create PrefixSumRootSignature\n");
+	prefixSumRootSignature_->SetName(L"PrefixSumRootSignature");
+
 	// インスタンス数の反映用ルートシグネチャの作成
 	setInstanceCountRootSignature_ = RootSignature()
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:Constant
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:MeshLODCount
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:MeshCommandState
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 2:IndirectCommand
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create SetInstanceCountRootSignature\n");
 	setInstanceCountRootSignature_->SetName(L"SetInstanceCountRootSignature");
+
+	// インスタンスインデックスの反映用ルートシグネチャの作成
+	setInstanceIndexRootSignature_ = RootSignature()
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:MeshCount
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:MeshLODState
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 2:MeshCommandState
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 3:ProcessedInstanceIndex
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create SetInstanceIndexRootSignature\n");
+	setInstanceIndexRootSignature_->SetName(L"SetInstanceIndexRootSignature");
 
 	// フットプリント用ルートシグネチャの作成
 	footprintRootSignature_ = RootSignature()

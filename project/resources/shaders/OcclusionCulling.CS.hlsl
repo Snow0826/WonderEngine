@@ -14,7 +14,7 @@ struct Object
 
 struct Mesh
 {
-    uint objectHandle; // Index of the object this mesh belongs to
+    uint objectIndex; // Index of the object this mesh belongs to
     uint lodOffset; // Offset into the meshLODs buffer for this mesh's LODs
     uint lodCount; // Number of LODs for this mesh
     uint useCulling; // Flag indicating whether to use culling for this mesh (0: no culling, 1: use culling)
@@ -59,9 +59,8 @@ cbuffer Constants : register(b3)
 StructuredBuffer<Object> objects : register(t0); // SRV: Object data
 StructuredBuffer<Mesh> meshes : register(t1); // SRV: Meshes
 StructuredBuffer<MeshLOD> meshLODs : register(t2); // SRV: Mesh LODs
-StructuredBuffer<uint> instanceIndices : register(t3); // SRV: Instance Indices
-StructuredBuffer<AABB> boxes : register(t4); // SRV: boxes
-Texture2D<float> gHiZTexture : register(t5); // SRV: Hi-Z texture for occlusion culling
+StructuredBuffer<AABB> boxes : register(t3); // SRV: boxes
+Texture2D<float> gHiZTexture : register(t4); // SRV: Hi-Z texture for occlusion culling
 SamplerState gSampler : register(s0); // Sampler for Hi-Z texture
 RWStructuredBuffer<MeshCommandState> meshCommandStates : register(u0); // UAV: Mesh Command States
 RWStructuredBuffer<MeshLODState> meshLODStates : register(u1); // UAV: Mesh LOD States
@@ -87,7 +86,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     meshLODStates[DTid.x].instanceIndex = 0; // Initialize instance index to 0
     Mesh mesh = meshes[DTid.x]; // Get culling data for this thread
     AABB box = boxes[DTid.x]; // Get bounding box for this mesh
-    Object object = objects[mesh.objectHandle]; // Get object data for this mesh
+    Object object = objects[mesh.objectIndex]; // Get object data for this mesh
     float3 center = (box.min.xyz + box.max.xyz) * 0.5f;
     float3 extent = (box.max.xyz - box.min.xyz) * 0.5f;
     center = mul(float4(center, 1.0f), object.world).xyz; // Transform center to world space
@@ -133,7 +132,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     uint meshLODIndex = mesh.lodOffset + selectedLOD;
     meshLODStates[DTid.x].meshLODIndex = meshLODIndex; // Store selected LOD index
     meshLODStates[DTid.x].visible = 1; // Mark mesh as visible
-    meshLODStates[DTid.x].instanceIndex = instanceIndices[DTid.x]; // Store instance index for this mesh
+    meshLODStates[DTid.x].instanceIndex = mesh.objectIndex; // Store instance index for this mesh
     
     uint old;
     InterlockedCompareExchange(meshCommandStates[meshLODIndex].commandIndex, kInvalidCommandIndex, kCreatingCommandIndex, old);

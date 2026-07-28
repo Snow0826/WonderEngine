@@ -750,7 +750,8 @@ void Renderer::InitializeParticle() {
 	commandList_->SetComputeRootSignature(initializeParticleRootSignature_);
 	commandList_->SetPipelineState(initializeParticlePipelineState_.Get());
 
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetFreeCounterHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetFreeListIndexHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetFreeListHandle());
 
 	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, particleGroup->uavHandle);
@@ -873,7 +874,8 @@ void Renderer::EmitParticle() {
 
 	world_->GetConstantBuffer(ConstantBufferType::kEmitterSphere)->BindToCompute(0, 0);
 	world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToCompute(1, 0);
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetFreeCounterHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetFreeListIndexHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetFreeListHandle());
 
 	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, particleGroup->uavHandle);
@@ -887,6 +889,8 @@ void Renderer::UpdateParticle() {
 	commandList_->SetPipelineState(updateParticlePipelineState_.Get());
 
 	world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToCompute(0, 0);
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetFreeListIndexHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetFreeListHandle());
 
 	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, particleGroup->uavHandle);
@@ -1028,13 +1032,12 @@ void Renderer::OcclusionCulling() {
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetStructuredBufferHandle(StructuredBufferType::kCullingObjectData));
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetStructuredBufferHandle(StructuredBufferType::kCullingMeshData));
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetStructuredBufferHandle(StructuredBufferType::kMeshLOD));
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetStructuredBufferHandle(StructuredBufferType::kInstanceIndex));
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetAABBSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetHiZTextureSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(10, world_->GetMeshCommandStateUAVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(11, world_->GetMeshLODStateUAVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(12, world_->GetProcessedCommandHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(13, world_->GetCommandCounterHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetAABBSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetHiZTextureSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetMeshCommandStateUAVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(10, world_->GetMeshLODStateUAVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(11, world_->GetProcessedCommandHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(12, world_->GetCommandCounterHandle());
 
 	// コマンドバッファの転送
 	Resource *indirectCommandStructuredBuffer = world_->GetStructuredBuffer(StructuredBufferType::kMeshLOD);

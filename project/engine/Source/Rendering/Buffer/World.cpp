@@ -117,33 +117,22 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 		cullingConstantsData_.queueOffsets[i].w = (queueIndex + 3) * kMaxCommandPerQueue;
 	}
 
-	// InstanceIndex用StructuredBufferの作成
-	size_t structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kInstanceIndex);
-	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(uint32_t) * kMaxObject);
-	structuredBuffers_[structuredBufferIndex]->SetName("InstanceIndex");
-	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&instanceIndexData_));
-	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-
-	// InstanceIndex用SRVの作成
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvBufferDesc{};
-	srvBufferDesc.Format = DXGI_FORMAT_UNKNOWN;											// バッファなのでフォーマットなし
-	srvBufferDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;							// バッファビュー
-	srvBufferDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;	// 標準設定
-	srvBufferDesc.Buffer.FirstElement = 0;												// 先頭の要素
-	srvBufferDesc.Buffer.NumElements = kMaxObject;										// 要素数
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(uint32_t);						// 構造体のサイズ
-	srvBufferDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;							// 特になし
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
-
 	// InstanceData用StructuredBufferの作成
-	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kInstanceData);
+	uint32_t structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kInstanceData);
 	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(InstanceData) * kMaxObject);
 	structuredBuffers_[structuredBufferIndex]->SetName("InstanceData");
 	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&instanceData_));
 	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// InstanceData用SRVの作成
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(InstanceData);	// 構造体のサイズ
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvBufferDesc{};
+	srvBufferDesc.Format = DXGI_FORMAT_UNKNOWN;											// バッファなのでフォーマットなし
+	srvBufferDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;							// バッファビュー
+	srvBufferDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;	// 標準設定
+	srvBufferDesc.Buffer.FirstElement = 0;												// 先頭の要素
+	srvBufferDesc.Buffer.NumElements = kMaxObject;										// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(InstanceData);					// 構造体のサイズ
+	srvBufferDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;							// 特になし
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 
 	// Material用StructuredBufferの作成
@@ -534,16 +523,27 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	cpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(commandCounterBuffer_->GetResource(), uavCounterBufferDesc, commandCounterHandle_);
 	Logger::Log(logStream, "CommandCounter UAVDescriptorIndex: " + std::to_string(commandCounterHandle_) + "\n");
 
-	// フリーカウンター用RWStructuredBufferの作成
-	freeCounterBuffer_ = Resource::CreateRWBuffer(device, sizeof(int32_t));
-	freeCounterBuffer_->SetName("FreeCounterBuffer");
-	freeCounterHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	// フリーリストインデックス用RWStructuredBufferの作成
+	freeListIndexBuffer_ = Resource::CreateRWBuffer(device, sizeof(int32_t));
+	freeListIndexBuffer_->SetName("FreeListIndexBuffer");
+	freeListIndexHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
-	// フリーカウンター用UAVの作成
+	// フリーリストインデックス用UAVの作成
 	uavBufferDesc.Buffer.NumElements = 1;						// 要素数
 	uavBufferDesc.Buffer.StructureByteStride = sizeof(int32_t);	// 構造体のサイズ
-	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(freeCounterBuffer_->GetResource(), uavBufferDesc, freeCounterHandle_);
-	Logger::Log(logStream, "FreeCounter UAVDescriptorIndex: " + std::to_string(freeCounterHandle_) + "\n");
+	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(freeListIndexBuffer_->GetResource(), uavBufferDesc, freeListIndexHandle_);
+	Logger::Log(logStream, "FreeListIndex UAVDescriptorIndex: " + std::to_string(freeListIndexHandle_) + "\n");
+
+	// フリーリスト用RWStructuredBufferの作成
+	freeListBuffer_ = Resource::CreateRWBuffer(device, sizeof(uint32_t) * ParticleManager::kMaxParticle);
+	freeListBuffer_->SetName("FreeListBuffer");
+	freeListHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// フリーリスト用UAVの作成
+	uavBufferDesc.Buffer.NumElements = ParticleManager::kMaxParticle;	// 要素数
+	uavBufferDesc.Buffer.StructureByteStride = sizeof(uint32_t);		// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(freeListBuffer_->GetResource(), uavBufferDesc, freeListHandle_);
+	Logger::Log(logStream, "FreeList UAVDescriptorIndex: " + std::to_string(freeListHandle_) + "\n");
 
 	// フットプリントマップ用RWStructuredBufferの作成
 	footprintMapBuffer_ = Resource::CreateRWBuffer(device, sizeof(Int4));
@@ -896,7 +896,6 @@ void World::TransferCullingData() {
 		registry_->AddComponentToAll<DirtyCullingData, InstanceHandle>();
 	}
 
-	uint32_t cullingObjectDataOffset = 0;
 	uint32_t cullingMeshDataOffset = 0;
 	uint32_t vertexOffset = 0;
 	registry_->ForEach<Model, MeshType, BlendMode, InstanceHandle, DirtyCullingData>([&](uint32_t entity, Model *model, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyCullingData *dirtyCullingData) {
@@ -913,24 +912,12 @@ void World::TransferCullingData() {
 			}
 		}
 
-		if (auto eulerTransform = registry_->GetComponent<EulerTransform>(entity)) {
-			cullingObjectData_[cullingObjectDataOffset].worldMatrix = eulerTransform->worldMatrix;
-		} else if (auto quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity)) {
-			cullingObjectData_[cullingObjectDataOffset].worldMatrix = quaternionTransform->worldMatrix;
-		} else {
-			cullingObjectData_[cullingObjectDataOffset].worldMatrix = MakeIdentity4x4();
-		}
-
-		cullingObjectData_[cullingObjectDataOffset].meshType = *meshType;
-		cullingObjectData_[cullingObjectDataOffset].blendMode = *blendMode;
 		for (const MeshData &mesh : model->modelData.meshes) {
-			cullingMeshData_[cullingMeshDataOffset].objectIndex = cullingObjectDataOffset;
+			cullingMeshData_[cullingMeshDataOffset].objectIndex = instanceHandle->value;
 			cullingMeshData_[cullingMeshDataOffset].lodCount = static_cast<uint32_t>(mesh.lods.size());
 			cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
-			instanceIndexData_[cullingMeshDataOffset] = instanceHandle->value;
 			cullingMeshDataOffset++;
 		}
-		cullingObjectDataOffset++;
 		meshInfoForAABBCounter_++;
 		}, exclude<Disabled>());
 
@@ -941,22 +928,23 @@ void World::TransferCullingData() {
 			cylinderCounter_++;
 		}
 
-		if (auto eulerTransform = registry_->GetComponent<EulerTransform>(entity)) {
-			cullingObjectData_[cullingObjectDataOffset].worldMatrix = eulerTransform->worldMatrix;
-		} else if (auto quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity)) {
-			cullingObjectData_[cullingObjectDataOffset].worldMatrix = quaternionTransform->worldMatrix;
-		} else {
-			cullingObjectData_[cullingObjectDataOffset].worldMatrix = MakeIdentity4x4();
-		}
-
-		cullingObjectData_[cullingObjectDataOffset].meshType = *meshType;
-		cullingObjectData_[cullingObjectDataOffset].blendMode = *blendMode;
-		cullingMeshData_[cullingMeshDataOffset].objectIndex = cullingObjectDataOffset;
+		cullingMeshData_[cullingMeshDataOffset].objectIndex = instanceHandle->value;
 		cullingMeshData_[cullingMeshDataOffset].lodCount = 1;
 		cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
-		instanceIndexData_[cullingMeshDataOffset] = instanceHandle->value;
 		cullingMeshDataOffset++;
-		cullingObjectDataOffset++;
+		}, exclude<Disabled>());
+
+	registry_->ForEach<MeshType, BlendMode, InstanceHandle, DirtyTransform>([&](uint32_t entity, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyTransform *dirtyTransform) {
+		if (auto eulerTransform = registry_->GetComponent<EulerTransform>(entity)) {
+			cullingObjectData_[instanceHandle->value].worldMatrix = eulerTransform->worldMatrix;
+		} else if (auto quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity)) {
+			cullingObjectData_[instanceHandle->value].worldMatrix = quaternionTransform->worldMatrix;
+		} else {
+			cullingObjectData_[instanceHandle->value].worldMatrix = MakeIdentity4x4();
+		}
+
+		cullingObjectData_[instanceHandle->value].meshType = *meshType;
+		cullingObjectData_[instanceHandle->value].blendMode = *blendMode;
 		}, exclude<Disabled>());
 }
 

@@ -226,7 +226,6 @@ enum class ConstantBufferType {
 
 /// @brief 構造化バッファの種類
 enum class StructuredBufferType {
-	kInstanceIndex,					// インスタンスインデックス
 	kInstanceData,					// インスタンスデータ
 	kMaterial,						// マテリアル
 	kTextureData,					// テクスチャデータ
@@ -484,9 +483,13 @@ public:
 	/// @return コマンドカウンターハンドル
 	uint32_t GetCommandCounterHandle() const { return commandCounterHandle_; }
 
-	/// @brief フリーカウンターハンドルを取得
-	/// @return フリーカウンターハンドル
-	uint32_t GetFreeCounterHandle() const { return freeCounterHandle_; }
+	/// @brief フリーリストインデックスハンドルを取得
+	/// @return フリーリストインデックスハンドル
+	uint32_t GetFreeListIndexHandle() const { return freeListIndexHandle_; }
+
+	/// @brief フリーリストハンドルを取得
+	/// @return フリーリストハンドル
+	uint32_t GetFreeListHandle() const { return freeListHandle_; }
 
 	/// @brief フットプリントマップハンドルを取得
 	/// @return フットプリントマップハンドル
@@ -533,7 +536,8 @@ private:
 	std::unique_ptr<Resource> meshLODStateBuffer_ = nullptr;			// メッシュLODステートバッファ
 	std::unique_ptr<Resource> processedInstanceIndexBuffer_ = nullptr;	// カリング済みインスタンスインデックスバッファ
 	std::unique_ptr<Resource> commandCounterBuffer_ = nullptr;			// コマンドカウンターバッファ
-	std::unique_ptr<Resource> freeCounterBuffer_ = nullptr;				// フリーカウンターバッファ
+	std::unique_ptr<Resource> freeListIndexBuffer_ = nullptr;			// フリーリストインデックスバッファ
+	std::unique_ptr<Resource> freeListBuffer_ = nullptr;				// フリーリストバッファ
 	std::unique_ptr<Resource> footprintMapBuffer_ = nullptr;			// フットプリントマップバッファ
 	std::unique_ptr<Resource> footprintMapReadbackBuffer_ = nullptr;	// フットプリントマップ読み戻しバッファ
 	uint32_t meshLODCounter_ = 0;										// メッシュLODカウンター
@@ -553,7 +557,6 @@ private:
 	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
 	Int4 *colorData_ = nullptr;											// 色データ
 	MeshLOD *meshLODData_ = nullptr;									// メッシュLODデータ
-	uint32_t *instanceIndexData_ = nullptr;								// インスタンスインデックスデータ
 	InstanceData *instanceData_ = nullptr;								// インスタンスデータ
 	Material *materialData_ = nullptr;									// マテリアルデータ
 	TextureData *textureData_ = nullptr;								// テクスチャデータ
@@ -588,7 +591,8 @@ private:
 	uint32_t processedInstanceIndexSRVHandle_ = 0;						// カリング済みインスタンスインデックスSRVハンドル
 	uint32_t processedInstanceIndexUAVHandle_ = 0;						// カリング済みインスタンスインデックスUAVハンドル
 	uint32_t commandCounterHandle_ = 0;									// コマンドカウンターハンドル
-	uint32_t freeCounterHandle_ = 0;									// フリーカウンターハンドル
+	uint32_t freeListIndexHandle_ = 0;									// フリーリストインデックスハンドル
+	uint32_t freeListHandle_ = 0;										// フリーリストハンドル
 	uint32_t footprintMapHandle_ = 0;									// フットプリントマップハンドル
 	PostEffect postEffect_ = PostEffect::kNone;							// ポストエフェクト
 	bool isCulling_ = false;											// カリング有効フラグ

@@ -176,6 +176,5 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="resources\shaders\AABB.hlsli" />
   </ItemGroup>
 </Project>

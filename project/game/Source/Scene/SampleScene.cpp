@@ -61,6 +61,10 @@ void SampleScene::OnInitialize() {
 	// スカイボックスエンティティの作成
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator);
 
+	// パーティクルオブジェクトの作成
+	ParticleObject particleObject{ registry_.get(), particleManager };
+	particleObject.Create();
+
 	// メインカメラの作成
 	mainCamera_ = std::make_unique<DebugCamera>(registry_.get(), sceneManager_->GetInput());
 	mainCamera_->Initialize(cameraEntities_[mainCameraType_]);

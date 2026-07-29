@@ -507,6 +507,10 @@ public:
 	/// @return ポストエフェクト
 	PostEffect GetPostEffect() const { return postEffect_; }
 
+	/// @brief ポストエフェクトを設定
+	/// @param postEffect ポストエフェクト
+	void SetPostEffect(PostEffect postEffect) { postEffect_ = postEffect; }
+
 private:
 	using ConstantBuffers = std::array<std::unique_ptr<ConstantBuffer>, static_cast<size_t>(ConstantBufferType::kCountOfConstantBufferType)>;
 	using StructuredBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;

@@ -34,6 +34,7 @@ uint32_t TreeGenerator::Generate(const Vector3 &rootPosition, const Vector3 &roo
 	}
 	CalculateRadius(branches_.front().get(), minRadius, gamma);
 	treeCounter++;
+	CreateLeaves();
 	return CreateBranchRecursive(branches_.front().get(), std::numeric_limits<uint32_t>::max(), Quaternion::IdentityQuaternion(), branchLength);
 }
 
@@ -209,4 +210,30 @@ uint32_t TreeGenerator::CreateBranchRecursive(Branch *branch, uint32_t parentEnt
 
 	registry_->AddComponent(currentEntity, relationship);
 	return currentEntity;
+}
+
+void TreeGenerator::CreateLeaves() {
+	for (const auto &branch : branches_) {
+		if (branch->children.empty()) {
+			CreateLeaf(branch->position);
+			CreateLeaf(branch->position);
+		}
+	}
+}
+
+void TreeGenerator::CreateLeaf(const Vector3 &position) {
+	Quaternion rotate = Quaternion::MakeRotateAxisAngleQuaternion(Random::generate({ -1.0f, -1.0f, -1.0f }, { 1.0f, 1.0f, 1.0f }).normalized(), Random::generate(0.0f, 360.0f));
+	uint32_t entity = registry_->GenerateEntity();
+	registry_->AddComponent(entity, MeshType::kPlane);
+	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
+	registry_->AddComponent(entity, QuaternionTransform{ .rotate = rotate, .translate = position });
+	registry_->AddComponent(entity, Material{ .environmentCoefficient = 0.0f });
+	registry_->AddComponent(entity, DirtyTransform{});
+	registry_->AddComponent(entity, DirtyMaterial{});
+	registry_->AddComponent(entity, DirtyTextureData{});
+	registry_->AddComponent(entity, DirtyMeshLOD{});
+	registry_->AddComponent(entity, DirtyCullingData{});
+	registry_->AddComponent(entity, instanceAllocator_->Allocate(entity));
+	registry_->AddComponent(entity, primitiveGenerator_->CreatePlane("Leaf" + std::to_string(treeCounter), "oak.png"));
+	registry_->AddComponent(entity, Relationship{});
 }

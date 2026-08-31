@@ -2,13 +2,11 @@
 #include "SampleScene.h"
 #include "SceneManager.h"
 #include "World.h"
-#include "Input.h"
 #include "Skybox.h"
 #include "SkyboxEntity.h"
 #include "AnimatedCube.h"
 #include "SimpleSkin.h"
 #include "Human.h"
-#include "ParticleObject.h"
 #include "Primitive.h"
 #include "TreeGenerator.h"
 #include "DebugCamera.h"
@@ -20,6 +18,16 @@
 #endif // USE_IMGUI
 
 namespace {
+	constexpr uint32_t treeCount = 10;
+	constexpr Range<Vector3> rootPositionRange{ { -40.0f, 0.0f, -40.0f }, { 40.0f, 0.0f, 40.0f } };
+	constexpr Range<Vector3> crownCenterRange{ { 0.0f, 5.0f, 0.0f }, { 5.0f, 10.0f, 5.0f } };
+	constexpr Range<Vector3> crownRadiusRange{ { 5.0f, 2.5f, 5.0f }, { 15.0f, 7.5f, 15.0f } };
+	constexpr Range<uint32_t> leafCountRange{ 1000, 5000 };
+	constexpr Range<float> minRadiusRange{ 0.01f, 0.04f };
+	constexpr Range<float> gammaRange{ 1.8f, 2.3f };
+	constexpr Range<float> influenceRadiusRange{ 4.0f, 8.0f };
+	constexpr Range<float> killRadiusRange{ 1.0f, 3.0f };
+	constexpr Range<float> branchLengthRange{ 0.2f, 0.4f };
 	Vector3 rootPosition{ 0.0f, 0.0f, 0.0f };
 	Vector3 rootDirection{ 0.0f, 1.0f, 0.0f };
 	Vector3 crownCenter{ 0.0f, 5.0f, 0.0f };
@@ -27,7 +35,7 @@ namespace {
 	uint32_t leafCount = 5000;
 	float minRadius = 0.01f;
 	float gamma = 2.0f;
-	float influenceRadius = std::numeric_limits<float>::max();
+	float influenceRadius = 8.0f;
 	float killRadius = 1.6f;
 	float branchLength = 0.3f;
 	Vector3 animatedCubePosition{ 0.0f, 0.0f, 20.0f };
@@ -52,23 +60,24 @@ void SampleScene::OnInitialize() {
 
 	// スカイボックスエンティティの作成
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator);
-
-	// アニメーションするキューブの作成
-	AnimatedCube animatedCube{ registry_.get(), modelManager, instanceAllocator_.get() };
-	animatedCube.Create({ 0.0f, 0.0f, 20.0f });
-
-	// シンプルスキンの作成
-	SimpleSkin simpleSkin{ registry_.get(), modelManager, instanceAllocator_.get() };
-	simpleSkin.Create({ -3.0f, 0.0f, 5.0f });
-
-	// ヒューマンの作成
-	Human human{ registry_.get(), modelManager, instanceAllocator_.get() };
-	human.Create("walk.gltf", { 0.0f, 0.0f, 5.0f });
-	human.Create("sneakWalk.gltf", { 3.0f, 0.0f, 5.0f });
-
-	// パーティクルオブジェクトの作成
-	ParticleObject particleObject{ registry_.get(), particleManager };
-	particleObject.Create();
+	
+	// ツリーの作成
+	PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };
+	TreeGenerator treeGenerator{ registry_.get(), &primitiveGenerator, instanceAllocator_.get() };
+	for (size_t i = 0; i < treeCount; i++) {
+		Vector3 rootPositionRandom = Random::generate(rootPositionRange.min, rootPositionRange.max);
+		Vector3 crownCenterRandom = rootPositionRandom + crownCenter;
+		Vector3 crownRadiusRandom = Random::generate(crownRadiusRange.min, crownRadiusRange.max);
+		uint32_t leafCountRandom = Random::generate(leafCountRange.min, leafCountRange.max);
+		float minRadiusRandom = Random::generate(minRadiusRange.min, minRadiusRange.max);
+		float gammaRandom = Random::generate(gammaRange.min, gammaRange.max);
+		float influenceRadiusRandom = Random::generate(influenceRadiusRange.min, influenceRadiusRange.max);
+		float killRadiusRandom = Random::generate(killRadiusRange.min, killRadiusRange.max);
+		float branchLengthRandom = Random::generate(branchLengthRange.min, branchLengthRange.max);
+		uint32_t treeEntity = treeGenerator.Generate(rootPositionRandom, rootDirection, crownCenterRandom, crownRadiusRandom, leafCountRandom, minRadiusRandom, gammaRandom, influenceRadiusRandom, killRadiusRandom, branchLengthRandom);
+		treeEntities_.emplace_back(treeEntity);
+		Logger::Log(*logStream, "Tree generated " + std::to_string(i) + "\n");
+	}
 
 	// メインカメラの作成
 	mainCamera_ = std::make_unique<DebugCamera>(registry_.get(), sceneManager_->GetInput());
@@ -149,57 +158,6 @@ void SampleScene::OnUpdate() {
 		ImGui::TreePop();
 	}
 #endif // USE_IMGUI
-
-	Input *input = sceneManager_->GetInput();
-	if (input->IsTriggerKey(DIK_0)) {
-		World *world = sceneManager_->GetWorld();
-		world->SetPostEffect(PostEffect::kNone);
-	}
-	
-	if (input->IsTriggerKey(DIK_1)) {
-		World *world = sceneManager_->GetWorld();
-		world->SetPostEffect(PostEffect::kGrayscale);
-	}
-	
-	if (input->IsTriggerKey(DIK_2)) {
-		World *world = sceneManager_->GetWorld();
-		world->SetPostEffect(PostEffect::kVignette);
-	}
-	
-	if (input->IsTriggerKey(DIK_3)) {
-		World *world = sceneManager_->GetWorld();
-		world->SetPostEffect(PostEffect::kBoxFilter);
-	}
-	
-	if (input->IsTriggerKey(DIK_4)) {
-		World *world = sceneManager_->GetWorld();
-		world->SetPostEffect(PostEffect::kGaussianFilter);
-	}
-	
-	if (input->IsTriggerKey(DIK_5)) {
-		World *world = sceneManager_->GetWorld();
-		world->SetPostEffect(PostEffect::kLuminanceBasedOutline);
-	}
-	
-	if (input->IsTriggerKey(DIK_6)) {
-		World *world = sceneManager_->GetWorld();
-		world->SetPostEffect(PostEffect::kDepthBasedOutline);
-	}
-	
-	if (input->IsTriggerKey(DIK_7)) {
-		World *world = sceneManager_->GetWorld();
-		world->SetPostEffect(PostEffect::kRadialBlur);
-	}
-	
-	if (input->IsTriggerKey(DIK_8)) {
-		World *world = sceneManager_->GetWorld();
-		world->SetPostEffect(PostEffect::kDissolve);
-	}
-
-	if (input->IsTriggerKey(DIK_9)) {
-		World *world = sceneManager_->GetWorld();
-		world->SetPostEffect(PostEffect::kNoise);
-	}
 
 	// メインカメラの更新
 	if (!isDebugCameraActive_) {

@@ -41,6 +41,7 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	renderer_->SetTextureManager(textureManager_.get());
 	textureManager_->LoadTexture("kloofendal_48d_partly_cloudy_puresky_2k.dds");
 	textureManager_->LoadTexture("Bark001_1K-JPG_Color.jpg");
+	textureManager_->LoadTexture("oak.png");
 	textureManager_->LoadTexture("white8x8.png");
 	textureManager_->LoadTexture("noise0.png");
 	textureManager_->LoadTexture("noise1.png");

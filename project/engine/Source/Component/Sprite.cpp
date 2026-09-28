@@ -70,8 +70,9 @@ void SpriteManager::UpdateSprite() {
 		transform->translate = { sprite->spriteData.position.x, sprite->spriteData.position.y, 0.0f };
 		transform->scale = { sprite->spriteData.size.x, sprite->spriteData.size.y, 1.0f };
 		transform->rotate = { 0.0f, 0.0f, sprite->spriteData.rotation };
-		registry_->AddComponent<DirtyTransform>(entity, DirtyTransform{});
-		registry_->AddComponent<DirtyMaterial>(entity, DirtyMaterial{});
+		registry_->AddComponent(entity, DirtyTransform{});
+		registry_->AddComponent(entity, DirtyRelationshipTransform{});
+		registry_->AddComponent(entity, DirtyMaterial{});
 		}, exclude<Disabled>());
 }
 

@@ -139,6 +139,15 @@ Matrix3x3 PhysicalSystem::MakeSphereInertiaTensor(float mass, float radius) {
 	return inertiaTensor;
 }
 
+Matrix3x3 PhysicalSystem::MakeBoxInertiaTensor(float mass, const Vector3 &size) {
+	Matrix3x3 inertiaTensor = MakeIdentity3x3();				// 単位行列で初期化
+	inertiaTensor.m[0][0] = size.y * size.y + size.z * size.z;	// x軸の慣性テンソル
+	inertiaTensor.m[1][1] = size.x * size.x + size.z * size.z;	// y軸の慣性テンソル
+	inertiaTensor.m[2][2] = size.x * size.x + size.y * size.y;	// z軸の慣性テンソル
+	inertiaTensor *= (1.0f / 12.0f) * mass;						// 質量を掛ける
+	return inertiaTensor;
+}
+
 void RigidBodyInspector::Draw([[maybe_unused]] uint32_t entity) {
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode("RigidBody")) {

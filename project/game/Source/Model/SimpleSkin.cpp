@@ -15,6 +15,7 @@ void SimpleSkin::Create(const Vector3 &position) {
 	registry_->AddComponent(entity, Relationship{});
 	registry_->AddComponent(entity, Material{});
 	registry_->AddComponent(entity, DirtyTransform{});
+	registry_->AddComponent(entity, DirtyRelationshipTransform{});
 	registry_->AddComponent(entity, DirtyMaterial{});
 	registry_->AddComponent(entity, DirtyTextureData{});
 	registry_->AddComponent(entity, DirtyMeshLOD{});

@@ -2,6 +2,10 @@
 #include "SampleScene.h"
 #include "SceneManager.h"
 #include "World.h"
+#include "EntityComponentSystem.h"
+#include "Model.h"
+#include "RigidBody.h"
+#include "SoftBody.h"
 #include "Skybox.h"
 #include "SkyboxEntity.h"
 #include "AnimatedCube.h"
@@ -11,23 +15,14 @@
 #include "TreeGenerator.h"
 #include "DebugCamera.h"
 #include "Logger.h"
-#include "Random.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
 
 namespace {
-	constexpr uint32_t treeCount = 10;
-	constexpr Range<Vector3> rootPositionRange{ { -40.0f, 0.0f, -40.0f }, { 40.0f, 0.0f, 40.0f } };
-	constexpr Range<Vector3> crownCenterRange{ { 0.0f, 5.0f, 0.0f }, { 5.0f, 10.0f, 5.0f } };
-	constexpr Range<Vector3> crownRadiusRange{ { 5.0f, 2.5f, 5.0f }, { 15.0f, 7.5f, 15.0f } };
-	constexpr Range<uint32_t> leafCountRange{ 1000, 5000 };
-	constexpr Range<float> minRadiusRange{ 0.01f, 0.04f };
-	constexpr Range<float> gammaRange{ 1.8f, 2.3f };
-	constexpr Range<float> influenceRadiusRange{ 4.0f, 8.0f };
-	constexpr Range<float> killRadiusRange{ 1.0f, 3.0f };
-	constexpr Range<float> branchLengthRange{ 0.2f, 0.4f };
+	constexpr float groundHeight = 0.0f;
+	constexpr float halfHeight = 0.5f;
 	Vector3 rootPosition{ 0.0f, 0.0f, 0.0f };
 	Vector3 rootDirection{ 0.0f, 1.0f, 0.0f };
 	Vector3 crownCenter{ 0.0f, 5.0f, 0.0f };
@@ -60,31 +55,13 @@ void SampleScene::OnInitialize() {
 
 	// スカイボックスエンティティの作成
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator);
-	
-	// ツリーの作成
-	PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };
-	TreeGenerator treeGenerator{ registry_.get(), &primitiveGenerator, instanceAllocator_.get() };
-	for (size_t i = 0; i < treeCount; i++) {
-		Vector3 rootPositionRandom = Random::generate(rootPositionRange.min, rootPositionRange.max);
-		Vector3 crownCenterRandom = rootPositionRandom + crownCenter;
-		Vector3 crownRadiusRandom = Random::generate(crownRadiusRange.min, crownRadiusRange.max);
-		uint32_t leafCountRandom = Random::generate(leafCountRange.min, leafCountRange.max);
-		float minRadiusRandom = Random::generate(minRadiusRange.min, minRadiusRange.max);
-		float gammaRandom = Random::generate(gammaRange.min, gammaRange.max);
-		float influenceRadiusRandom = Random::generate(influenceRadiusRange.min, influenceRadiusRange.max);
-		float killRadiusRandom = Random::generate(killRadiusRange.min, killRadiusRange.max);
-		float branchLengthRandom = Random::generate(branchLengthRange.min, branchLengthRange.max);
-		uint32_t treeEntity = treeGenerator.Generate(rootPositionRandom, rootDirection, crownCenterRandom, crownRadiusRandom, leafCountRandom, minRadiusRandom, gammaRandom, influenceRadiusRandom, killRadiusRandom, branchLengthRandom);
-		treeEntities_.emplace_back(treeEntity);
-		Logger::Log(*logStream, "Tree generated " + std::to_string(i) + "\n");
-	}
 
 	// メインカメラの作成
 	mainCamera_ = std::make_unique<DebugCamera>(registry_.get(), sceneManager_->GetInput());
 	mainCamera_->Initialize(cameraEntities_[mainCameraType_]);
 }
 
-void SampleScene::OnUpdate() {
+void SampleScene::OnUpdate(float deltaTime) {
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode("TreeGenerator")) {
 		ImGui::DragFloat3("RootPosition", &rootPosition.x, 0.01f, -10.0f, 10.0f);

@@ -11,6 +11,7 @@
 #include "Camera.h"
 #include "DirectionalLight.h"
 #include "Skybox.h"
+#include "SoftBody.h"
 #include "FootprintMap.h"
 #include "EntityComponentSystem.h"
 #include "SelectionContext.h"
@@ -78,6 +79,8 @@ Renderer::Renderer(Device *device)
 	, radialBlurRootSignature_(device->GetRadialBlurRootSignature())
 	, dissolveRootSignature_(device->GetDissolveRootSignature())
 	, noiseRootSignature_(device->GetNoiseRootSignature())
+	, raymarchingRootSignature_(device->GetRaymarchingRootSignature())
+	, softBodyRootSignature_(device->GetSoftBodyRootSignature())
 	, skinningRootSignature_(device->GetSkinningRootSignature())
 	, initializeParticleRootSignature_(device->GetInitializeParticleRootSignature())
 	, emitParticleRootSignature_(device->GetEmitParticleRootSignature())
@@ -222,6 +225,12 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> skyboxPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Skybox.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(skyboxPSBlob);
 
+	// SoftBodyのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> softBodyVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/SoftBody.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(softBodyVSBlob);
+	Microsoft::WRL::ComPtr<IDxcBlob> softBodyPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/SoftBody.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(softBodyPSBlob);
+
 	// Fullscreenのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> fullscreenVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Fullscreen.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(fullscreenVSBlob);
@@ -263,6 +272,10 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// Noiseのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> noisePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Noise.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(noisePSBlob);
+
+	// Raymarchingのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> raymarchingPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Raymarching.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(raymarchingPSBlob);
 
 	// 枝のシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> branchVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Branch.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -479,6 +492,20 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create SkyboxPipelineState\n");
 	skyboxPipelineState_->SetName(L"SkyboxPipelineState");
 
+	// SoftBody用パイプラインステートの生成
+	softBodyPipelineState_ = PipelineState()
+		.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
+		.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
+		.SetDepthState(writeLessEqualDepthStencilDesc)												// DepthStencilState
+		.SetVertexShader(softBodyVSBlob->GetBufferPointer(), softBodyVSBlob->GetBufferSize())		// 頂点シェーダー
+		.SetPixelShader(softBodyPSBlob->GetBufferPointer(), softBodyPSBlob->GetBufferSize())		// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+		.Create(device_->GetDevice(), softBodyRootSignature_);
+	Logger::Log(logStream, "Create SoftBodyPipelineState\n");
+	softBodyPipelineState_->SetName(L"SoftBodyPipelineState");
+
 	// Fullscreen用パイプラインステートの生成
 	fullscreenPipelineState_ = PipelineState()
 		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
@@ -608,6 +635,19 @@ void Renderer::Initialize(std::ofstream &logStream) {
 		.Create(device_->GetDevice(), noiseRootSignature_);
 	Logger::Log(logStream, "Create NoisePipelineState\n");
 	noisePipelineState_->SetName(L"NoisePipelineState");
+
+	// Raymarching用パイプラインステートの生成
+	raymarchingPipelineState_ = PipelineState()
+		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
+		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
+		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
+		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
+		.SetPixelShader(raymarchingPSBlob->GetBufferPointer(), raymarchingPSBlob->GetBufferSize())	// ピクセルシェーダー
+		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+		.Create(device_->GetDevice(), raymarchingRootSignature_);
+	Logger::Log(logStream, "Create RaymarchingPipelineState\n");
+	raymarchingPipelineState_->SetName(L"RaymarchingPipelineState");
 
 	// スキニング用パイプラインステートの生成
 	skinningPipelineState_ = PipelineState()
@@ -1218,6 +1258,9 @@ void Renderer::RenderSceneView() {
 		// ワールド描画
 		RenderWorld(kDebugCameraIndex);
 
+		// レイマーチング
+		//Raymarching();
+
 		// デバッグ描画
 		DrawLine(kDebugCameraIndex);
 	} else {
@@ -1226,6 +1269,9 @@ void Renderer::RenderSceneView() {
 
 		// ワールド描画
 		RenderWorld(kMainCameraIndex);
+
+		// レイマーチング
+		//Raymarching();
 
 		// デバッグ描画
 		DrawLine(kMainCameraIndex);
@@ -1248,6 +1294,9 @@ void Renderer::RenderGameView() {
 
 	// ワールド描画
 	RenderWorld(kMainCameraIndex);
+
+	// レイマーチング
+	//Raymarching();
 
 	// ポストエフェクトのレンダーターゲットの設定
 	SetupRenderTarget(world_->GetPostEffectRenderTextureRTVHandle(), device_->GetMainCameraDepthStencilTextureDSVHandle(), false);
@@ -1303,6 +1352,7 @@ void Renderer::RenderWorld(uint32_t cameraBufferLocationIndex) {
 	DrawMesh(cameraBufferLocationIndex);
 	DrawParticle(cameraBufferLocationIndex);
 	DrawSprite();
+	DrawSoftBody(cameraBufferLocationIndex);
 }
 
 void Renderer::DrawMesh(uint32_t cameraBufferLocationIndex) {
@@ -1438,6 +1488,41 @@ void Renderer::DrawSkybox(uint32_t cameraBufferLocationIndex) {
 		gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, skybox->textureHandle);
 		meshManager_->Draw(skybox->meshName, 1);
 		}, exclude<Disabled>());
+}
+
+void Renderer::DrawSoftBody(uint32_t cameraBufferLocationIndex) {
+	commandList_->SetGraphicsRootSignature(softBodyRootSignature_);
+
+	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	commandList_->SetPipelineState(softBodyPipelineState_.Get());
+
+	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(0, cameraBufferLocationIndex);
+
+	registry_->ForEach<Model, SoftBodyDataForCPU>([&](uint32_t entity, Model *model, SoftBodyDataForCPU *softBodyData) {
+		world_->GetConstantBuffer(ConstantBufferType::kSoftBodyData)->BindToGraphics(1, 0);
+		meshManager_->Draw(model->modelData.meshes.back().lods.back().meshName, 1);
+		}, exclude<Disabled>());
+}
+
+void Renderer::Raymarching() {
+	// Raymarching用ルートシグネチャの設定
+	commandList_->SetGraphicsRootSignature(raymarchingRootSignature_);
+
+	// 三角形のトポロジの設定
+	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// Raymarching用パイプラインステートの設定
+	commandList_->SetPipelineState(raymarchingPipelineState_.Get());
+
+	// レイマーチングのCBVを設定
+	world_->GetConstantBuffer(ConstantBufferType::kRaymarchData)->BindToGraphics(0, 0);
+	world_->GetConstantBuffer(ConstantBufferType::kSdSceneData)->BindToGraphics(1, 0);
+	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, world_->GetStructuredBufferHandle(StructuredBufferType::kSdSphereData));
+	gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, world_->GetStructuredBufferHandle(StructuredBufferType::kSdBoxData));
+
+	// レイマーチング
+	commandList_->DrawInstanced(3, 1, 0, 0);
 }
 
 void Renderer::CopyImage() {

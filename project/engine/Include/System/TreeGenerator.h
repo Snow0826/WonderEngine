@@ -105,10 +105,8 @@ private:
 	/// @return 作成された枝のエンティティID
 	uint32_t CreateBranchRecursive(Branch *branch, uint32_t parentEntity, const Quaternion &parentWorldRotation, float branchLength);
 
-	/// @brief 葉の作成
-	void CreateLeaves();
-
-	/// @brief 葉の作成
-	/// @param position 葉の位置
-	void CreateLeaf(const Vector3 &position);
+	/// @brief 葉を作成する
+	/// @param parentEntity 親のエンティティID
+	/// @return 作成された葉のエンティティID
+	uint32_t CreateLeaf(uint32_t parentEntity);
 };

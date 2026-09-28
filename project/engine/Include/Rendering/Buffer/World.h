@@ -187,6 +187,38 @@ struct PerFrame final {
 	float deltaTime = 0.0f;	// デルタ時間
 };
 
+/// @brief レイマーチングデータ
+struct RaymarchData final {
+	Matrix4x4 inverseView = MakeIdentity4x4();	// ビュー逆行列
+	Matrix4x4 inverseProjection = MakeIdentity4x4();	// プロジェクション逆行列
+	Vector3 cameraPosition;	// カメラ位置
+	float maxDistance = 100.0f;	// 最大距離
+	uint32_t maxSteps = 128;	// 最大ステップ数
+	float epsilon = 0.001f;	// 許容誤差
+	Vector2 screenSize;	// 画面サイズ
+};
+
+/// @brief シーンSDFデータ
+struct SdSceneData final {
+	uint32_t numSpheres = 0;	// 球の数
+	uint32_t numBoxes = 0;		// ボックスの数
+	float smoothness = 0.5f;	// 滑らかさ
+};
+
+/// @brief 球状SDFデータ
+struct SdSphereData final {
+	Matrix4x4 inverseWorld;	// ワールド逆行列
+	float radius;	// 半径
+	float scale;	// スケール
+};
+
+/// @brief ボックスSDFデータ
+struct SdBoxData final {
+	Matrix4x4 inverseWorld;	// ワールド逆行列
+	Vector3 size;	// サイズ
+	float scale;	// スケール
+};
+
 /// @brief int型4要素ベクトル
 struct Int4 final {
 	int32_t x = 0;
@@ -219,6 +251,9 @@ enum class ConstantBufferType {
 	kRadialBlurParam,			// ラジアルブラーのパラメータ
 	kDissolveParam,				// ディゾルブのパラメータ
 	kPerFrame,					// フレームごとのデータ
+	kRaymarchData,				// レイマーチングデータ
+	kSdSceneData,				// シーンSDFデータ
+	kSoftBodyData,				// ソフトボディデータ
 	kEmitterSphere,				// 球状エミッター
 	kFootprintMap,				// フットプリントマップ
 	kCountOfConstantBufferType	// 定数バッファの種類の数
@@ -232,6 +267,8 @@ enum class StructuredBufferType {
 	kLine,							// ライン
 	kPointLight,					// 点光源
 	kSpotLight,						// スポットライト
+	kSdSphereData,					// 球状SDFデータ
+	kSdBoxData,						// ボックスSDFデータ
 	kCylinder,						// 円柱
 	kMeshInfoForAABB,				// AABB用のメッシュ情報
 	kVertexDataForAABB,				// AABB用の頂点データ
@@ -518,6 +555,8 @@ private:
 	static inline constexpr uint32_t kMaxLine = 65536;					// 最大ライン数
 	static inline constexpr uint32_t kMaxPointLight = 32;				// 最大点光源数
 	static inline constexpr uint32_t kMaxSpotLight = 32;				// 最大スポットライト数
+	static inline constexpr uint32_t kMaxSdSphereData = 1024;			// 最大球状SDF数
+	static inline constexpr uint32_t kMaxSdBoxData = 1024;				// 最大ボックスSDF数
 	static inline constexpr uint32_t kMaxObject = 1000000;				// 最大オブジェクト数
 	static inline constexpr uint32_t kMaxAABB = 1000000;				// 最大AABB数
 	static inline constexpr uint32_t kMaxVertices = 1000000;			// 最大頂点数
@@ -558,6 +597,8 @@ private:
 	RadialBlurParam radialBlurParam_;									// ラジアルブラーのパラメータ
 	DissolveParam dissolveParam_;										// ディゾルブのパラメータ
 	PerFrame perFrame_;													// フレームごとのデータ
+	RaymarchData raymarchData_;											// レイマーチングデータ
+	SdSceneData sdSceneData_;											// シーンSDFデータ
 	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
 	Int4 *colorData_ = nullptr;											// 色データ
 	MeshLOD *meshLODData_ = nullptr;									// メッシュLODデータ
@@ -572,6 +613,8 @@ private:
 	VertexDataForAABB *vertexDataForAABB_ = nullptr;					// AABB用の頂点データ
 	CullingMeshData *cullingMeshData_ = nullptr;						// カリングメッシュデータ
 	CullingObjectData *cullingObjectData_ = nullptr;					// カリングオブジェクトデータ
+	SdSphereData *sdSphereData_ = nullptr;								// 球状SDFデータ
+	SdBoxData *sdBoxData_ = nullptr;									// ボックスSDFデータ
 	uint32_t mipLevels_ = 0;											// ミップレベル数
 	uint32_t sceneRenderTextureRTVHandle_ = 0;							// シーンのレンダーテクスチャRTVハンドル
 	uint32_t sceneRenderTextureSRVHandle_ = 0;							// シーンのレンダーテクスチャSRVハンドル
@@ -631,6 +674,21 @@ private:
 
 	/// @brief スカイボックスの転送
 	void TransferSkybox();
+
+	/// @brief ソフトボディデータの転送
+	void TransferSoftBodyData();
+
+	/// @brief レイマーチングデータの転送
+	void TransferRaymarchData();
+
+	/// @brief シーンSDFデータの転送
+	void TransferSdSceneData();
+
+	/// @brief 球状SDFデータの転送
+	void TransferSdSphereData();
+
+	/// @brief ボックスSDFデータの転送
+	void TransferSdBoxData();
 
 	/// @brief グレースケールカラーの転送
 	void TransferGrayscaleColor();

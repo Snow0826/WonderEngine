@@ -110,6 +110,10 @@ public:
 	/// @return Skybox用ルートシグネチャ
 	ID3D12RootSignature *GetSkyboxRootSignature() const { return skyboxRootSignature_.Get(); }
 
+	/// @brief SoftBody用ルートシグネチャを取得
+	/// @return SoftBody用ルートシグネチャ
+	ID3D12RootSignature *GetSoftBodyRootSignature() const { return softBodyRootSignature_.Get(); }
+
 	/// @brief Fullscreen用ルートシグネチャを取得
 	/// @return Fullscreen用ルートシグネチャ
 	ID3D12RootSignature *GetFullscreenRootSignature() const { return fullscreenRootSignature_.Get(); }
@@ -149,6 +153,10 @@ public:
 	/// @brief Noise用ルートシグネチャを取得
 	/// @return Noise用ルートシグネチャ
 	ID3D12RootSignature *GetNoiseRootSignature() const { return noiseRootSignature_.Get(); }
+
+	/// @brief Raymarching用ルートシグネチャを取得
+	/// @return Raymarching用ルートシグネチャ
+	ID3D12RootSignature *GetRaymarchingRootSignature() const { return raymarchingRootSignature_.Get(); }
 
 	/// @brief スキニング用ルートシグネチャを取得
 	/// @return スキニング用ルートシグネチャ
@@ -240,6 +248,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringParticleRootSignature_ = nullptr;			// RingParticle用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> lineRootSignature_ = nullptr;					// Line用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> skyboxRootSignature_ = nullptr;					// Skybox用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> softBodyRootSignature_ = nullptr;				// SoftBody用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> fullscreenRootSignature_ = nullptr;				// Fullscreen用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> grayscaleRootSignature_ = nullptr;				// Grayscale用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> vignetteRootSignature_ = nullptr;				// Vignette用ルートシグネチャ
@@ -250,6 +259,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> radialBlurRootSignature_ = nullptr;				// RadialBlur用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> dissolveRootSignature_ = nullptr;				// Dissolve用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> noiseRootSignature_ = nullptr;					// Noise用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> raymarchingRootSignature_ = nullptr;			// Raymarching用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> skinningRootSignature_ = nullptr;				// スキニング用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> initializeParticleRootSignature_ = nullptr;		// パーティクル初期化用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> emitParticleRootSignature_ = nullptr;			// パーティクル発生用ルートシグネチャ

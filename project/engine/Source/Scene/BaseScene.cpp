@@ -26,6 +26,7 @@
 #include "PointLight.h"
 #include "SpotLight.h"
 #include "RigidBody.h"
+#include "SoftBody.h"
 #include "Footprint.h"
 #include "CollisionSystem.h"
 #include "AABBRenderer.h"
@@ -114,6 +115,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	pointLightInspector_ = std::make_unique<PointLightInspector>(registry_.get());
 	spotLightInspector_ = std::make_unique<SpotLightInspector>(registry_.get());
 	rigidBodyInspector_ = std::make_unique<RigidBodyInspector>(registry_.get());
+	softBodyInspector_ = std::make_unique<SoftBodyInspector>(registry_.get());
 	footprintInspector_ = std::make_unique<FootprintInspector>(registry_.get());
 	aabbInspector_ = std::make_unique<AABBInspector>(registry_.get());
 	sphereInspector_ = std::make_unique<SphereInspector>(registry_.get());
@@ -138,6 +140,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	componentDrawerRegistry_->RegisterComponentDrawer<PointLight>([this](uint32_t entity) { pointLightInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<SpotLight>([this](uint32_t entity) { spotLightInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<RigidBody>([this](uint32_t entity) { rigidBodyInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<SoftBodyDataForCPU>([this](uint32_t entity) { softBodyInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Footprint>([this](uint32_t entity) { footprintInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Collision::AABB>([this](uint32_t entity) { aabbInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Collision::Sphere>([this](uint32_t entity) { sphereInspector_->Draw(entity); });
@@ -148,6 +151,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	componentDrawerRegistry_->RegisterTagComponent<RenderingCamera>("RenderingCamera");
 	componentDrawerRegistry_->RegisterTagComponent<UseCulling>("UseCulling");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyTransform>("DirtyTransform");
+	componentDrawerRegistry_->RegisterTagComponent<DirtyRelationshipTransform>("DirtyRelationshipTransform");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyMaterial>("DirtyMaterial");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyTextureData>("DirtyTextureData");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyMeshLOD>("DirtyMeshLOD");
@@ -284,7 +288,7 @@ void BaseScene::Update(float deltaTime) {
 	}
 
 	// 派生クラスの更新処理の呼び出し
-	OnUpdate();
+	OnUpdate(deltaTime);
 
 	// スプライトの更新
 	spriteManager_->UpdateSprite();
@@ -337,6 +341,7 @@ void BaseScene::Update(float deltaTime) {
 
 	// DirtyComponentのクリア
 	registry_->ClearComponent<DirtyTransform>();
+	registry_->ClearComponent<DirtyRelationshipTransform>();
 	registry_->ClearComponent<DirtyMaterial>();
 	registry_->ClearComponent<DirtyTextureData>();
 	registry_->ClearComponent<DirtyMeshLOD>();

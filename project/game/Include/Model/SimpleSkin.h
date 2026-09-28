@@ -5,6 +5,7 @@ class ModelManager;
 class InstanceAllocator;
 struct Vector3;
 
+/// @brief シンプルスキン
 class SimpleSkin {
 public:
 	/// @brief コンストラクタ

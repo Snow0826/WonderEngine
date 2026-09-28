@@ -37,6 +37,7 @@ class DirectionalLightInspector;
 class PointLightInspector;
 class SpotLightInspector;
 class RigidBodyInspector;
+class SoftBodyInspector;
 class FootprintInspector;
 class AABBInspector;
 class SphereInspector;
@@ -82,7 +83,8 @@ public:
 	virtual void OnInitialize() = 0;
 
 	/// @brief シーンの更新処理(派生クラスで実装)
-	virtual void OnUpdate() = 0;
+	/// @param deltaTime デルタタイム
+	virtual void OnUpdate(float deltaTime) = 0;
 
 	/// @brief シーンの物理更新後処理(派生クラスで実装)
 	virtual void OnAfterPhysicalUpdate() {}
@@ -123,6 +125,7 @@ protected:
 	std::unique_ptr<PointLightInspector> pointLightInspector_ = nullptr;				// 点光源インスペクター
 	std::unique_ptr<SpotLightInspector> spotLightInspector_ = nullptr;					// スポットライトインスペクター
 	std::unique_ptr<RigidBodyInspector> rigidBodyInspector_ = nullptr;					// 剛体インスペクター
+	std::unique_ptr<SoftBodyInspector> softBodyInspector_ = nullptr;					// ソフトボディインスペクター
 	std::unique_ptr<FootprintInspector> footprintInspector_ = nullptr;					// フットプリントインスペクター
 	std::unique_ptr<AABBInspector> aabbInspector_ = nullptr;							// AABBインスペクター
 	std::unique_ptr<SphereInspector> sphereInspector_ = nullptr;						// 球インスペクター

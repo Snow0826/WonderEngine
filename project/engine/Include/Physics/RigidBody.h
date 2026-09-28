@@ -45,6 +45,12 @@ private:
 	/// @param radius 半径
 	/// @return 球の慣性テンソル
 	Matrix3x3 MakeSphereInertiaTensor(float mass, float radius);
+
+	/// @brief 直方体の慣性テンソルの作成
+	/// @param mass 質量
+	/// @param size サイズ
+	/// @return 直方体の慣性テンソル
+	Matrix3x3 MakeBoxInertiaTensor(float mass, const Vector3 &size);
 };
 
 /// @brief 剛体インスペクター

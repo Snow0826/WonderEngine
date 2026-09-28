@@ -100,6 +100,7 @@ private:
 	ID3D12RootSignature *ringParticleRootSignature_ = nullptr;									// RingParticle用ルートシグネチャ
 	ID3D12RootSignature *lineRootSignature_ = nullptr;											// Line用ルートシグネチャ
 	ID3D12RootSignature *skyboxRootSignature_ = nullptr;										// Skybox用ルートシグネチャ
+	ID3D12RootSignature *softBodyRootSignature_ = nullptr;										// SoftBody用ルートシグネチャ
 	ID3D12RootSignature *fullscreenRootSignature_ = nullptr;									// Fullscreen用ルートシグネチャ
 	ID3D12RootSignature *grayscaleRootSignature_ = nullptr;										// Grayscale用ルートシグネチャ
 	ID3D12RootSignature *vignetteRootSignature_ = nullptr;										// Vignette用ルートシグネチャ
@@ -110,6 +111,7 @@ private:
 	ID3D12RootSignature *radialBlurRootSignature_ = nullptr;									// RadialBlur用ルートシグネチャ
 	ID3D12RootSignature *dissolveRootSignature_ = nullptr;										// Dissolve用ルートシグネチャ
 	ID3D12RootSignature *noiseRootSignature_ = nullptr;											// Noise用ルートシグネチャ
+	ID3D12RootSignature *raymarchingRootSignature_ = nullptr;									// Raymarching用ルートシグネチャ
 	ID3D12RootSignature *skinningRootSignature_ = nullptr;										// スキニング用ルートシグネチャ
 	ID3D12RootSignature *initializeParticleRootSignature_ = nullptr;							// パーティクル初期化用ルートシグネチャ
 	ID3D12RootSignature *emitParticleRootSignature_ = nullptr;									// パーティクル発生用ルートシグネチャ
@@ -130,6 +132,7 @@ private:
 	BlendPipelineState spritePipelineState_;													// Sprite用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> linePipelineState_ = nullptr;					// Line用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> skyboxPipelineState_ = nullptr;					// Skybox用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> softBodyPipelineState_ = nullptr;				// SoftBody用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> fullscreenPipelineState_ = nullptr;				// Fullscreen用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> grayscalePipelineState_ = nullptr;				// Grayscale用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> vignettePipelineState_ = nullptr;				// Vignette用パイプラインステート
@@ -140,6 +143,7 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> radialBlurPipelineState_ = nullptr;				// RadialBlur用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> dissolvePipelineState_ = nullptr;				// Dissolve用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> noisePipelineState_ = nullptr;					// Noise用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> raymarchingPipelineState_ = nullptr;			// Raymarching用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> skinningPipelineState_ = nullptr;				// スキニング用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> initializeParticlePipelineState_ = nullptr;		// パーティクル初期化用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> emitParticlePipelineState_ = nullptr;			// パーティクル発生用パイプラインステート
@@ -235,6 +239,13 @@ private:
 	/// @brief スカイボックスの描画
 	/// @param cameraBufferLocationIndex カメラのバッファ位置
 	void DrawSkybox(uint32_t cameraBufferLocationIndex);
+
+	/// @brief ソフトボディの描画
+	/// @param cameraBufferLocationIndex カメラのバッファ位置
+	void DrawSoftBody(uint32_t cameraBufferLocationIndex);
+
+	/// @brief レイマーチング
+	void Raymarching();
 
 	/// @brief 画像のコピー
 	void CopyImage();

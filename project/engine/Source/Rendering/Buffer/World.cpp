@@ -15,6 +15,7 @@
 #include "Sprite.h"
 #include "Particle.h"
 #include "Skybox.h"
+#include "SoftBody.h"
 #include "Camera.h"
 #include "DirectionalLight.h"
 #include "PointLight.h"
@@ -69,6 +70,8 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFrustum)]->SetName("Frustum");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kSkybox)]->Initialize(device, sizeof(SkyboxForGPU), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kSkybox)]->SetName("Skybox");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kSoftBodyData)]->Initialize(device, sizeof(SoftBodyDataForGPU), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kSoftBodyData)]->SetName("SoftBodyData");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGrayscaleColor)]->Initialize(device, sizeof(GrayscaleColor), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kGrayscaleColor)]->SetName("GrayscaleColor");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kVignetteParam)]->Initialize(device, sizeof(VignetteParam), 1);
@@ -87,6 +90,10 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kDissolveParam)]->SetName("DissolveParam");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPerFrame)]->Initialize(device, sizeof(PerFrame), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kPerFrame)]->SetName("PerFrame");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kRaymarchData)]->Initialize(device, sizeof(RaymarchData), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kRaymarchData)]->SetName("RaymarchData");
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kSdSceneData)]->Initialize(device, sizeof(SdSceneData), 1);
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kSdSceneData)]->SetName("SdSceneData");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kEmitterSphere)]->Initialize(device, sizeof(EmitterSphere), 1);
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kEmitterSphere)]->SetName("EmitterSphere");
 	constantBuffers_[static_cast<size_t>(ConstantBufferType::kFootprintMap)]->Initialize(device, sizeof(FootprintMap), 1);
@@ -107,6 +114,9 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	// PrewittFilter用のパラメータの初期データ設定
 	luminancePrewittFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
 	depthPrewittFilterParam_.texelSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
+
+	// レイマーチングデータの初期データ設定
+	raymarchData_.screenSize = Vector2{ 1.0f / static_cast<float>(Window::GetClientWidth()), 1.0f / static_cast<float>(Window::GetClientHeight()) };
 
 	// キューオフセットリストの初期化
 	for (uint32_t i = 0; i < cullingConstantsData_.queueOffsets.size(); i++) {
@@ -196,6 +206,32 @@ World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinC
 	srvBufferDesc.Buffer.StructureByteStride = sizeof(SpotLight);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 	Logger::Log(logStream, "SpotLight SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
+
+	// SdSphereData用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kSdSphereData);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(SdSphereData) * kMaxSdSphereData);
+	structuredBuffers_[structuredBufferIndex]->SetName("SdSphereData");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&sdSphereData_));
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// SdSphereData用SRVの作成
+	srvBufferDesc.Buffer.NumElements = kMaxSdSphereData;				// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(SdSphereData);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+	Logger::Log(logStream, "SdSphereData SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
+
+	// SdBoxData用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kSdBoxData);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(SdBoxData) * kMaxSdBoxData);
+	structuredBuffers_[structuredBufferIndex]->SetName("SdBoxData");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&sdBoxData_));
+	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+
+	// SdBoxData用SRVの作成
+	srvBufferDesc.Buffer.NumElements = kMaxSdBoxData;				// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(SdBoxData);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
+	Logger::Log(logStream, "SdBoxData SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
 	// Cylinder用StructuredBufferの作成
 	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kCylinder);
@@ -576,6 +612,7 @@ void World::Update(float deltaTime) {
 	TransferMeshLODData();
 	TransferCullingData();
 	TransferSkybox();
+	TransferSoftBodyData();
 	TransferGrayscaleColor();
 	TransferVignetteParam();
 	TransferBoxFilterParam();
@@ -585,6 +622,10 @@ void World::Update(float deltaTime) {
 	TransferRadialBlurParam();
 	TransferDissolveParam();
 	TransferPerFrame(deltaTime);
+	TransferRaymarchData();
+	TransferSdSceneData();
+	TransferSdSphereData();
+	TransferSdBoxData();
 	TransferEmitterSphere();
 	TransferFootprint();
 	TransferFootprintMap();
@@ -605,6 +646,8 @@ void World::Edit() {
 			registry_->AddComponentToAll<UseCulling, Primitive>();
 			registry_->AddComponentToAll<DirtyTransform, Model>();
 			registry_->AddComponentToAll<DirtyTransform, Primitive>();
+			registry_->AddComponentToAll<DirtyRelationshipTransform, Model>();
+			registry_->AddComponentToAll<DirtyRelationshipTransform, Primitive>();
 		} else {
 			registry_->ClearComponent<UseCulling>();
 		}
@@ -823,6 +866,8 @@ void World::TransferMeshLODData() {
 	if (registry_->GetComponentCount<DirtyMeshLOD>() > 0) {
 		meshLODCounter_ = 0;
 		cullingConstantsData_.meshCount = 0;
+		ZeroMemory(meshLODData_, sizeof(MeshLOD) * kMaxAABB);
+		ZeroMemory(cullingMeshData_, sizeof(CullingMeshData) * kMaxAABB);
 		registry_->AddComponentToAll<DirtyMeshLOD, InstanceHandle>();
 	}
 
@@ -893,6 +938,8 @@ void World::TransferCullingData() {
 	if (registry_->GetComponentCount<DirtyCullingData>() > 0) {
 		meshInfoForAABBCounter_ = 0;
 		cylinderCounter_ = 0;
+		ZeroMemory(meshInfoForAABB_, sizeof(MeshInfoForAABB) * kMaxAABB);
+		ZeroMemory(cylinderData_, sizeof(Cylinder) * kMaxAABB);
 		registry_->AddComponentToAll<DirtyCullingData, InstanceHandle>();
 	}
 
@@ -955,6 +1002,65 @@ void World::TransferSkybox() {
 			.color = skybox->color,
 		};
 		constantBuffers_[static_cast<size_t>(ConstantBufferType::kSkybox)]->CopyData(&skyboxForGPU, sizeof(SkyboxForGPU), 0);
+		}, exclude<Disabled>());
+}
+
+void World::TransferSoftBodyData() {
+	registry_->ForEach<SoftBodyDataForCPU, EulerTransform>([&](uint32_t entity, SoftBodyDataForCPU *softBodyData, EulerTransform *eulerTransform) {
+		SoftBodyDataForGPU softBodyDataForGPU{
+			.worldMatrix = eulerTransform->worldMatrix,
+			.impactVelocity = softBodyData->impactVelocity,
+			.hitTime = softBodyData->hitTime,
+			.impactScale = softBodyData->impactScale,
+			.maxImpact = softBodyData->maxImpact,
+			.damping = softBodyData->damping,
+			.frequency = softBodyData->frequency,
+			.squashAmount = softBodyData->squashAmount,
+			.expandAmount = softBodyData->expandAmount,
+			.lowerExpandWeight = softBodyData->lowerExpandWeight,
+			.upperExpandWeight = softBodyData->upperExpandWeight
+		};
+		constantBuffers_[static_cast<size_t>(ConstantBufferType::kSoftBodyData)]->CopyData(&softBodyDataForGPU, sizeof(SoftBodyDataForGPU), 0);
+		}, exclude<Disabled>());
+}
+
+void World::TransferRaymarchData() {
+	TransformSystem transformSystem{ registry_ };
+	registry_->ForEach<Camera, QuaternionTransform, MainCamera>([&](uint32_t entity, Camera *camera, QuaternionTransform *transform, MainCamera *mainCamera) {
+		ViewProjectionData viewProjection = MakeViewProjection(*camera, *transform);
+		CameraPosition cameraPosition = {
+			.worldPosition = transformSystem.GetWorldPosition(entity)
+		};
+		raymarchData_.inverseView = viewProjection.view.inverse();
+		raymarchData_.inverseProjection = viewProjection.projection.inverse();
+		raymarchData_.cameraPosition = cameraPosition.worldPosition;
+		constantBuffers_[static_cast<size_t>(ConstantBufferType::kRaymarchData)]->CopyData(&raymarchData_, sizeof(RaymarchData), 0);
+		}, exclude<Disabled>());
+}
+
+void World::TransferSdSceneData() {
+	sdSceneData_.numSpheres = static_cast<uint32_t>(registry_->GetComponentCount<SdSphereData>());
+	sdSceneData_.numBoxes = static_cast<uint32_t>(registry_->GetComponentCount<SdBoxData>());
+	constantBuffers_[static_cast<size_t>(ConstantBufferType::kSdSceneData)]->CopyData(&sdSceneData_, sizeof(SdSceneData), 0);
+}
+
+void World::TransferSdSphereData() {
+	uint32_t sdSphereCounter = 0;
+	registry_->ForEach<SdSphereData, EulerTransform, DirtyTransform>([&](uint32_t entity, SdSphereData *sdSphereData, EulerTransform *eulerTransform, DirtyTransform *dirtyTransform) {
+		sdSphereData->inverseWorld = eulerTransform->worldMatrix.inverse();
+		sdSphereData->scale = eulerTransform->scale.x;
+		sdSphereData_[sdSphereCounter] = *sdSphereData;
+		sdSphereCounter++;
+		}, exclude<Disabled>());
+}
+
+void World::TransferSdBoxData() {
+	uint32_t sdBoxCounter = 0;
+	registry_->ForEach<SdBoxData, EulerTransform, DirtyTransform>([&](uint32_t entity, SdBoxData *sdBoxData, EulerTransform *eulerTransform, DirtyTransform *dirtyTransform) {
+		sdBoxData->inverseWorld = eulerTransform->worldMatrix.inverse();
+		sdBoxData->scale = eulerTransform->scale.x;
+		sdBoxData_[sdBoxCounter] = *sdBoxData;
+		sdBoxCounter++;
 		}, exclude<Disabled>());
 }
 

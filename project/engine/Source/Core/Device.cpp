@@ -231,6 +231,14 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create SkyboxRootSignature\n");
 	skyboxRootSignature_->SetName(L"SkyboxRootSignature");
 
+	// SoftBody用ルートシグネチャの作成
+	softBodyRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 0)	// 0:ViewProjection
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_VERTEX, 1)	// 1:SoftBodyData
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create SoftBodyRootSignature\n");
+	softBodyRootSignature_->SetName(L"SoftBodyRootSignature");
+
 	// Fullscreen用ルートシグネチャの作成
 	fullscreenRootSignature_ = RootSignature()
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 0:Texture
@@ -323,6 +331,16 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create NoiseRootSignature\n");
 	noiseRootSignature_->SetName(L"NoiseRootSignature");
+
+	// Raymarching用ルートシグネチャの作成
+	raymarchingRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 0:RaymarchData
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)	// 1:SdSceneData
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 2:SdSphereData
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)	// 3:SdBoxData
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create RaymarchingRootSignature\n");
+	raymarchingRootSignature_->SetName(L"RaymarchingRootSignature");
 
 	// スキニング用ルートシグネチャの作成
 	skinningRootSignature_ = RootSignature()

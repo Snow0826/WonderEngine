@@ -81,6 +81,8 @@
     <ClCompile Include="game\Source\Particle\ParticleObject.cpp" />
     <ClCompile Include="engine\Source\Component\InstanceAllocator.cpp" />
     <ClCompile Include="engine\Source\Utilities\GPUTimer.cpp" />
+    <ClCompile Include="engine\Source\Component\SoftBody.cpp" />
+    <ClCompile Include="game\Source\Model\Player.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -173,6 +175,8 @@
     <ClInclude Include="game\Include\Particle\ParticleObject.h" />
     <ClInclude Include="engine\Include\Component\InstanceAllocator.h" />
     <ClInclude Include="engine\Include\Utilities\GPUTimer.h" />
+    <ClInclude Include="engine\Include\Component\SoftBody.h" />
+    <ClInclude Include="game\Include\Model\Player.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

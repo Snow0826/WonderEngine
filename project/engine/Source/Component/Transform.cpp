@@ -8,16 +8,18 @@
 #endif // USE_IMGUI
 
 void TransformSystem::Update() {
-	registry_->ForEach<Relationship, DirtyTransform>([&](uint32_t entity, Relationship *relationship, DirtyTransform *dirtyTransform) {
-		if (relationship->parent == std::numeric_limits<uint32_t>::max()) {
-			UpdateWorldMatrix(entity, MakeIdentity4x4());
-		}
+	registry_->ForEach<Relationship, DirtyTransform, DirtyRelationshipTransform>([&](uint32_t entity, Relationship *relationship, DirtyTransform *dirtyTransform, DirtyRelationshipTransform *dirtyRelationshipTransform) {
+		UpdateWorldMatrix(entity, MakeIdentity4x4());
 		}, exclude<Disabled>());
 }
 
 void TransformSystem::MarkDirty(uint32_t entity) {
 	if (!registry_->HasComponent<DirtyTransform>(entity)) {
 		registry_->AddComponent(entity, DirtyTransform{});
+	}
+
+	if (!registry_->HasComponent<DirtyRelationshipTransform>(entity)) {
+		registry_->AddComponent(entity, DirtyRelationshipTransform{});
 	}
 
 	if (auto relationship = registry_->GetComponent<Relationship>(entity)) {
@@ -189,6 +191,9 @@ void TransformSystem::UpdateWorldMatrix(uint32_t entity, const Matrix4x4 &parent
 			UpdateWorldMatrix(child, currentWorldMatrix);
 		}
 	}
+
+	// DirtyRelationshipTransformコンポーネントを削除
+	registry_->RemoveComponent<DirtyRelationshipTransform>(entity);
 }
 
 void TransformInspector::DrawEulerTransform([[maybe_unused]] uint32_t entity) {

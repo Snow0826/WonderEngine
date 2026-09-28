@@ -243,6 +243,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\System\SceneViewWindow.cpp" />
     <ClCompile Include="engine\Source\System\TransformManipulator.cpp" />
     <ClCompile Include="engine\Source\Asset\SkinCluster.cpp" />
+    <ClCompile Include="engine\Source\Component\SoftBody.cpp" />
+    <ClCompile Include="game\Source\Model\Player.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Component\Primitive.h" />
@@ -335,6 +337,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\Asset\SkinCluster.h" />
     <ClInclude Include="engine\Include\Component\InstanceAllocator.h" />
     <ClInclude Include="engine\Include\Utilities\GPUTimer.h" />
+    <ClInclude Include="engine\Include\Component\SoftBody.h" />
+    <ClInclude Include="game\Include\Model\Player.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

@@ -8,6 +8,9 @@
 /// @brief 変換データが変更されたフラグ
 struct DirtyTransform final {};
 
+/// @brief 親子関係の変換データが変更されたフラグ
+struct DirtyRelationshipTransform final {};
+
 /// @brief オイラー角変換データ
 struct EulerTransform final {
 	Vector3 scale = { 1.0f, 1.0f, 1.0f };		// スケール
@@ -38,6 +41,11 @@ struct Relationship final {
 struct TransformationMatrix final {
 	Matrix4x4 worldMatrix = MakeIdentity4x4();					// ワールド行列
 	Matrix4x4 worldInverseTransposeMatrix = MakeIdentity4x4();	// ワールド逆転置行列
+};
+
+/// @brief ワールド変換データ
+struct WorldTransformData final {
+	Matrix4x4 worldMatrix = MakeIdentity4x4();	// ワールド行列
 };
 
 /// @brief インスタンスデータ

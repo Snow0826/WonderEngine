@@ -228,6 +228,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="game\Source\Model\Human.cpp" />
     <ClCompile Include="engine\Source\Component\InstanceAllocator.cpp" />
     <ClCompile Include="engine\Source\Utilities\GPUTimer.cpp" />
+    <ClCompile Include="game\Source\Model\Ground.cpp" />
     <ClCompile Include="main.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">MaxSpeed</Optimization>
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">true</WholeProgramOptimization>
@@ -339,6 +340,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\Utilities\GPUTimer.h" />
     <ClInclude Include="engine\Include\Component\SoftBody.h" />
     <ClInclude Include="game\Include\Model\Player.h" />
+    <ClInclude Include="game\Include\Model\Ground.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

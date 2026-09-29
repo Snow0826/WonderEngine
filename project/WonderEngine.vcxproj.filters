@@ -83,6 +83,7 @@
     <ClCompile Include="engine\Source\Utilities\GPUTimer.cpp" />
     <ClCompile Include="engine\Source\Component\SoftBody.cpp" />
     <ClCompile Include="game\Source\Model\Player.cpp" />
+    <ClCompile Include="game\Source\Model\Ground.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -177,6 +178,7 @@
     <ClInclude Include="engine\Include\Utilities\GPUTimer.h" />
     <ClInclude Include="engine\Include\Component\SoftBody.h" />
     <ClInclude Include="game\Include\Model\Player.h" />
+    <ClInclude Include="game\Include\Model\Ground.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

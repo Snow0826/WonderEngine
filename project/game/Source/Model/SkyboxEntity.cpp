@@ -5,13 +5,11 @@
 #include <cassert>
 
 void SkyboxEntity::Create(Registry *registry, SkyboxGenerator *skyboxGenerator) {
-	// レジストリのnullチェック
+	// nullチェック
 	assert(registry);
-
-	// スカイボックスジェネレーターのnullチェック
 	assert(skyboxGenerator);
 
-	// 天球の追加
+	// スカイボックスエンティティを生成
 	uint32_t entity = registry->GenerateEntity();
 	registry->AddComponent(entity, Relationship{});
 	registry->AddComponent(entity, DirtyTransform{});

@@ -1,9 +1,10 @@
 #pragma once
+#include <cstdint>
 
 class Registry;
 class ModelManager;
 class InstanceAllocator;
-struct Vector3;
+class FootprintManager;
 
 /// @brief プレイヤー
 class Player {
@@ -12,14 +13,24 @@ public:
 	/// @param registry レジストリ
 	/// @param modelManager モデルマネージャー
 	/// @param instanceAllocator インスタンスアロケータ
-	Player(Registry *registry, ModelManager *modelManager, InstanceAllocator *instanceAllocator) : registry_(registry), modelManager_(modelManager), instanceAllocator_(instanceAllocator) {}
+	/// @param footprintManager フットプリントマネージャー
+	Player(Registry *registry, ModelManager *modelManager, InstanceAllocator *instanceAllocator, FootprintManager *footprintManager) : registry_(registry), modelManager_(modelManager), instanceAllocator_(instanceAllocator), footprintManager_(footprintManager) {}
 
-	/// @brief プレイヤーの作成
-	/// @param position 位置
-	void Create(const Vector3 &position);
+	/// @brief 初期化
+	void Initialize();
+
+	/// @brief 更新
+	void Update();
+
+	/// @brief 移動
+	/// @param x x座標の移動量
+	/// @param z z座標の移動量
+	void Move(float x, float z);
 
 private:
 	Registry *registry_ = nullptr;						// レジストリ
 	ModelManager *modelManager_ = nullptr;				// モデルマネージャー
 	InstanceAllocator *instanceAllocator_ = nullptr;	// インスタンスアロケータ
+	FootprintManager *footprintManager_ = nullptr;		// フットプリントマネージャー
+	uint32_t entity_ = 0;								// プレイヤーのエンティティID
 };

@@ -61,8 +61,7 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	modelManager_->LoadModel("walk.gltf");
 	modelManager_->LoadModel("sneakWalk.gltf");
 	modelManager_->LoadModel("sphere.obj");
-	modelManager_->LoadModel("sphere128.obj");
-	modelManager_->LoadModel("roundedCube.obj");
+	modelManager_->LoadModel("ground.obj");
 
 	// パーティクルグループの作成
 	particleManager_ = std::make_unique<ParticleManager>(device_, textureManager_.get(), meshManager_.get(), logStream_);

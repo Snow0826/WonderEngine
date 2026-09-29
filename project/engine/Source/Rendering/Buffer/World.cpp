@@ -10,6 +10,7 @@
 #include "SkinCluster.h"
 #include "InstanceAllocator.h"
 #include "Material.h"
+#include "UVTransform.h"
 #include "Model.h"
 #include "Primitive.h"
 #include "Sprite.h"
@@ -838,6 +839,9 @@ void World::TransferWorldTransform() {
 
 void World::TransferMaterial() {
 	registry_->ForEach<Material, InstanceHandle, DirtyMaterial>([&](uint32_t entity, Material *material, InstanceHandle *instanceHandle, DirtyMaterial *dirtyMaterial) {
+		if (auto uvTransform = registry_->GetComponent<UVTransform>(entity)) {
+			material->uvTransformMatrix = MakeAffineMatrix(uvTransform->scale, uvTransform->rotate, uvTransform->translate);
+		}
 		materialData_[instanceHandle->value] = *material;
 		}, exclude<Disabled>());
 }

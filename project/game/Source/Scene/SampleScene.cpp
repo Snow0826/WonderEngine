@@ -1,19 +1,20 @@
 #define NOMINMAX
 #include "SampleScene.h"
-#include "SceneManager.h"
-#include "World.h"
 #include "EntityComponentSystem.h"
+#include "SceneManager.h"
+#include "Input.h"
 #include "Model.h"
-#include "RigidBody.h"
-#include "SoftBody.h"
 #include "Skybox.h"
 #include "SkyboxEntity.h"
+#include "Ground.h"
 #include "AnimatedCube.h"
 #include "SimpleSkin.h"
 #include "Human.h"
+#include "Player.h"
 #include "Primitive.h"
 #include "TreeGenerator.h"
 #include "DebugCamera.h"
+#include "DirectionalLight.h"
 #include "Logger.h"
 
 #ifdef USE_IMGUI
@@ -21,8 +22,28 @@
 #endif // USE_IMGUI
 
 namespace {
-	constexpr float groundHeight = 0.0f;
-	constexpr float halfHeight = 0.5f;
+	std::vector<Vector3> rootPositionList = {
+		{ 20.0f, 0.0f, -5.0f }, { 20.0f, 0.0f, 20.0f }, { -10.0f, 0.0f, 20.0f }, { -25.0f, 0.0f, 25.0f },
+		{ -30.0f, 0.0f, 0.0f }, { -15.0f, 0.0f, -20.0f }, { 0.0f, 0.0f, -20.0f }, { 20.0f, 0.0f, -20.0f }
+	};
+	std::vector<Vector3> rootDirectionList = {
+		{ 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f },
+		{ 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }
+	};
+	std::vector<Vector3> crownCenterList = {
+		{ 20.0f, 5.0f, -5.0f }, { 20.0f, 10.0f, 20.0f }, { -10.0f, 10.0f, 20.0f }, { -25.0f, 20.0f, 25.0f },
+		{ -30.0f, 5.0f, 0.0f }, { -15.0f, 15.0f, -20.0f }, { 0.0f, 5.0f, -15.0f }, { 25.0f, 5.0f, -20.0f }
+	};
+	std::vector<Vector3> crownRadiusList = {
+		{ 10.0f, 5.0f, 10.0f }, { 20.0f, 5.0f, 20.0f }, { 10.0f, 5.0f, 10.0f }, { 5.0f, 15.0f, 5.0f },
+		{ 20.0f, 5.0f, 20.0f }, { 5.0f, 10.0f, 5.0f }, { 5.0f, 5.0f, 10.0f }, { 10.0f, 5.0f, 5.0f }
+	};
+	std::vector<uint32_t> leafCountList = { 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000 };
+	std::vector<float> minRadiusList = { 0.01f, 0.01f, 0.01f, 0.01f, 0.01f, 0.01f, 0.01f, 0.01f };
+	std::vector<float> gammaList = { 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f };
+	std::vector<float> influenceRadiusList = { 8.0f, 8.0f, 16.0f, 16.0f, 16.0f, 16.0f, 8.0f, 8.0f };
+	std::vector<float> killRadiusList = { 1.6f, 1.6f, 1.6f, 1.6f, 0.8f, 0.8f, 0.8f, 0.8f };
+	std::vector<float> branchLengthList = { 0.6f, 0.6f, 0.3f, 0.3f, 0.6f, 0.6f, 0.3f, 0.3f };
 	Vector3 rootPosition{ 0.0f, 0.0f, 0.0f };
 	Vector3 rootDirection{ 0.0f, 1.0f, 0.0f };
 	Vector3 crownCenter{ 0.0f, 5.0f, 0.0f };
@@ -56,12 +77,32 @@ void SampleScene::OnInitialize() {
 	// スカイボックスエンティティの作成
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator);
 
+	// 地面の作成
+	Ground::Create(registry_.get(), modelManager, instanceAllocator_.get());
+
+	// 森の作成
+	for (size_t i = 0; i < 8; i++) {
+		PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };
+		TreeGenerator treeGenerator{ registry_.get(), &primitiveGenerator, instanceAllocator_.get() };
+		uint32_t treeEntity = treeGenerator.Generate(rootPositionList[i], rootDirectionList[i], crownCenterList[i], crownRadiusList[i], leafCountList[i], minRadiusList[i], gammaList[i], influenceRadiusList[i], killRadiusList[i]	, branchLengthList[i]);
+		treeEntities_.emplace_back(treeEntity);
+	}
+
+	// プレイヤーの初期化
+	player_ = std::make_unique<Player>(registry_.get(), modelManager, instanceAllocator_.get(), footprintManager_.get());
+	player_->Initialize();
+
 	// メインカメラの作成
 	mainCamera_ = std::make_unique<DebugCamera>(registry_.get(), sceneManager_->GetInput());
 	mainCamera_->Initialize(cameraEntities_[mainCameraType_]);
+
+	// 平行光源の設定
+	auto directionalLight = registry_->GetComponent<DirectionalLight>(directionalLightEntity_);
+	directionalLight->direction = { 0.5f, -1.0f, 0.2f };
 }
 
 void SampleScene::OnUpdate(float deltaTime) {
+	Input *input = sceneManager_->GetInput();
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode("TreeGenerator")) {
 		ImGui::DragFloat3("RootPosition", &rootPosition.x, 0.01f, -10.0f, 10.0f);
@@ -140,4 +181,23 @@ void SampleScene::OnUpdate(float deltaTime) {
 	if (!isDebugCameraActive_) {
 		mainCamera_->Update();
 	}
+
+	if (input->IsPressKey(DIK_W)) {
+		player_->Move(0.0f, 1.0f);
+	}
+
+	if (input->IsPressKey(DIK_A)) {
+		player_->Move(-1.0f, 0.0f);
+	}
+
+	if (input->IsPressKey(DIK_S)) {
+		player_->Move(0.0f, -1.0f);
+	}
+
+	if (input->IsPressKey(DIK_D)) {
+		player_->Move(1.0f, 0.0f);
+	}
+
+	// プレイヤーの更新
+	player_->Update();
 }

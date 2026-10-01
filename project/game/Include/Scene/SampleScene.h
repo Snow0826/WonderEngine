@@ -3,6 +3,7 @@
 #include <vector>
 
 class Player;
+class CameraController;
 
 /// @brief サンプルシーン
 class SampleScene : public BaseScene {
@@ -21,8 +22,8 @@ public:
 	void OnUpdate(float deltaTime) override;
 
 private:
-	std::unique_ptr<DebugCamera> mainCamera_;	// メインカメラ
 	std::vector<uint32_t> treeEntities_;		// 木のエンティティIDのリスト
 	uint32_t softBodyEntity_ = 0;				// ソフトボディのエンティティID
 	std::unique_ptr<Player> player_;			// プレイヤー
+	std::unique_ptr<CameraController> cameraController_;	// カメラコントローラー
 };

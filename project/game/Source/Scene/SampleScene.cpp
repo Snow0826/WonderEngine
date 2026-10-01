@@ -11,6 +11,7 @@
 #include "SimpleSkin.h"
 #include "Human.h"
 #include "Player.h"
+#include "CameraController.h"
 #include "Primitive.h"
 #include "TreeGenerator.h"
 #include "DebugCamera.h"
@@ -70,6 +71,7 @@ void SampleScene::OnInitialize() {
 	ModelManager *modelManager = sceneManager_->GetModelManager();
 	ParticleManager *particleManager = sceneManager_->GetParticleManager();
 	std::ofstream *logStream = sceneManager_->GetLogStream();
+	Input *input = sceneManager_->GetInput();
 
 	// ジェネレーターの初期化
 	SkyboxGenerator skyboxGenerator{ meshManager, textureManager };
@@ -91,10 +93,11 @@ void SampleScene::OnInitialize() {
 	// プレイヤーの初期化
 	player_ = std::make_unique<Player>(registry_.get(), modelManager, instanceAllocator_.get(), footprintManager_.get());
 	player_->Initialize();
+	player_->SetCameraEntity(cameraEntities_[mainCameraType_]);
 
-	// メインカメラの作成
-	mainCamera_ = std::make_unique<DebugCamera>(registry_.get(), sceneManager_->GetInput());
-	mainCamera_->Initialize(cameraEntities_[mainCameraType_]);
+	// カメラコントローラーの初期化
+	cameraController_ = std::make_unique<CameraController>(registry_.get(), input);
+	cameraController_->Initialize(cameraEntities_[mainCameraType_], player_->GetEntity());
 
 	// 平行光源の設定
 	auto directionalLight = registry_->GetComponent<DirectionalLight>(directionalLightEntity_);
@@ -179,9 +182,13 @@ void SampleScene::OnUpdate(float deltaTime) {
 
 	// メインカメラの更新
 	if (!isDebugCameraActive_) {
-		mainCamera_->Update();
+		cameraController_->Update();
 	}
 
+	// プレイヤーの移動量のクリア
+	player_->ClearMove();
+
+	// プレイヤーの移動
 	if (input->IsPressKey(DIK_W)) {
 		player_->Move(0.0f, 1.0f);
 	}
@@ -199,5 +206,5 @@ void SampleScene::OnUpdate(float deltaTime) {
 	}
 
 	// プレイヤーの更新
-	player_->Update();
+	player_->Update(deltaTime);
 }

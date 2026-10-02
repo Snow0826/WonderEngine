@@ -23,38 +23,62 @@
 #endif // USE_IMGUI
 
 namespace {
-	std::vector<Vector3> rootPositionList = {
-		{ 20.0f, 0.0f, -5.0f }, { 20.0f, 0.0f, 20.0f }, { -10.0f, 0.0f, 20.0f }, { -25.0f, 0.0f, 25.0f },
-		{ -30.0f, 0.0f, 0.0f }, { -15.0f, 0.0f, -20.0f }, { 0.0f, 0.0f, -20.0f }, { 20.0f, 0.0f, -20.0f }
+	constexpr std::array<TreeConfig, 8> kTrees = {
+		TreeConfig{
+			.rootPosition = { 20.0f, 0.0f, -5.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
+			.crownCenter = { 20.0f, 5.0f, -5.0f }, .crownRadius = { 10.0f, 5.0f, 10.0f },
+			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 8.0f, .killRadius = 1.6f, .branchLength = 0.6f
+		},
+		TreeConfig{
+			.rootPosition = { 20.0f, 0.0f, 20.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
+			.crownCenter = { 20.0f, 10.0f, 20.0f }, .crownRadius = { 20.0f, 5.0f, 20.0f },
+			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 8.0f, .killRadius = 1.6f, .branchLength = 0.6f
+		},
+		TreeConfig{
+			.rootPosition = { -10.0f, 0.0f, 20.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
+			.crownCenter = { -10.0f, 10.0f, 20.0f }, .crownRadius = { 10.0f, 5.0f, 10.0f },
+			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 16.0f, .killRadius = 1.6f, .branchLength = 0.3f
+		},
+		TreeConfig{
+			.rootPosition = { -25.0f, 0.0f, 25.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
+			.crownCenter = { -25.0f, 20.0f, 25.0f }, .crownRadius = { 5.0f, 15.0f, 5.0f },
+			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 16.0f, .killRadius = 1.6f, .branchLength = 0.3f
+		},
+		TreeConfig{
+			.rootPosition = { -30.0f, 0.0f, 0.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
+			.crownCenter = { -30.0f, 5.0f, 0.0f }, .crownRadius = { 20.0f, 5.0f, 20.0f },
+			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 16.0f, .killRadius = 0.8f, .branchLength = 0.6f
+		},
+		TreeConfig{
+			.rootPosition = { -15.0f, 0.0f, -20.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
+			.crownCenter = { -15.0f, 15.0f, -20.0f }, .crownRadius = { 5.0f, 10.0f, 5.0f },
+			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 16.0f, .killRadius = 0.8f, .branchLength = 0.6f
+		},
+		TreeConfig{
+			.rootPosition = { 0.0f, 0.0f, -20.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
+			.crownCenter = { 0.0f, 5.0f, -15.0f }, .crownRadius = { 5.0f, 5.0f, 10.0f },
+			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 8.0f, .killRadius = 0.8f, .branchLength = 0.3f
+		},
+		TreeConfig{
+			.rootPosition = { 20.0f, 0.0f, -20.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
+			.crownCenter = { 25.0f, 5.0f, -20.0f }, .crownRadius = { 10.0f, 5.0f, 5.0f },
+			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 8.0f, .killRadius = 0.8f, .branchLength = 0.3f
+		},
 	};
-	std::vector<Vector3> rootDirectionList = {
-		{ 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f },
-		{ 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }
+
+	TreeConfig generateTree = {
+		.rootPosition = { 0.0f, 0.0f, 0.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
+		.crownCenter = { 0.0f, 5.0f, 0.0f }, .crownRadius = { 10.0f, 5.0f, 10.0f },
+		.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 8.0f, .killRadius = 1.6f, .branchLength = 0.3f
 	};
-	std::vector<Vector3> crownCenterList = {
-		{ 20.0f, 5.0f, -5.0f }, { 20.0f, 10.0f, 20.0f }, { -10.0f, 10.0f, 20.0f }, { -25.0f, 20.0f, 25.0f },
-		{ -30.0f, 5.0f, 0.0f }, { -15.0f, 15.0f, -20.0f }, { 0.0f, 5.0f, -15.0f }, { 25.0f, 5.0f, -20.0f }
+
+	GroundDesc groundDesc = {
+		.modelName = "ground.obj",
+		.enableLighting = false,
+		.terrainOriginXZ = Vector2{ 0.0f, 0.0f },
+		.terrainSizeXZ = Vector2{ 1024.0f, 1024.0f }
 	};
-	std::vector<Vector3> crownRadiusList = {
-		{ 10.0f, 5.0f, 10.0f }, { 20.0f, 5.0f, 20.0f }, { 10.0f, 5.0f, 10.0f }, { 5.0f, 15.0f, 5.0f },
-		{ 20.0f, 5.0f, 20.0f }, { 5.0f, 10.0f, 5.0f }, { 5.0f, 5.0f, 10.0f }, { 10.0f, 5.0f, 5.0f }
-	};
-	std::vector<uint32_t> leafCountList = { 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000 };
-	std::vector<float> minRadiusList = { 0.01f, 0.01f, 0.01f, 0.01f, 0.01f, 0.01f, 0.01f, 0.01f };
-	std::vector<float> gammaList = { 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f };
-	std::vector<float> influenceRadiusList = { 8.0f, 8.0f, 16.0f, 16.0f, 16.0f, 16.0f, 8.0f, 8.0f };
-	std::vector<float> killRadiusList = { 1.6f, 1.6f, 1.6f, 1.6f, 0.8f, 0.8f, 0.8f, 0.8f };
-	std::vector<float> branchLengthList = { 0.6f, 0.6f, 0.3f, 0.3f, 0.6f, 0.6f, 0.3f, 0.3f };
-	Vector3 rootPosition{ 0.0f, 0.0f, 0.0f };
-	Vector3 rootDirection{ 0.0f, 1.0f, 0.0f };
-	Vector3 crownCenter{ 0.0f, 5.0f, 0.0f };
-	Vector3 crownRadius{ 10.0f, 5.0f, 10.0f };
-	uint32_t leafCount = 5000;
-	float minRadius = 0.01f;
-	float gamma = 2.0f;
-	float influenceRadius = 8.0f;
-	float killRadius = 1.6f;
-	float branchLength = 0.3f;
+
 	Vector3 animatedCubePosition{ 0.0f, 0.0f, 20.0f };
 	Vector3 simpleSkinPosition{ -3.0f, 0.0f, 5.0f };
 	Vector3 walkHumanPosition{ 0.0f, 0.0f, 5.0f };
@@ -80,13 +104,13 @@ void SampleScene::OnInitialize() {
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator);
 
 	// 地面の作成
-	Ground::Create(registry_.get(), modelManager, instanceAllocator_.get());
+	GroundFactory::Create(*registry_, *modelManager, *instanceAllocator_, groundDesc);
 
 	// 森の作成
-	for (size_t i = 0; i < 8; i++) {
+	for (const TreeConfig &tree : kTrees) {
 		PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };
 		TreeGenerator treeGenerator{ registry_.get(), &primitiveGenerator, instanceAllocator_.get() };
-		uint32_t treeEntity = treeGenerator.Generate(rootPositionList[i], rootDirectionList[i], crownCenterList[i], crownRadiusList[i], leafCountList[i], minRadiusList[i], gammaList[i], influenceRadiusList[i], killRadiusList[i]	, branchLengthList[i]);
+		uint32_t treeEntity = treeGenerator.Generate(tree);
 		treeEntities_.emplace_back(treeEntity);
 	}
 
@@ -108,23 +132,23 @@ void SampleScene::OnUpdate(float deltaTime) {
 	Input *input = sceneManager_->GetInput();
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode("TreeGenerator")) {
-		ImGui::DragFloat3("RootPosition", &rootPosition.x, 0.01f, -10.0f, 10.0f);
-		ImGui::DragFloat3("RootDirection", &rootDirection.x, 0.01f, -1.0f, 1.0f);
-		ImGui::DragFloat3("CrownCenter", &crownCenter.x, 0.01f, -10.0f, 10.0f);
-		ImGui::DragFloat3("CrownRadius", &crownRadius.x, 0.01f, 1.0f, 10.0f);
-		ImGui::DragInt("LeafCount", reinterpret_cast<int *>(&leafCount), 1, 100, 5000);
-		ImGui::DragFloat("MinRadius", &minRadius, 0.01f, 0.01f, 1.0f);
-		ImGui::DragFloat("Gamma", &gamma, 0.01f, 1.0f, 5.0f);
-		ImGui::DragFloat("InfluenceRadius", &influenceRadius, 0.01f, 0.1f, 5.0f);
-		ImGui::DragFloat("KillRadius", &killRadius, 0.01f, 0.1f, 5.0f);
-		ImGui::DragFloat("BranchLength", &branchLength, 0.01f, 0.1f, 1.0f);
-		rootDirection = rootDirection.normalized();
+		ImGui::DragFloat3("RootPosition", &generateTree.rootPosition.x, 0.01f, -10.0f, 10.0f);
+		ImGui::DragFloat3("RootDirection", &generateTree.rootDirection.x, 0.01f, -1.0f, 1.0f);
+		ImGui::DragFloat3("CrownCenter", &generateTree.crownCenter.x, 0.01f, -10.0f, 10.0f);
+		ImGui::DragFloat3("CrownRadius", &generateTree.crownRadius.x, 0.01f, 1.0f, 10.0f);
+		ImGui::DragInt("LeafCount", reinterpret_cast<int *>(&generateTree.leafCount), 1, 100, 5000);
+		ImGui::DragFloat("MinRadius", &generateTree.minRadius, 0.01f, 0.01f, 1.0f);
+		ImGui::DragFloat("Gamma", &generateTree.gamma, 0.01f, 1.0f, 5.0f);
+		ImGui::DragFloat("InfluenceRadius", &generateTree.influenceRadius, 0.01f, 0.1f, 5.0f);
+		ImGui::DragFloat("KillRadius", &generateTree.killRadius, 0.01f, 0.1f, 5.0f);
+		ImGui::DragFloat("BranchLength", &generateTree.branchLength, 0.01f, 0.1f, 1.0f);
+		generateTree.rootDirection = generateTree.rootDirection.normalized();
 		MeshManager *meshManager = sceneManager_->GetMeshManager();
 		TextureManager *textureManager = sceneManager_->GetTextureManager();
 		PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };
 		TreeGenerator treeGenerator{ registry_.get(), &primitiveGenerator, instanceAllocator_.get() };
 		if (ImGui::Button("Generate")) {
-			uint32_t treeEntity = treeGenerator.Generate(rootPosition, rootDirection, crownCenter, crownRadius, leafCount, minRadius, gamma, influenceRadius, killRadius, branchLength);
+			uint32_t treeEntity = treeGenerator.Generate(generateTree);
 			treeEntities_.emplace_back(treeEntity);
 		}
 

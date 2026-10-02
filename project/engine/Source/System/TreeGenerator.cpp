@@ -12,14 +12,14 @@ namespace {
 	uint32_t treeCounter = 0;	// 木のカウンター
 }
 
-uint32_t TreeGenerator::Generate(const Vector3 &rootPosition, const Vector3 &rootDirection, const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount, float minRadius, float gamma, float influenceRadius, float killRadius, float branchLength) {
-	GenerateLeaves(crownCenter, crownRadius, leafCount);
-	GenerateRootBranch(rootPosition, rootDirection);
+uint32_t TreeGenerator::Generate(const TreeConfig &tree) {
+	GenerateLeaves(tree.crownCenter, tree.crownRadius, tree.leafCount);
+	GenerateRootBranch(tree.rootPosition, tree.rootDirection);
 	uint32_t noProgressCount = 0;
 	size_t previousLeafCount = leaves_.size();
 	while (!leaves_.empty()) {
-		FindClosestBranch(influenceRadius, killRadius);
-		GrowBranches(branchLength);
+		FindClosestBranch(tree.influenceRadius, tree.killRadius);
+		GrowBranches(tree.branchLength);
 		RemoveLeaves();
 		if (leaves_.size() == previousLeafCount) {
 			noProgressCount++;
@@ -32,9 +32,9 @@ uint32_t TreeGenerator::Generate(const Vector3 &rootPosition, const Vector3 &roo
 			break;
 		}
 	}
-	CalculateRadius(branches_.front().get(), minRadius, gamma);
+	CalculateRadius(branches_.front().get(), tree.minRadius, tree.gamma);
 	treeCounter++;
-	return CreateBranchRecursive(branches_.front().get(), std::numeric_limits<uint32_t>::max(), Quaternion::IdentityQuaternion(), branchLength);
+	return CreateBranchRecursive(branches_.front().get(), std::numeric_limits<uint32_t>::max(), Quaternion::IdentityQuaternion(), tree.branchLength);
 }
 
 void TreeGenerator::Delete(uint32_t entity) {

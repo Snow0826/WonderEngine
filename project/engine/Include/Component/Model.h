@@ -97,7 +97,7 @@ public:
 	/// @brief モデルの検索
 	/// @param fileName モデル名
 	/// @return モデル
-	Model FindModel(const std::string &fileName);
+	Model FindModel(const std::string &fileName) const;
 
 	/// @brief モデルコンボボックスの表示
 	/// @param label ラベル

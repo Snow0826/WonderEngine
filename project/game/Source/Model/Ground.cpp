@@ -8,26 +8,21 @@
 #include "FootprintMap.h"
 #include <cassert>
 
-void Ground::Create(Registry *registry, ModelManager *modelManager, InstanceAllocator *instanceAllocator) {
-	// nullチェック
-	assert(registry);
-	assert(modelManager);
-	assert(instanceAllocator);
-
+void GroundFactory::Create(Registry &registry, const ModelManager &modelManager, InstanceAllocator &instanceAllocator, const GroundDesc &desc) {
 	// 下レイヤーの地面のエンティティを生成
-	uint32_t entity = registry->GenerateEntity();
-	registry->AddComponent(entity, MeshType::kModel);
-	registry->AddComponent(entity, BlendMode::kBlendModeNone);
-	registry->AddComponent(entity, EulerTransform{});
-	registry->AddComponent(entity, Relationship{});
-	registry->AddComponent(entity, Material{ .enableLighting = false });
-	registry->AddComponent(entity, DirtyTransform{});
-	registry->AddComponent(entity, DirtyRelationshipTransform{});
-	registry->AddComponent(entity, DirtyMaterial{});
-	registry->AddComponent(entity, DirtyTextureData{});
-	registry->AddComponent(entity, DirtyMeshLOD{});
-	registry->AddComponent(entity, DirtyCullingData{});
-	registry->AddComponent(entity, instanceAllocator->Allocate(entity));
-	registry->AddComponent(entity, modelManager->FindModel("ground.obj"));
-	registry->AddComponent(entity, FootprintMap{ .terrainOriginXZ = Vector2{ 0.0f, 0.0f }, .terrainSizeXZ = Vector2{ 1024.0f, 1024.0f } });
+	uint32_t entity = registry.GenerateEntity();
+	registry.AddComponent(entity, MeshType::kModel);
+	registry.AddComponent(entity, BlendMode::kBlendModeNone);
+	registry.AddComponent(entity, EulerTransform{});
+	registry.AddComponent(entity, Relationship{});
+	registry.AddComponent(entity, Material{ .enableLighting = desc.enableLighting });
+	registry.AddComponent(entity, DirtyTransform{});
+	registry.AddComponent(entity, DirtyRelationshipTransform{});
+	registry.AddComponent(entity, DirtyMaterial{});
+	registry.AddComponent(entity, DirtyTextureData{});
+	registry.AddComponent(entity, DirtyMeshLOD{});
+	registry.AddComponent(entity, DirtyCullingData{});
+	registry.AddComponent(entity, instanceAllocator.Allocate(entity));
+	registry.AddComponent(entity, modelManager.FindModel(desc.modelName.data()));
+	registry.AddComponent(entity, FootprintMap{ .terrainOriginXZ = desc.terrainOriginXZ, .terrainSizeXZ = desc.terrainSizeXZ });
 }

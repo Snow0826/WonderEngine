@@ -44,7 +44,7 @@ void ModelManager::LoadModel(const std::string &fileName) {
 	models_.insert(std::make_pair(fileName, std::move(model)));
 }
 
-Model ModelManager::FindModel(const std::string &fileName) {
+Model ModelManager::FindModel(const std::string &fileName) const {
 	Model model;
 	if (models_.contains(fileName)) {
 		model = *models_.at(fileName);

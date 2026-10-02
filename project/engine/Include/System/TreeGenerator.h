@@ -27,6 +27,20 @@ struct BranchData final {
 	float inverseLength = 0.0f;	// 長さの逆数
 };
 
+/// @brief 木の設定
+struct TreeConfig {
+	Vector3 rootPosition;	// 根の位置
+	Vector3 rootDirection;	// 根の方向
+	Vector3 crownCenter;	// 樹冠の中心位置
+	Vector3 crownRadius;	// 樹冠の半径
+	uint32_t leafCount;		// 葉の数
+	float minRadius;		// 枝の最小半径
+	float gamma;			// 枝の半径計算のガンマ値
+	float influenceRadius;	// 影響半径
+	float killRadius;		// 消滅半径
+	float branchLength;		// 枝の長さ
+};
+
 class Registry;
 class PrimitiveGenerator;
 class InstanceAllocator;
@@ -43,18 +57,9 @@ public:
 	TreeGenerator(Registry *registry, PrimitiveGenerator *primitiveGenerator, InstanceAllocator *instanceAllocator) : registry_(registry), primitiveGenerator_(primitiveGenerator), instanceAllocator_(instanceAllocator) {}
 
 	/// @brief 木の生成
-	/// @param rootPosition 根の位置
-	/// @param rootDirection 根の方向
-	/// @param crownCenter 葉の生成範囲の中心
-	/// @param crownRadius 葉の生成範囲の半径
-	/// @param leafCount 葉の数
-	/// @param minRadius 枝の最小半径
-	/// @param gamma 枝の半径計算のガンマ値
-	/// @param influenceRadius 影響半径
-	/// @param killRadius 消滅半径
-	/// @param branchLength 枝の長さ
+	/// @param tree 木の設定
 	/// @return 生成された木のエンティティID
-	uint32_t Generate(const Vector3 &rootPosition, const Vector3 &rootDirection, const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount, float minRadius, float gamma, float influenceRadius, float killRadius, float branchLength);
+	uint32_t Generate(const TreeConfig &tree);
 
 	/// @brief 木の削除
 	/// @param entity 削除する木のエンティティID

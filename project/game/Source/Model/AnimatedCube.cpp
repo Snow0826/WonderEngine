@@ -19,7 +19,7 @@ void AnimatedCube::Create(const Vector3 &position) {
 	registry_->AddComponent(entity, DirtyMeshLOD{});
 	registry_->AddComponent(entity, DirtyCullingData{});
 	registry_->AddComponent(entity, instanceAllocator_->Allocate(entity));
-	registry_->AddComponent(entity, modelManager_->FindModel("AnimatedCube.gltf"));
+	registry_->AddComponent(entity, Model{ .name = "AnimatedCube.gltf" });
 	registry_->AddComponent(entity, UseCulling{});
 	registry_->AddComponent(entity, AnimationPlayer{});
 	registry_->AddComponent(entity, AnimationInterpolationMode::Linear);

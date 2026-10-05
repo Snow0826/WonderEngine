@@ -17,54 +17,55 @@
 #include <imgui.h>
 #endif // USE_IMGUI
 
-void ModelManager::LoadModel(const std::string &fileName) {
+void ModelManager::LoadModel(std::string_view fileName) {
 	// すでに読み込まれている場合は何もしない
-	if (models_.contains(fileName)) {
-		Logger::Log(*logStream_, "Model already loaded: " + fileName + "\n");
+	if (modelAssets_.contains(std::string(fileName))) {
+		Logger::Log(*logStream_, "Model already loaded: " + std::string(fileName) + "\n");
 		return;
 	}
 
-	std::unique_ptr<Model> model = std::make_unique<Model>();
+	std::unique_ptr<ModelAsset> modelAsset = std::make_unique<ModelAsset>();
 
 	// モデルデータの読み込み
-	model->modelData = LoadModelData(fileName);
+	modelAsset->modelData = LoadModelData(std::string(fileName));
+
+	// メッシュの作成
+	for (const MeshData &mesh : modelAsset->modelData.meshes) {
+		for (const MeshLODData &lod : mesh.lods) {
+			meshManager_->CreateMesh(lod.meshName, lod);
+		}
+	}
 
 	// テクスチャの読み込み
-	for (const MaterialData &materialData : model->modelData.materials) {
-		model->textureHandle.emplace_back(textureManager_->LoadTexture(materialData.textureFilePath));
-		model->enableMipMaps.emplace_back(true);
+	for (const MaterialData &materialData : modelAsset->modelData.materials) {
+		modelAsset->textureHandle.emplace_back(textureManager_->LoadTexture(materialData.textureFilePath));
+		modelAsset->enableMipMaps.emplace_back(true);
 	}
 	
 	// スキンクラスターの作成
-	model->skinClusterHandle = skinClusterManager_->CreateSkinCluster(model->modelData);
+	modelAsset->skinClusterHandle = skinClusterManager_->CreateSkinCluster(modelAsset->modelData);
 
 	// モデル名の設定
-	model->name = fileName;
-	Logger::Log(*logStream_, "Loaded model: " + fileName + "\n");
-	models_.insert(std::make_pair(fileName, std::move(model)));
+	Logger::Log(*logStream_, "Loaded model: " + std::string(fileName) + "\n");
+	modelAssets_.insert(std::make_pair(std::string(fileName), std::move(modelAsset)));
 }
 
-Model ModelManager::FindModel(const std::string &fileName) const {
-	Model model;
-	if (models_.contains(fileName)) {
-		model = *models_.at(fileName);
-		for (MeshData &mesh : model.modelData.meshes) {
-			for (const MeshLODData &lod : mesh.lods) {
-				meshManager_->CreateMesh(lod.meshName, lod);
-			}
-		}
+ModelAsset* ModelManager::FindModel(std::string_view fileName) const {
+	auto it = modelAssets_.find(std::string(fileName));
+	if (it == modelAssets_.end()) {
+		return nullptr;
 	}
-	return model;
+	return it->second.get();
 }
 
 bool ModelManager::Combo(const std::string &label, Model *model) {
 	bool changed = false;
 #ifdef USE_IMGUI
 	if (ImGui::BeginCombo(label.c_str(), model ? model->name.c_str() : "Select Model")) {
-		for (auto &[name, storedModel] : models_) {
+		for (auto &[name, storedModel] : modelAssets_) {
 			bool isSelected = (model && storedModel->name == model->name);
 			if (ImGui::Selectable(storedModel->name.c_str(), isSelected)) {
-				*model = *storedModel;
+				model->name = storedModel->name;
 				changed = true;
 			}
 			if (isSelected) {
@@ -302,19 +303,19 @@ int32_t ModelManager::CreateJoint(const Node &node, const std::optional<int32_t>
 void ModelInspector::Draw([[maybe_unused]] uint32_t entity) {
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode("Model")) {
-		Model *model = registry_->GetComponent<Model>(entity);
-		if (model) {
-			if (modelManager_->Combo(model->modelData.format, model)) {
+		if (auto model = registry_->GetComponent<Model>(entity)) {
+			ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+			if (modelManager_->Combo(modelAsset->modelData.format, model)) {
 				TransformSystem transformSystem{ registry_ };
 				transformSystem.MarkDirty(entity);
 			}
 
-			for (size_t i = 0; i < model->modelData.meshes.size(); i++) {
+			for (size_t i = 0; i < modelAsset->modelData.meshes.size(); i++) {
 				if (ImGui::TreeNode(("Mesh" + std::to_string(i)).c_str())) {
-					for (size_t j = 0; j < model->modelData.meshes[i].lods.size(); j++) {
+					for (size_t j = 0; j < modelAsset->modelData.meshes[i].lods.size(); j++) {
 						if (ImGui::TreeNode(("LOD" + std::to_string(j)).c_str())) {
-							ImGui::Text("vertices: %zu", model->modelData.meshes[i].lods[j].vertices.size());
-							ImGui::Text("indices: %zu", model->modelData.meshes[i].lods[j].indices.size());
+							ImGui::Text("vertices: %zu", modelAsset->modelData.meshes[i].lods[j].vertices.size());
+							ImGui::Text("indices: %zu", modelAsset->modelData.meshes[i].lods[j].indices.size());
 							ImGui::TreePop();
 						}
 					}

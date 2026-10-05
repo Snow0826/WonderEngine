@@ -55,20 +55,23 @@ struct AnimationPlayer final {
 };
 
 class Registry;
+class ModelManager;
 
 /// @brief アニメーションシステム
 class AnimationSystem final {
 public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
-	AnimationSystem(Registry *registry) : registry_(registry) {}
+	/// @param modelManager モデルマネージャー
+	AnimationSystem(Registry *registry, ModelManager *modelManager) : registry_(registry), modelManager_(modelManager) {}
 
 	/// @brief アニメーションの更新
 	/// @param deltaTime デルタタイム
 	void Update(float deltaTime);
 
 private:
-	Registry *registry_ = nullptr;	// レジストリ
+	Registry *registry_ = nullptr;			// レジストリ
+	ModelManager *modelManager_ = nullptr;	// モデルマネージャー
 
 	/// @brief アニメーションをルートノードに適用
 	void ApplyAnimationToRootNode();

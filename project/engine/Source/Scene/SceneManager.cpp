@@ -62,6 +62,8 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	modelManager_->LoadModel("sneakWalk.gltf");
 	modelManager_->LoadModel("sphere.obj");
 	modelManager_->LoadModel("ground.obj");
+	skinClusterManager_->SetModelManager(modelManager_.get());
+	renderer_->SetModelManager(modelManager_.get());
 
 	// パーティクルグループの作成
 	particleManager_ = std::make_unique<ParticleManager>(device_, textureManager_.get(), meshManager_.get(), logStream_);
@@ -69,7 +71,7 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	renderer_->SetParticleManager(particleManager_.get());
 
 	// ワールドの生成
-	world_ = std::make_unique<World>(device_, meshManager_.get(), skinClusterManager_.get(), *logStream_);
+	world_ = std::make_unique<World>(device_, meshManager_.get(), modelManager_.get(), skinClusterManager_.get(), *logStream_);
 	renderer_->SetWorld(world_.get());
 
 	// 現在のシーンの初期化

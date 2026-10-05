@@ -9,6 +9,7 @@ struct DebugSkeletonSettings final {
 };
 
 class Registry;
+class ModelManager;
 class DebugRenderer;
 
 /// @brief スケルトンの描画システム
@@ -16,14 +17,16 @@ class SkeletonRenderSystem {
 public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
+	/// @param modelManager モデルマネージャー
 	/// @param debugRenderer デバッグレンダラー
-	SkeletonRenderSystem(Registry *registry, DebugRenderer *debugRenderer) : registry_(registry), debugRenderer_(debugRenderer) {}
+	SkeletonRenderSystem(Registry *registry, ModelManager *modelManager, DebugRenderer *debugRenderer) : registry_(registry), modelManager_(modelManager), debugRenderer_(debugRenderer) {}
 
 	/// @brief 更新
 	void Update();
 
 private:
 	Registry *registry_ = nullptr;				// レジストリ
+	ModelManager *modelManager_ = nullptr;		// モデルマネージャー
 	DebugRenderer *debugRenderer_ = nullptr;	// デバッグレンダラー
 };
 

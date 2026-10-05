@@ -61,13 +61,18 @@ struct ModelData final {
 	Node rootNode;	// ルートノード
 };
 
-/// @brief モデル
-struct Model final {
+/// @brief モデルアセット
+struct ModelAsset final {
 	ModelData modelData;					// モデルデータ
 	std::vector<uint32_t> textureHandle;	// テクスチャハンドル
 	std::vector<bool> enableMipMaps;		// ミップマップ有効フラグ
 	uint32_t skinClusterHandle = 0;			// スキンクラスターハンドル
 	std::string name;						// モデル名
+};
+
+/// @brief モデル
+struct Model final {
+	std::string name;	// モデル名
 };
 
 class TextureManager;
@@ -92,12 +97,12 @@ public:
 
 	/// @brief モデルの読み込み
 	/// @param fileName モデル名
-	void LoadModel(const std::string &fileName);
+	void LoadModel(std::string_view fileName);
 
 	/// @brief モデルの検索
 	/// @param fileName モデル名
 	/// @return モデル
-	Model FindModel(const std::string &fileName) const;
+	ModelAsset* FindModel(std::string_view fileName) const;
 
 	/// @brief モデルコンボボックスの表示
 	/// @param label ラベル
@@ -115,11 +120,11 @@ public:
 	static Matrix4x4 MakeLocalMatrix(const Node &node);
 
 private:
-	TextureManager *textureManager_ = nullptr;				// テクスチャマネージャー
-	MeshManager *meshManager_ = nullptr;					// メッシュマネージャー
-	SkinClusterManager *skinClusterManager_ = nullptr;		// スキンクラスターマネージャー
-	std::ofstream *logStream_ = nullptr;					// ログ出力用のストリーム
-	std::map<std::string, std::unique_ptr<Model>> models_;	// 読み込んだモデルのマップ
+	TextureManager *textureManager_ = nullptr;			// テクスチャマネージャー
+	MeshManager *meshManager_ = nullptr;				// メッシュマネージャー
+	SkinClusterManager *skinClusterManager_ = nullptr;	// スキンクラスターマネージャー
+	std::ofstream *logStream_ = nullptr;				// ログ出力用のストリーム
+	std::unordered_map<std::string, std::unique_ptr<ModelAsset>> modelAssets_;	// 読み込んだモデルアセットのマップ
 
 	/// @brief モデルデータの読み込み
 	/// @param fileName モデル名

@@ -14,6 +14,7 @@ class World;
 class DebugRenderer;
 class MeshManager;
 class TextureManager;
+class ModelManager;
 class SkinClusterManager;
 class ParticleManager;
 class FootprintManager;
@@ -55,6 +56,10 @@ public:
 	/// @param textureManager テクスチャマネージャー
 	void SetTextureManager(TextureManager *textureManager);
 
+	/// @brief モデルマネージャーをセットする
+	/// @param modelManager モデルマネージャー
+	void SetModelManager(ModelManager *modelManager);
+
 	/// @brief スキンクラスターマネージャーをセットする
 	/// @param skinClusterManager スキンクラスターマネージャー
 	void SetSkinClusterManager(SkinClusterManager *skinClusterManager);
@@ -91,6 +96,7 @@ private:
 	DebugRenderer *debugRenderer_ = nullptr;													// デバッグレンダラー
 	MeshManager *meshManager_ = nullptr;														// メッシュマネージャー
 	TextureManager *textureManager_ = nullptr;													// テクスチャマネージャー
+	ModelManager *modelManager_ = nullptr;														// モデルマネージャー
 	SkinClusterManager *skinClusterManager_ = nullptr;											// スキンクラスターマネージャー
 	ParticleManager *particleManager_ = nullptr;												// パーティクルマネージャー
 	FootprintManager *footprintManager_ = nullptr;												// フットプリントマネージャー

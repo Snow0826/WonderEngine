@@ -14,7 +14,7 @@
     <nav aria-label="メインナビゲーション">
       <a href="#engine">ENGINE</a><a href="#works">GAMES</a><a href="#about">ABOUT</a>
     </nav>
-    <a class="header-link" href="https://github.com/Snow0826/WonderEngine">GitHub ↗</a>
+    <a class="header-link" href="https://github.com/Snow0826">GitHub ↗</a>
   </header>
 
   <main id="home">
@@ -36,7 +36,7 @@
     <section class="section engine-section" id="engine">
       <div class="section-heading"><div><p class="eyebrow">01 / THE ENGINE</p><h2>Wonder Engine</h2></div><p class="section-intro">ゲームをつくるための、自分だけの道具。<br>設計から実装まで、少しずつ育てています。</p></div>
       <div class="engine-panel">
-        <div class="engine-image"><div class="placeholder-screen"><span class="screen-cross">✳</span><span>エンジン画面のスクリーンショットを追加</span><small>画像を docs/assets/engine-shot.jpg に置き、ここを画像に差し替えてください</small></div><span class="image-index">FIG. 01 — ENGINE VIEW</span></div>
+        <div class="engine-image"><div class="placeholder-screen"><img class="engine-shot" src="./assets/WonderEngine.png" alt="Wonder Engineのエディター画面"></div><span class="image-index">FIG. 01 — ENGINE VIEW</span></div>
         <div class="engine-details"><p class="eyebrow">A PERSONAL GAME ENGINE</p><h3>仕組みからつくる、<br>ゲームの土台。</h3><p>Wonder Engineは、ゲーム制作を通して学びながら開発している自作エンジンです。描画、入力、シーン管理など、実装した機能や現在の開発状況をここに紹介します。</p>
           <div class="feature-list"><div><span>01</span><b>リアルタイム描画</b><small>DirectX 12 / 3D rendering</small></div><div><span>02</span><b>ゲームプレイ基盤</b><small>シーン・入力・衝突判定</small></div><div><span>03</span><b>制作ツール</b><small>C++ / Blender連携</small></div></div>
           <a class="text-link" href="https://github.com/Snow0826/WonderEngine">ソースコードを見る <span>↗</span></a>
@@ -45,18 +45,16 @@
     </section>
 
     <section class="section works-section" id="works">
-      <div class="section-heading"><div><p class="eyebrow">02 / SELECTED WORKS</p><h2>Games & Projects</h2></div><p class="section-intro">ゲームや技術デモを通して、<br>試したこと・学んだことをまとめています。</p></div>
+      <div class="section-heading"><div><p class="eyebrow">02 / SELECTED WORKS</p><h2>Games</h2></div><p class="section-intro">ゲームや技術デモを通して、<br>試したこと・学んだことをまとめています。</p></div>
       <div class="work-grid">
-        <article class="work-card featured"><a class="work-image image-one" href="#work-one" aria-label="作品1の詳細"><span class="image-placeholder">GAME SCREENSHOT 01</span><span class="work-number">01</span><span class="image-arrow">↗</span></a><div class="work-meta"><span>3D ACTION&nbsp; / &nbsp;2025</span><span>PERSONAL PROJECT</span></div><h3><a href="#work-one">作品タイトルを入力</a></h3><p>ゲームの魅力やプレイ体験を短く紹介します。担当した内容、こだわった仕組みを一文で。</p><div class="tag-row"><span>C++</span><span>Wonder Engine</span><span>3D</span></div></article>
-        <article class="work-card"><a class="work-image image-two" href="#work-two" aria-label="作品2の詳細"><span class="image-placeholder">GAME SCREENSHOT 02</span><span class="work-number">02</span><span class="image-arrow">↗</span></a><div class="work-meta"><span>GENRE&nbsp; / &nbsp;YEAR</span><span>TEAM / SOLO</span></div><h3><a href="#work-two">作品タイトルを入力</a></h3><p>作品の概要と、自分が担当した役割を簡潔に記載します。</p><div class="tag-row"><span>使用技術</span><span>担当領域</span></div></article>
-        <article class="work-card"><a class="work-image image-three" href="#work-three" aria-label="作品3の詳細"><span class="image-placeholder">GAME SCREENSHOT 03</span><span class="work-number">03</span><span class="image-arrow">↗</span></a><div class="work-meta"><span>GENRE&nbsp; / &nbsp;YEAR</span><span>TEAM / SOLO</span></div><h3><a href="#work-three">作品タイトルを入力</a></h3><p>作品の概要と、制作で工夫したことを簡潔に記載します。</p><div class="tag-row"><span>使用技術</span><span>担当領域</span></div></article>
+        <article class="work-card featured"><a class="work-image image-one" href="#work-one" aria-label="作品1の詳細"><span class="image-placeholder"><img src="./assets/SnowShotShow!!.png" alt="SnowShotShow!!のゲーム画面"></span></a><div class="work-meta"><span>3D ACTION&nbsp; / &nbsp;2025</span><span>TEAM</span></div><h3><a href="#work-one">SnowShotShow!!</a></h3><div class="tag-row"><span>C++</span><span>Wonder Engine</span><span>3D</span><span>シェーダー・物理担当</span></div></article>
+        <article class="work-card"><a class="work-image image-two" href="#work-two" aria-label="作品2の詳細"><span class="image-placeholder"><img src="./assets/染め戦.png" alt="染め戦のゲーム画面"></span></a><div class="work-meta"><span>3D ACTION&nbsp; / &nbsp;2026</span><span>SOLO</span></div><h3><a href="#work-two">染め戦</a></h3><div class="tag-row"><span>C++</span><span>Wonder Engine</span><span>3D</span></div></article>
       </div>
-      <p class="edit-note">作品カードはサンプルです。作品が増えたらカードを複製し、画像・説明・リンクを更新してください。</p>
     </section>
 
-    <section class="about-section" id="about"><div class="about-inner"><p class="eyebrow">03 / ABOUT THE DEVELOPER</p><h2>ゲームを遊ぶ人にも、<br>つくる人にも、<br><span>面白い体験を。</span></h2><div class="about-bottom"><p>プロフィール、制作で大切にしていること、これから挑戦したいことを記載します。チーム制作の場合は、担当領域が伝わる紹介を添えましょう。</p><a class="button outline" href="mailto:your.email@example.com">連絡する <span>↗</span></a></div></div><div class="about-orb"></div></section>
+    <section class="about-section" id="about"><div class="about-inner"><p class="eyebrow">03 / ABOUT THE DEVELOPER</p><h2>ゲームを遊ぶ人にも、<br>つくる人にも、<br><span>面白い体験を。</span></h2></div><div class="about-orb"></div></section>
   </main>
 
-  <footer class="site-footer"><a class="brand" href="#home"><span class="brand-mark">W</span> WONDER ENGINE</a><span>© 2026 YOUR NAME</span><div><a href="https://github.com/Snow0826/WonderEngine">GitHub ↗</a><a href="#home">BACK TO TOP ↑</a></div></footer>
+  <footer class="site-footer"><a class="brand" href="#home"><span class="brand-mark">W</span> WONDER ENGINE</a><span>© 2026 Yuki Kurata</span><div><a href="https://github.com/Snow0826">GitHub ↗</a><a href="#home">BACK TO TOP ↑</a></div></footer>
 </body>
 </html>

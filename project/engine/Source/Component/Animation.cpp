@@ -5,7 +5,8 @@
 void AnimationSystem::Update(float deltaTime) {
 	// アニメーション時間の更新
 	registry_->ForEach<AnimationPlayer, Model>([&](uint32_t entity, AnimationPlayer *player, Model *model) {
-		const AnimationClip &animationClip = model->modelData.animations[player->animationIndex];
+		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+		const AnimationClip &animationClip = modelAsset->modelData.animations[player->animationIndex];
 		player->currentTime += deltaTime * player->speed;
 		if (player->isLoop) {
 			player->currentTime = std::fmodf(player->currentTime, animationClip.duration);
@@ -25,30 +26,31 @@ void AnimationSystem::ApplyAnimationToRootNode() {
 	TransformSystem transformSystem{ registry_ };
 	registry_->ForEach<AnimationInterpolationMode, AnimationPlayer, Model>([&](uint32_t entity, AnimationInterpolationMode *mode, AnimationPlayer *player, Model *model) {
 		// ノードアニメーションの適用
-		const AnimationClip &animationClip = model->modelData.animations[player->animationIndex];
-		if (auto it = animationClip.nodeAnimations.find(model->modelData.rootNode.name); it != animationClip.nodeAnimations.end()) {
+		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+		const AnimationClip &animationClip = modelAsset->modelData.animations[player->animationIndex];
+		if (auto it = animationClip.nodeAnimations.find(modelAsset->modelData.rootNode.name); it != animationClip.nodeAnimations.end()) {
 			const NodeAnimation &rootNodeAnimation = (*it).second;
 			switch (*mode) {
 				case AnimationInterpolationMode::Linear:
 					if (!rootNodeAnimation.translate.keyframes.empty()) {
-						model->modelData.rootNode.transform.translate = SampleLinearVector3(rootNodeAnimation.translate.keyframes, player->currentTime);
+						modelAsset->modelData.rootNode.transform.translate = SampleLinearVector3(rootNodeAnimation.translate.keyframes, player->currentTime);
 					}
 					if (!rootNodeAnimation.rotate.keyframes.empty()) {
-						model->modelData.rootNode.transform.rotate = SampleLinearQuaternion(rootNodeAnimation.rotate.keyframes, player->currentTime);
+						modelAsset->modelData.rootNode.transform.rotate = SampleLinearQuaternion(rootNodeAnimation.rotate.keyframes, player->currentTime);
 					}
 					if (!rootNodeAnimation.scale.keyframes.empty()) {
-						model->modelData.rootNode.transform.scale = SampleLinearVector3(rootNodeAnimation.scale.keyframes, player->currentTime);
+						modelAsset->modelData.rootNode.transform.scale = SampleLinearVector3(rootNodeAnimation.scale.keyframes, player->currentTime);
 					}
 					break;
 				case AnimationInterpolationMode::Step:
 					if (!rootNodeAnimation.translate.keyframes.empty()) {
-						model->modelData.rootNode.transform.translate = SampleStepVector3(rootNodeAnimation.translate.keyframes, player->currentTime);
+						modelAsset->modelData.rootNode.transform.translate = SampleStepVector3(rootNodeAnimation.translate.keyframes, player->currentTime);
 					}
 					if (!rootNodeAnimation.rotate.keyframes.empty()) {
-						model->modelData.rootNode.transform.rotate = SampleStepQuaternion(rootNodeAnimation.rotate.keyframes, player->currentTime);
+						modelAsset->modelData.rootNode.transform.rotate = SampleStepQuaternion(rootNodeAnimation.rotate.keyframes, player->currentTime);
 					}
 					if (!rootNodeAnimation.scale.keyframes.empty()) {
-						model->modelData.rootNode.transform.scale = SampleStepVector3(rootNodeAnimation.scale.keyframes, player->currentTime);
+						modelAsset->modelData.rootNode.transform.scale = SampleStepVector3(rootNodeAnimation.scale.keyframes, player->currentTime);
 					}
 					break;
 				default:
@@ -65,8 +67,9 @@ void AnimationSystem::ApplyAnimationToSkeleton() {
 	TransformSystem transformSystem{ registry_ };
 	registry_->ForEach<AnimationInterpolationMode, AnimationPlayer, Model, SkinMesh>([&](uint32_t entity, AnimationInterpolationMode *mode, AnimationPlayer *player, Model *model, SkinMesh *skinMesh) {
 		// ノードアニメーションの適用
-		const AnimationClip &animationClip = model->modelData.animations[player->animationIndex];
-		for (Joint &joint : model->modelData.skeleton.joints) {
+		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+		const AnimationClip &animationClip = modelAsset->modelData.animations[player->animationIndex];
+		for (Joint &joint : modelAsset->modelData.skeleton.joints) {
 			if (auto it = animationClip.nodeAnimations.find(joint.name); it != animationClip.nodeAnimations.end()) {
 				const NodeAnimation &nodeAnimation = (*it).second;
 				switch (*mode) {
@@ -100,7 +103,7 @@ void AnimationSystem::ApplyAnimationToSkeleton() {
 		}
 
 		// スケルトンの更新
-		ModelManager::UpdateSkeleton(model->modelData.skeleton);
+		ModelManager::UpdateSkeleton(modelAsset->modelData.skeleton);
 
 		// スケルトンの変換が変更されたことを通知
 		transformSystem.MarkDirty(entity);

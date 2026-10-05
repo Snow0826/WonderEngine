@@ -297,6 +297,7 @@ enum class PostEffect {
 class Device;
 class Registry;
 class MeshManager;
+class ModelManager;
 class SkinClusterManager;
 class ConstantBuffer;
 class Resource;
@@ -314,9 +315,10 @@ public:
 	/// @brief コンストラクタ
 	/// @param device デバイス
 	/// @param meshManager メッシュマネージャー
+	/// @param modelManager モデルマネージャー
 	/// @param skinClusterManager スキンクラスター管理者
 	/// @param logStream ログストリーム
-	World(Device *device, MeshManager *meshManager, SkinClusterManager *skinClusterManager, std::ofstream &logStream);
+	World(Device *device, MeshManager *meshManager, ModelManager *modelManager, SkinClusterManager *skinClusterManager, std::ofstream &logStream);
 
 	/// @brief デストラクタ
 	~World();
@@ -564,6 +566,7 @@ private:
 	static inline constexpr uint32_t kMaxCommandPerQueue = 1024;		// コマンドキューあたりの最大コマンド数
 	Registry *registry_ = nullptr;										// レジストリ
 	MeshManager *meshManager_ = nullptr;								// メッシュマネージャー
+	ModelManager *modelManager_ = nullptr;								// モデルマネージャー
 	SkinClusterManager *skinClusterManager_ = nullptr;					// スキンクラスターマネージャー
 	ConstantBuffers constantBuffers_;									// 定数バッファリスト
 	StructuredBuffers structuredBuffers_;								// 構造化バッファリスト

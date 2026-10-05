@@ -91,14 +91,14 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	cameraSystem_ = std::make_unique<CameraSystem>(registry_.get());
 	physicalSystem_ = std::make_unique<PhysicalSystem>(registry_.get());
 	collisionSystem_ = std::make_unique<CollisionSystem>(registry_.get());
-	animationSystem_ = std::make_unique<AnimationSystem>(registry_.get());
+	animationSystem_ = std::make_unique<AnimationSystem>(registry_.get(), modelManager);
 	aabbRenderSystem_ = std::make_unique<AABBRenderSystem>(registry_.get(), debugRenderer_.get());
 	sphereRenderSystem_ = std::make_unique<SphereRenderSystem>(registry_.get(), debugRenderer_.get());
 	planeRenderSystem_ = std::make_unique<PlaneRenderSystem>(registry_.get(), debugRenderer_.get());
 	obbRenderSystem_ = std::make_unique<OBBRenderSystem>(registry_.get(), debugRenderer_.get());
 	capsuleRenderSystem_ = std::make_unique<CapsuleRenderSystem>(registry_.get(), debugRenderer_.get());
 	frustumRenderSystem_ = std::make_unique<FrustumRenderSystem>(registry_.get(), debugRenderer_.get());
-	skeletonRenderSystem_ = std::make_unique<SkeletonRenderSystem>(registry_.get(), debugRenderer_.get());
+	skeletonRenderSystem_ = std::make_unique<SkeletonRenderSystem>(registry_.get(), modelManager, debugRenderer_.get());
 
 	// インスペクターの生成
 	blendModeInspector_ = std::make_unique<BlendModeInspector>(registry_.get());

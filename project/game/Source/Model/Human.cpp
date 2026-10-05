@@ -21,7 +21,7 @@ void Human::Create(const std::string &fileName, const Vector3 &position) {
 	registry_->AddComponent(entity, DirtyMeshLOD{});
 	registry_->AddComponent(entity, DirtyCullingData{});
 	registry_->AddComponent(entity, instanceAllocator_->Allocate(entity));
-	registry_->AddComponent(entity, modelManager_->FindModel(fileName));
+	registry_->AddComponent(entity, Model{ .name = fileName });
 	registry_->AddComponent(entity, UseCulling{});
 	registry_->AddComponent(entity, SkinMesh{});
 	registry_->AddComponent(entity, AnimationPlayer{});

@@ -8,7 +8,7 @@
 #include "FootprintMap.h"
 #include <cassert>
 
-void GroundFactory::Create(Registry &registry, const ModelManager &modelManager, InstanceAllocator &instanceAllocator, const GroundDesc &desc) {
+void GroundFactory::Create(Registry &registry, InstanceAllocator &instanceAllocator, const GroundDesc &desc) {
 	// 下レイヤーの地面のエンティティを生成
 	uint32_t entity = registry.GenerateEntity();
 	registry.AddComponent(entity, MeshType::kModel);
@@ -23,6 +23,6 @@ void GroundFactory::Create(Registry &registry, const ModelManager &modelManager,
 	registry.AddComponent(entity, DirtyMeshLOD{});
 	registry.AddComponent(entity, DirtyCullingData{});
 	registry.AddComponent(entity, instanceAllocator.Allocate(entity));
-	registry.AddComponent(entity, modelManager.FindModel(desc.modelName.data()));
+	registry.AddComponent(entity, Model{ .name = desc.modelName.data() });
 	registry.AddComponent(entity, FootprintMap{ .terrainOriginXZ = desc.terrainOriginXZ, .terrainSizeXZ = desc.terrainSizeXZ });
 }

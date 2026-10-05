@@ -29,7 +29,7 @@ void Player::Initialize() {
 	registry_->AddComponent(entity_, DirtyMeshLOD{});
 	registry_->AddComponent(entity_, DirtyCullingData{});
 	registry_->AddComponent(entity_, instanceAllocator_->Allocate(entity_));
-	registry_->AddComponent(entity_, modelManager_->FindModel("sphere.obj"));
+	registry_->AddComponent(entity_, Model{ .name = "sphere.obj" });
 	registry_->AddComponent(entity_, RigidBody{ .radius = 1.0f });
 	registry_->AddComponent(entity_, footprintManager_->CreateFootprint(entity_, { 1.0f, 1.0f, 1.0f, 1.0f }));
 	registry_->AddComponent(entity_, Collision::Sphere{ .radius = 1.0f });

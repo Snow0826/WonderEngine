@@ -110,10 +110,11 @@ uint32_t SkinClusterManager::CreateSkinCluster(const ModelData &modelData) {
 
 void SkinClusterManager::Update() {
 	registry_->ForEach<Model, SkinMesh>([this](uint32_t entity, Model *model, SkinMesh *skinMesh) {
-		SkinCluster *skinCluster = skinClusters_[model->skinClusterHandle].get();
-		for (size_t jointIndex = 0; jointIndex < model->modelData.skeleton.joints.size(); ++jointIndex) {
+		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+		SkinCluster *skinCluster = skinClusters_[modelAsset->skinClusterHandle].get();
+		for (size_t jointIndex = 0; jointIndex < modelAsset->modelData.skeleton.joints.size(); ++jointIndex) {
 			assert(jointIndex < skinCluster->inverseBindPoseMatrices.size());
-			skinCluster->mappedPalette[jointIndex].skeletonSpaceMatrix = skinCluster->inverseBindPoseMatrices[jointIndex] * model->modelData.skeleton.joints[jointIndex].skeletonSpaceMatrix;
+			skinCluster->mappedPalette[jointIndex].skeletonSpaceMatrix = skinCluster->inverseBindPoseMatrices[jointIndex] * modelAsset->modelData.skeleton.joints[jointIndex].skeletonSpaceMatrix;
 			skinCluster->mappedPalette[jointIndex].skeletonSpaceInverseTransposeMatrix = skinCluster->mappedPalette[jointIndex].skeletonSpaceMatrix.inverse().transpose();
 		}
 		}, exclude<Disabled>());

@@ -92,7 +92,6 @@ void SampleScene::OnInitialize() {
 	// マネージャーの取得
 	MeshManager *meshManager = sceneManager_->GetMeshManager();
 	TextureManager *textureManager = sceneManager_->GetTextureManager();
-	ModelManager *modelManager = sceneManager_->GetModelManager();
 	ParticleManager *particleManager = sceneManager_->GetParticleManager();
 	std::ofstream *logStream = sceneManager_->GetLogStream();
 	Input *input = sceneManager_->GetInput();
@@ -104,7 +103,7 @@ void SampleScene::OnInitialize() {
 	SkyboxEntity::Create(registry_.get(), &skyboxGenerator);
 
 	// 地面の作成
-	GroundFactory::Create(*registry_, *modelManager, *instanceAllocator_, groundDesc);
+	GroundFactory::Create(*registry_, *instanceAllocator_, groundDesc);
 
 	// 森の作成
 	for (const TreeConfig &tree : kTrees) {
@@ -115,7 +114,7 @@ void SampleScene::OnInitialize() {
 	}
 
 	// プレイヤーの初期化
-	player_ = std::make_unique<Player>(registry_.get(), modelManager, instanceAllocator_.get(), footprintManager_.get());
+	player_ = std::make_unique<Player>(registry_.get(), instanceAllocator_.get(), footprintManager_.get());
 	player_->Initialize();
 	player_->SetCameraEntity(cameraEntities_[mainCameraType_]);
 
@@ -163,8 +162,7 @@ void SampleScene::OnUpdate(float deltaTime) {
 	if (ImGui::TreeNode("AnimatedCube")) {
 		ImGui::DragFloat3("Position", &animatedCubePosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		if (ImGui::Button("Generate")) {
-			ModelManager *modelManager = sceneManager_->GetModelManager();
-			AnimatedCube animatedCube{ registry_.get(), modelManager, instanceAllocator_.get() };
+			AnimatedCube animatedCube{ registry_.get(), instanceAllocator_.get() };
 			animatedCube.Create(animatedCubePosition);
 		}
 		ImGui::TreePop();
@@ -174,8 +172,7 @@ void SampleScene::OnUpdate(float deltaTime) {
 	if (ImGui::TreeNode("SimpleSkin")) {
 		ImGui::DragFloat3("Position", &simpleSkinPosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		if (ImGui::Button("Generate")) {
-			ModelManager *modelManager = sceneManager_->GetModelManager();
-			SimpleSkin simpleSkin{ registry_.get(), modelManager, instanceAllocator_.get() };
+			SimpleSkin simpleSkin{ registry_.get(), instanceAllocator_.get() };
 			simpleSkin.Create(simpleSkinPosition);
 		}
 		ImGui::TreePop();
@@ -185,8 +182,7 @@ void SampleScene::OnUpdate(float deltaTime) {
 	if (ImGui::TreeNode("WalkHuman")) {
 		ImGui::DragFloat3("Position", &walkHumanPosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		if (ImGui::Button("Generate")) {
-			ModelManager *modelManager = sceneManager_->GetModelManager();
-			Human human{ registry_.get(), modelManager, instanceAllocator_.get() };
+			Human human{ registry_.get(), instanceAllocator_.get() };
 			human.Create("walk.gltf", walkHumanPosition);
 		}
 		ImGui::TreePop();
@@ -196,8 +192,7 @@ void SampleScene::OnUpdate(float deltaTime) {
 	if (ImGui::TreeNode("SneakWalkHuman")) {
 		ImGui::DragFloat3("Position", &sneakWalkHumanPosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		if (ImGui::Button("Generate")) {
-			ModelManager *modelManager = sceneManager_->GetModelManager();
-			Human human{ registry_.get(), modelManager, instanceAllocator_.get() };
+			Human human{ registry_.get(), instanceAllocator_.get() };
 			human.Create("sneakWalk.gltf", sneakWalkHumanPosition);
 		}
 		ImGui::TreePop();

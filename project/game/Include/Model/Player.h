@@ -2,7 +2,6 @@
 #include <Vector2.h>
 
 class Registry;
-class ModelManager;
 class InstanceAllocator;
 class FootprintManager;
 
@@ -11,10 +10,9 @@ class Player {
 public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
-	/// @param modelManager モデルマネージャー
 	/// @param instanceAllocator インスタンスアロケータ
 	/// @param footprintManager フットプリントマネージャー
-	Player(Registry *registry, ModelManager *modelManager, InstanceAllocator *instanceAllocator, FootprintManager *footprintManager) : registry_(registry), modelManager_(modelManager), instanceAllocator_(instanceAllocator), footprintManager_(footprintManager) {}
+	Player(Registry *registry, InstanceAllocator *instanceAllocator, FootprintManager *footprintManager) : registry_(registry), instanceAllocator_(instanceAllocator), footprintManager_(footprintManager) {}
 
 	/// @brief 初期化
 	void Initialize();
@@ -41,7 +39,6 @@ public:
 
 private:
 	Registry *registry_ = nullptr;						// レジストリ
-	ModelManager *modelManager_ = nullptr;				// モデルマネージャー
 	InstanceAllocator *instanceAllocator_ = nullptr;	// インスタンスアロケータ	
 	FootprintManager *footprintManager_ = nullptr;		// フットプリントマネージャー
 	uint32_t entity_ = 0;								// プレイヤーのエンティティID

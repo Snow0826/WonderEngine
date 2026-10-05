@@ -11,7 +11,6 @@ struct GroundDesc {
 };
 
 class Registry;
-class ModelManager;
 class InstanceAllocator;
 
 /// @brief 地面
@@ -19,8 +18,7 @@ class GroundFactory {
 public:
 	/// @brief 地面の作成
 	/// @param registry レジストリ
-	/// @param modelManager モデルマネージャー
 	/// @param instanceAllocator インスタンスアロケータ
 	/// @param desc 地面の設定
-	static void Create(Registry &registry, const ModelManager &modelManager, InstanceAllocator &instanceAllocator, const GroundDesc &desc);
+	static void Create(Registry &registry, InstanceAllocator &instanceAllocator, const GroundDesc &desc);
 };

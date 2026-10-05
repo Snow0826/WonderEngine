@@ -889,6 +889,11 @@ void Renderer::SetTextureManager(TextureManager *textureManager) {
 	textureManager_ = textureManager;
 }
 
+void Renderer::SetModelManager(ModelManager *modelManager) {
+	assert(modelManager);
+	modelManager_ = modelManager;
+}
+
 void Renderer::SetSkinClusterManager(SkinClusterManager *skinClusterManager) {
 	assert(skinClusterManager);
 	skinClusterManager_ = skinClusterManager;
@@ -943,12 +948,13 @@ void Renderer::Skinning() {
 	commandList_->SetPipelineState(skinningPipelineState_.Get());
 
 	registry_->ForEach<Model, SkinMesh>([&](uint32_t entity, Model *model, SkinMesh *skinMesh) {
-		size_t vertexCount = model->modelData.meshes.back().lods.back().vertices.size();
+		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+		size_t vertexCount = modelAsset->modelData.meshes.back().lods.back().vertices.size();
 		commandList_->SetComputeRoot32BitConstants(0, 1, &vertexCount, 0);
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, skinClusterManager_->GetPaletteSRVHandle(model->skinClusterHandle));
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, skinClusterManager_->GetVertexSRVHandle(model->skinClusterHandle));
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, skinClusterManager_->GetInfluenceSRVHandle(model->skinClusterHandle));
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, skinClusterManager_->GetVertexUAVHandle(model->skinClusterHandle));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, skinClusterManager_->GetPaletteSRVHandle(modelAsset->skinClusterHandle));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, skinClusterManager_->GetVertexSRVHandle(modelAsset->skinClusterHandle));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, skinClusterManager_->GetInfluenceSRVHandle(modelAsset->skinClusterHandle));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, skinClusterManager_->GetVertexUAVHandle(modelAsset->skinClusterHandle));
 		commandList_->Dispatch((static_cast<uint32_t>(vertexCount) + 1023) / 1024, 1, 1);
 		}, exclude<Disabled>());
 }
@@ -1178,16 +1184,19 @@ void Renderer::Footprint() {
 
 	uint32_t footprintMapCounter = 0;
 	registry_->ForEach<Model, FootprintMap>([&](uint32_t entity, Model *model, FootprintMap *footprintMap) {
+		// モデルアセットの取得
+		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+
 		// フットプリントマップテクスチャをUAVに遷移
-		textureManager_->GetTextureResource(model->modelData.materials.back().textureFilePath)->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+		textureManager_->GetTextureResource(modelAsset->modelData.materials.back().textureFilePath)->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 		// ゲーム終了時はUAVをクリア
 		if (isGameFinished_) {
 			float clearColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 			commandList_->ClearUnorderedAccessViewFloat(
-				gpuCbvSrvUavDescriptorHeap_->GetGPUDescriptorHandle(textureManager_->GetTextureWriteHandle(model->modelData.materials.back().textureFilePath)),
-				cpuCbvSrvUavDescriptorHeap_->GetCPUDescriptorHandle(textureManager_->GetTextureWriteHandle(model->modelData.materials.back().textureFilePath)),
-				textureManager_->GetTextureResource(model->modelData.materials.back().textureFilePath)->GetResource(),
+				gpuCbvSrvUavDescriptorHeap_->GetGPUDescriptorHandle(textureManager_->GetTextureWriteHandle(modelAsset->modelData.materials.back().textureFilePath)),
+				cpuCbvSrvUavDescriptorHeap_->GetCPUDescriptorHandle(textureManager_->GetTextureWriteHandle(modelAsset->modelData.materials.back().textureFilePath)),
+				textureManager_->GetTextureResource(modelAsset->modelData.materials.back().textureFilePath)->GetResource(),
 				clearColor,
 				0,
 				nullptr
@@ -1197,11 +1206,11 @@ void Renderer::Footprint() {
 
 		// フットプリント用CBVを設定
 		world_->GetConstantBuffer(ConstantBufferType::kFootprintMap)->BindToCompute(0, footprintMapCounter);
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, textureManager_->GetTextureWriteHandle(model->modelData.materials.back().textureFilePath));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, textureManager_->GetTextureWriteHandle(modelAsset->modelData.materials.back().textureFilePath));
 
 		// ルートパラメータに基点座標を設定
-		uint32_t groupsX = (static_cast<uint32_t>(textureManager_->GetResourceDesc(model->modelData.materials.back().textureFilePath).Width) + 31) / 32;
-		uint32_t groupsY = (static_cast<uint32_t>(textureManager_->GetResourceDesc(model->modelData.materials.back().textureFilePath).Height) + 31) / 32;
+		uint32_t groupsX = (static_cast<uint32_t>(textureManager_->GetResourceDesc(modelAsset->modelData.materials.back().textureFilePath).Width) + 31) / 32;
+		uint32_t groupsY = (static_cast<uint32_t>(textureManager_->GetResourceDesc(modelAsset->modelData.materials.back().textureFilePath).Height) + 31) / 32;
 		if (groupsZ > 0) {
 			commandList_->Dispatch(groupsX, groupsY, groupsZ);
 		} else {
@@ -1209,7 +1218,7 @@ void Renderer::Footprint() {
 		}
 
 		// フットプリントマップテクスチャをSRVに遷移
-		textureManager_->GetTextureResource(model->modelData.materials.back().textureFilePath)->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		textureManager_->GetTextureResource(modelAsset->modelData.materials.back().textureFilePath)->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		footprintMapCounter++;
 		}, exclude<Disabled>());
 }
@@ -1221,20 +1230,23 @@ void Renderer::LoadResultMap() {
 
 	// 各種バッファのSRV/UAVを設定
 	registry_->ForEach<Model, FootprintMap>([&](uint32_t entity, Model *model, FootprintMap *footprintMap) {
+		// モデルアセットの取得
+		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+
 		// フットプリントマップテクスチャをSRVに遷移
-		textureManager_->GetTextureResource(model->modelData.materials.back().textureFilePath)->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+		textureManager_->GetTextureResource(modelAsset->modelData.materials.back().textureFilePath)->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
 		// フットプリント用CBVを設定
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, textureManager_->GetTextureReadHandle(model->modelData.materials.back().textureFilePath));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, textureManager_->GetTextureReadHandle(modelAsset->modelData.materials.back().textureFilePath));
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetFootprintMapHandle());
 
 		// ルートパラメータに基点座標を設定
-		uint32_t groupsX = (static_cast<uint32_t>(textureManager_->GetResourceDesc(model->modelData.materials.back().textureFilePath).Width) + 31) / 32;
-		uint32_t groupsY = (static_cast<uint32_t>(textureManager_->GetResourceDesc(model->modelData.materials.back().textureFilePath).Height) + 31) / 32;
+		uint32_t groupsX = (static_cast<uint32_t>(textureManager_->GetResourceDesc(modelAsset->modelData.materials.back().textureFilePath).Width) + 31) / 32;
+		uint32_t groupsY = (static_cast<uint32_t>(textureManager_->GetResourceDesc(modelAsset->modelData.materials.back().textureFilePath).Height) + 31) / 32;
 		commandList_->Dispatch(groupsX, groupsY, 1);
 
 		// フットプリントマップテクスチャをSRVに遷移
-		textureManager_->GetTextureResource(model->modelData.materials.back().textureFilePath)->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+		textureManager_->GetTextureResource(modelAsset->modelData.materials.back().textureFilePath)->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		}, exclude<Disabled>());
 }
 
@@ -1500,8 +1512,9 @@ void Renderer::DrawSoftBody(uint32_t cameraBufferLocationIndex) {
 	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToGraphics(0, cameraBufferLocationIndex);
 
 	registry_->ForEach<Model, SoftBodyDataForCPU>([&](uint32_t entity, Model *model, SoftBodyDataForCPU *softBodyData) {
+		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
 		world_->GetConstantBuffer(ConstantBufferType::kSoftBodyData)->BindToGraphics(1, 0);
-		meshManager_->Draw(model->modelData.meshes.back().lods.back().meshName, 1);
+		meshManager_->Draw(modelAsset->modelData.meshes.back().lods.back().meshName, 1);
 		}, exclude<Disabled>());
 }
 

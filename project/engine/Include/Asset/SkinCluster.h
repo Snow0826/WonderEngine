@@ -42,6 +42,7 @@ struct SkinCluster final {
 
 class Device;
 class Registry;
+class ModelManager;
 
 /// @brief スキンクラスターマネージャー
 class SkinClusterManager final {
@@ -62,6 +63,10 @@ public:
 	/// @brief レジストリの設定
 	/// @param registry レジストリ
 	void SetRegistry(Registry *registry) { registry_ = registry; }
+
+	/// @brief モデルマネージャーの設定
+	/// @param modelManager モデルマネージャー
+	void SetModelManager(ModelManager *modelManager) { modelManager_ = modelManager; }
 
 	/// @brief パレットSRVハンドルの取得
 	/// @param skinClusterIndex スキンクラスターインデックス
@@ -92,5 +97,6 @@ private:
 	Device *device_ = nullptr;	// デバイス
 	std::ofstream *logStream_ = nullptr;	// ログ出力用のストリーム
 	Registry *registry_ = nullptr;	// レジストリ
+	ModelManager *modelManager_ = nullptr;	// モデルマネージャー
 	std::vector<std::unique_ptr<SkinCluster>> skinClusters_;	// スキンクラスターリスト
 };

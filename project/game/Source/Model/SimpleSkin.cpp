@@ -21,7 +21,7 @@ void SimpleSkin::Create(const Vector3 &position) {
 	registry_->AddComponent(entity, DirtyMeshLOD{});
 	registry_->AddComponent(entity, DirtyCullingData{});
 	registry_->AddComponent(entity, instanceAllocator_->Allocate(entity));
-	registry_->AddComponent(entity, modelManager_->FindModel("simpleSkin.gltf"));
+	registry_->AddComponent(entity, Model{ .name = "simpleSkin.gltf" });
 	registry_->AddComponent(entity, UseCulling{});
 	registry_->AddComponent(entity, SkinMesh{});
 	registry_->AddComponent(entity, AnimationPlayer{});

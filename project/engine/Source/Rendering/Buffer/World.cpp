@@ -49,8 +49,8 @@ namespace {
 	};
 }
 
-World::World(Device *device, MeshManager *meshManager, SkinClusterManager *skinClusterManager, std::ofstream &logStream)
-	: meshManager_(meshManager), skinClusterManager_(skinClusterManager) {
+World::World(Device *device, MeshManager *meshManager, ModelManager *modelManager, SkinClusterManager *skinClusterManager, std::ofstream &logStream)
+	: meshManager_(meshManager), modelManager_(modelManager), skinClusterManager_(skinClusterManager) {
 	DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device->GetGpuCbvSrvUavDescriptorHeap();
 	DescriptorHeap *cpuCbvSrvUavDescriptorHeap = device->GetCpuCbvSrvUavDescriptorHeap();
 
@@ -816,9 +816,11 @@ void World::TransferCamera() {
 void World::TransferWorldTransform() {
 	registry_->ForEach<InstanceHandle, DirtyTransform>([&](uint32_t entity, InstanceHandle *instanceHandle, DirtyTransform *dirtyTransform) {
 		TransformationMatrix transformationMatrix;
-		Model *model = registry_->GetComponent<Model>(entity);
-		if (model && !registry_->HasComponent<SkinMesh>(entity)) {
-			transformationMatrix.worldMatrix = ModelManager::MakeLocalMatrix(model->modelData.rootNode);
+		if (!registry_->HasComponent<SkinMesh>(entity)) {
+			if (auto model = registry_->GetComponent<Model>(entity)) {
+				ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+				transformationMatrix.worldMatrix = ModelManager::MakeLocalMatrix(modelAsset->modelData.rootNode);
+			}
 		}
 		EulerTransform *eulerTransform = registry_->GetComponent<EulerTransform>(entity);
 		QuaternionTransform *quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity);
@@ -849,10 +851,11 @@ void World::TransferMaterial() {
 void World::TransferTextureData() {
 	registry_->ForEach<InstanceHandle, DirtyTextureData>([&](uint32_t entity, InstanceHandle *instanceHandle, DirtyTextureData *dirtyTextureData) {
 		if (auto model = registry_->GetComponent<Model>(entity)) {
-			for (const MeshData &mesh : model->modelData.meshes) {
+			ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+			for (const MeshData &mesh : modelAsset->modelData.meshes) {
 				TextureData textureData{
-					.textureHandle = model->textureHandle[mesh.materialIndex],
-					.enableMipMaps = model->enableMipMaps[mesh.materialIndex]
+					.textureHandle = modelAsset->textureHandle[mesh.materialIndex],
+					.enableMipMaps = modelAsset->enableMipMaps[mesh.materialIndex]
 				};
 				textureData_[instanceHandle->value] = textureData;
 			}
@@ -879,7 +882,8 @@ void World::TransferMeshLODData() {
 		std::unordered_map<std::string, uint32_t> meshLODOffsets;
 		registry_->ForEach<BlendMode, Model, DirtyMeshLOD>([&](uint32_t entity, BlendMode *blendMode, Model *model, DirtyMeshLOD *dirtyMeshLOD) {
 			if (static_cast<BlendMode>(i) == *blendMode) {
-				for (const MeshData &mesh : model->modelData.meshes) {
+				ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+				for (const MeshData &mesh : modelAsset->modelData.meshes) {
 					for (const MeshLODData &lod : mesh.lods) {
 						auto it = meshLODOffsets.find(lod.meshName);
 						if (it == meshLODOffsets.end()) {
@@ -888,7 +892,7 @@ void World::TransferMeshLODData() {
 
 							meshLODData_[meshLODCounter_].indirectCommand.meshOffset = 0;
 							if (registry_->HasComponent<SkinMesh>(entity)) {
-								meshLODData_[meshLODCounter_].indirectCommand.vertexBufferView = skinClusterManager_->GetOutputVertexBufferView(model->skinClusterHandle);
+								meshLODData_[meshLODCounter_].indirectCommand.vertexBufferView = skinClusterManager_->GetOutputVertexBufferView(modelAsset->skinClusterHandle);
 							} else {
 								meshLODData_[meshLODCounter_].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(lod.meshName);
 							}
@@ -951,7 +955,8 @@ void World::TransferCullingData() {
 	uint32_t vertexOffset = 0;
 	registry_->ForEach<Model, MeshType, BlendMode, InstanceHandle, DirtyCullingData>([&](uint32_t entity, Model *model, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyCullingData *dirtyCullingData) {
 		MeshInfoForAABB *meshInfoForAABB = &meshInfoForAABB_[meshInfoForAABBCounter_];
-		for (const MeshData &mesh : model->modelData.meshes) {
+		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+		for (const MeshData &mesh : modelAsset->modelData.meshes) {
 			for (const MeshLODData &lod : mesh.lods) {
 				meshInfoForAABB->vertexOffset = vertexOffset;
 				meshInfoForAABB->vertexCount = static_cast<uint32_t>(lod.vertices.size());
@@ -961,14 +966,13 @@ void World::TransferCullingData() {
 					vertexDataForAABB_[meshInfoForAABB->vertexOffset + i].position = lod.vertices[i].position;
 				}
 			}
-		}
 
-		for (const MeshData &mesh : model->modelData.meshes) {
 			cullingMeshData_[cullingMeshDataOffset].objectIndex = instanceHandle->value;
 			cullingMeshData_[cullingMeshDataOffset].lodCount = static_cast<uint32_t>(mesh.lods.size());
 			cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
 			cullingMeshDataOffset++;
 		}
+
 		meshInfoForAABBCounter_++;
 		}, exclude<Disabled>());
 

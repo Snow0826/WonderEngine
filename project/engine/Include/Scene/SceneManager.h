@@ -35,6 +35,9 @@ public:
 	/// @param deltaTime デルタタイム
 	void Update(float deltaTime);
 
+	/// @brief フレームの終了処理
+	void EndFrame();
+
 	/// @brief 次のシーンの設定
 	/// @param nextScene 次のシーン
 	void SetNextScene(BaseScene *nextScene) { nextScene_ = nextScene; }

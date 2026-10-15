@@ -90,7 +90,8 @@ Renderer::Renderer(Device *device)
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, clearMeshCommandStatesRootSignature_(device->GetClearMeshCommandStatesRootSignature())
-	, occlusionCullingRootSignature_(device->GetOcclusionCullingRootSignature())
+	, treeCullingRootSignature_(device->GetTreeCullingRootSignature())
+	, meshCullingRootSignature_(device->GetMeshCullingRootSignature())
 	, prefixSumRootSignature_(device->GetPrefixSumRootSignature())
 	, setInstanceCountRootSignature_(device->GetSetInstanceCountRootSignature())
 	, setInstanceIndexRootSignature_(device->GetSetInstanceIndexRootSignature())
@@ -317,9 +318,13 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> clearMeshCommandStatesCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/ClearMeshCommandStates.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(clearMeshCommandStatesCSBlob);
 
-	// オクルージョンカリングのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> occlusionCullingCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/OcclusionCulling.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(occlusionCullingCSBlob);
+	// 木のカリングのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> treeCullingCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/TreeCulling.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(treeCullingCSBlob);
+
+	// メッシュカリングのシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> meshCullingCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/MeshCulling.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(meshCullingCSBlob);
 
 	// 累積和計算用シェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> prefixSumCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/PrefixSum.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -712,12 +717,19 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create ClearMeshCommandStatesPipelineState\n");
 	clearMeshCommandStatesPipelineState_->SetName(L"ClearMeshCommandStatesPipelineState");
 
-	// オクルージョンカリング用パイプラインステートの生成
-	occlusionCullingPipelineState_ = PipelineState()
-		.SetComputeShader(occlusionCullingCSBlob->GetBufferPointer(), occlusionCullingCSBlob->GetBufferSize())	// コンピュートシェーダー
-		.Create(device_->GetDevice(), occlusionCullingRootSignature_);
-	Logger::Log(logStream, "Create OcclusionCullingPipelineState\n");
-	occlusionCullingPipelineState_->SetName(L"OcclusionCullingPipelineState");
+	// 木のカリング用パイプラインステートの生成
+	treeCullingPipelineState_ = PipelineState()
+		.SetComputeShader(treeCullingCSBlob->GetBufferPointer(), treeCullingCSBlob->GetBufferSize())
+		.Create(device_->GetDevice(), treeCullingRootSignature_);
+	Logger::Log(logStream, "Create TreeCullingPipelineState\n");
+	treeCullingPipelineState_->SetName(L"TreeCullingPipelineState");
+
+	// メッシュカリング用パイプラインステートの生成
+	meshCullingPipelineState_ = PipelineState()
+		.SetComputeShader(meshCullingCSBlob->GetBufferPointer(), meshCullingCSBlob->GetBufferSize())	// コンピュートシェーダー
+		.Create(device_->GetDevice(), meshCullingRootSignature_);
+	Logger::Log(logStream, "Create MeshCullingPipelineState\n");
+	meshCullingPipelineState_->SetName(L"MeshCullingPipelineState");
 
 	// 累積和計算用パイプラインステートの生成
 	prefixSumPipelineState_ = PipelineState()
@@ -821,11 +833,14 @@ void Renderer::Render() {
 	// HiZミップマップの生成
 	GenerateHiZMipMap();
 
+	// 木のカリング
+	TreeCulling();
+
 	// メッシュコマンドステートのクリア
 	ClearMeshCommandStates();
 
-	// オクルージョンカリングの実行
-	OcclusionCulling();
+	// メッシュカリングの実行
+	MeshCulling();
 
 	// 累積和計算の実行
 	PrefixSum();
@@ -1060,10 +1075,32 @@ void Renderer::ClearMeshCommandStates() {
 	}
 }
 
-void Renderer::OcclusionCulling() {
-	// オクルージョンカリング用ルートシグネチャとパイプラインステートの設定
-	commandList_->SetComputeRootSignature(occlusionCullingRootSignature_);
-	commandList_->SetPipelineState(occlusionCullingPipelineState_.Get());
+void Renderer::TreeCulling() {
+	const uint32_t treeCount = world_->GetTreeBoundsCount();
+	if (treeCount == 0) {
+		return;
+	}
+
+	commandList_->SetComputeRootSignature(treeCullingRootSignature_);
+	commandList_->SetPipelineState(treeCullingPipelineState_.Get());
+	world_->GetConstantBuffer(ConstantBufferType::kFrustum)->BindToCompute(0, 0);
+	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToCompute(1, 1);
+	CullingTreeConstantsData constants = { .treeCount = treeCount };
+	commandList_->SetComputeRoot32BitConstants(2, sizeof(CullingTreeConstantsData) / sizeof(uint32_t), &constants, 0);
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetTreeBoundsSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetHiZTextureSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetTreeVisibilityUAVHandle());
+
+	world_->GetTreeVisibilityBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	commandList_->Dispatch((treeCount + 63) / 64, 1, 1);
+	world_->GetTreeVisibilityBuffer()->UAVBarrier();
+	world_->GetTreeVisibilityBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+}
+
+void Renderer::MeshCulling() {
+	// メッシュカリング用ルートシグネチャとパイプラインステートの設定
+	commandList_->SetComputeRootSignature(meshCullingRootSignature_);
+	commandList_->SetPipelineState(meshCullingPipelineState_.Get());
 
 	// CBVの設定
 	world_->GetConstantBuffer(ConstantBufferType::kFrustum)->BindToCompute(0, 0);
@@ -1079,24 +1116,27 @@ void Renderer::OcclusionCulling() {
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetStructuredBufferHandle(StructuredBufferType::kCullingMeshData));
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetStructuredBufferHandle(StructuredBufferType::kMeshLOD));
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetAABBSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetHiZTextureSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetMeshCommandStateUAVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(10, world_->GetMeshLODStateUAVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(11, world_->GetProcessedCommandHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(12, world_->GetCommandCounterHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetTreeVisibilitySRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetHiZTextureSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(10, world_->GetMeshCommandStateUAVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(11, world_->GetMeshLODStateUAVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(12, world_->GetProcessedCommandHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(13, world_->GetCommandCounterHandle());
 
 	// コマンドバッファの転送
-	Resource *indirectCommandStructuredBuffer = world_->GetStructuredBuffer(StructuredBufferType::kMeshLOD);
-	indirectCommandStructuredBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_COPY_DEST);
-	indirectCommandStructuredBuffer->CopyFrom(world_->GetCommandUploadBuffer()->GetResource(), 0, 0, sizeof(MeshLOD) * world_->GetMaxAABB());
-	indirectCommandStructuredBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	if (registry_->GetComponentCount<DirtyMeshLOD>() > 0) {
+		Resource *indirectCommandStructuredBuffer = world_->GetStructuredBuffer(StructuredBufferType::kMeshLOD);
+		indirectCommandStructuredBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_COPY_DEST);
+		indirectCommandStructuredBuffer->CopyFrom(world_->GetCommandUploadBuffer()->GetResource(), 0, 0, sizeof(MeshLOD) * world_->GetMeshLODCounter());
+		indirectCommandStructuredBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	}
 
-	// オクルージョンカリングの実行前にUAVを遷移する
+	// メッシュカリングの実行前にUAVを遷移する
 	world_->GetProcessedCommandBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	world_->GetMeshLODStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	world_->GetCommandCounterBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-	// オクルージョンカリングの実行前にカウンタをクリアする
+	// メッシュカリングの実行前にカウンタをクリアする
 	UINT clearValues[4] = { 0, 0, 0, 0 };
 	commandList_->ClearUnorderedAccessViewUint(
 		gpuCbvSrvUavDescriptorHeap_->GetGPUDescriptorHandle(world_->GetCommandCounterHandle()),
@@ -1109,7 +1149,7 @@ void Renderer::OcclusionCulling() {
 
 	world_->GetCommandCounterBuffer()->UAVBarrier();
 
-	// オクルージョンカリングの実行
+	// メッシュカリングの実行
 	uint32_t dispatchCount = (cullingConstantsData.meshCount + 63) / 64;
 	if (dispatchCount > 0) {
 		commandList_->Dispatch(dispatchCount, 1, 1);

@@ -45,10 +45,15 @@ struct Uint4 final {
 /// @brief キューオフセットリスト
 using QueueOffsets = std::array<Uint4, (static_cast<uint32_t>(MeshType::kCountOfMeshType) *static_cast<uint32_t>(BlendMode::kCountOfBlendMode) + 3) / 4>;
 
+/// @brief カリング木定数データ
+struct CullingTreeConstantsData final {
+	uint32_t treeCount = 0;	// 木の数
+};
+
 /// @brief カリング定数データ
 struct CullingConstantsData final {
 	uint32_t meshCount = 0;		// メッシュの数
-	uint32_t padding[3] = {};	// パディング
+	uint32_t padding[3]{};		// パディング
 	QueueOffsets queueOffsets;	// キューオフセットリスト
 };
 
@@ -71,6 +76,7 @@ struct CullingMeshData final {
 	uint32_t lodOffset = 0;		// LODオフセット
 	uint32_t lodCount = 0;		// LOD数
 	uint32_t useCulling = 0;	// カリングを使用するか
+	uint32_t treeIndex = 0xffffffffu;	// 木単位可視状態のインデックス。非木は無効値
 };
 
 /// @brief カリングデータが変更されたフラグ
@@ -490,6 +496,26 @@ public:
 	/// @return AABB用UAVハンドル
 	uint32_t GetAABBUAVHandle() const { return aabbUAVHandle_; }
 
+	/// @brief カリング木の境界ボックスSRVハンドルを取得
+	/// @return カリング木の境界ボックスSRVハンドル
+	uint32_t GetTreeBoundsSRVHandle() const { return treeBoundsSRVHandle_; }
+
+	/// @brief カリング木の可視状態用SRVハンドルを取得
+	/// @return カリング木の可視状態用SRVハンドル
+	uint32_t GetTreeVisibilitySRVHandle() const { return treeVisibilitySRVHandle_; }
+	
+	/// @brief カリング木の可視状態用UAVハンドルを取得
+	/// @return カリング木の可視状態用UAVハンドル
+	uint32_t GetTreeVisibilityUAVHandle() const { return treeVisibilityUAVHandle_; }
+	
+	/// @brief カリング木の可視状態用バッファを取得
+	/// @return カリング木の可視状態用バッファ
+	Resource *GetTreeVisibilityBuffer() { return treeVisibilityBuffer_.get(); }
+	
+	/// @brief カリング木の境界ボックス数を取得
+	/// @return カリング木の境界ボックス数
+	uint32_t GetTreeBoundsCount() const { return treeBoundsCounter_; }
+
 	/// @brief カリング済みコマンドハンドルを取得
 	/// @return カリング済みコマンドハンドル
 	uint32_t GetProcessedCommandHandle() const { return processedCommandHandle_; }
@@ -559,9 +585,10 @@ private:
 	static inline constexpr uint32_t kMaxSpotLight = 32;				// 最大スポットライト数
 	static inline constexpr uint32_t kMaxSdSphereData = 1024;			// 最大球状SDF数
 	static inline constexpr uint32_t kMaxSdBoxData = 1024;				// 最大ボックスSDF数
-	static inline constexpr uint32_t kMaxObject = 1000000;				// 最大オブジェクト数
-	static inline constexpr uint32_t kMaxAABB = 1000000;				// 最大AABB数
-	static inline constexpr uint32_t kMaxVertices = 1000000;			// 最大頂点数
+	static inline constexpr uint32_t kMaxObject = 10000000;				// 最大オブジェクト数
+	static inline constexpr uint32_t kMaxAABB = 10000000;				// 最大AABB数
+	static inline constexpr uint32_t kMaxTrees = 100000;				// 最大カリング対象木数
+	static inline constexpr uint32_t kMaxVertices = 10000000;			// 最大頂点数
 	static inline constexpr uint32_t kMaxFootprint = 64;				// 最大フットプリント数
 	static inline constexpr uint32_t kMaxCommandPerQueue = 1024;		// コマンドキューあたりの最大コマンド数
 	Registry *registry_ = nullptr;										// レジストリ
@@ -576,6 +603,8 @@ private:
 	std::unique_ptr<Resource> postEffectRenderTexture_ = nullptr;		// ポストエフェクトのレンダーテクスチャ
 	std::unique_ptr<Resource> hiZTexture_ = nullptr;					// Hi-Zテクスチャ
 	std::unique_ptr<Resource> aabbBuffer_ = nullptr;					// AABBバッファ
+	std::unique_ptr<Resource> treeBoundsBuffer_ = nullptr;				// 木のAABBバッファ
+	std::unique_ptr<Resource> treeVisibilityBuffer_ = nullptr;			// 木の可視状態バッファ
 	std::unique_ptr<Resource> commandUploadBuffer_ = nullptr;			// コマンドアップロードバッファ
 	std::unique_ptr<Resource> processedCommandBuffer_ = nullptr;		// カリング済みコマンドバッファ
 	std::unique_ptr<Resource> meshCommandStateBuffer_ = nullptr;		// メッシュコマンドステートバッファ
@@ -616,6 +645,8 @@ private:
 	VertexDataForAABB *vertexDataForAABB_ = nullptr;					// AABB用の頂点データ
 	CullingMeshData *cullingMeshData_ = nullptr;						// カリングメッシュデータ
 	CullingObjectData *cullingObjectData_ = nullptr;					// カリングオブジェクトデータ
+	AABBForGPU *treeBoundsData_ = nullptr;								// 木のAABBデータ
+	uint32_t treeBoundsCounter_ = 0;									// 木のAABBカウンター
 	SdSphereData *sdSphereData_ = nullptr;								// 球状SDFデータ
 	SdBoxData *sdBoxData_ = nullptr;									// ボックスSDFデータ
 	uint32_t mipLevels_ = 0;											// ミップレベル数
@@ -633,6 +664,9 @@ private:
 	std::vector<uint32_t> hiZMipMapWriteHandles_;						// Hi-Zミップマップ書き込みハンドル
 	uint32_t aabbSRVHandle_ = 0;										// AABB用SRVハンドル
 	uint32_t aabbUAVHandle_ = 0;										// AABB用UAVハンドル
+	uint32_t treeBoundsSRVHandle_ = 0;									// 木AABB用SRVハンドル
+	uint32_t treeVisibilitySRVHandle_ = 0;								// 木の可視状態用SRVハンドル
+	uint32_t treeVisibilityUAVHandle_ = 0;								// 木の可視状態用UAVハンドル
 	uint32_t processedCommandHandle_ = 0;								// カリング済みコマンドハンドル
 	uint32_t meshCommandStateSRVHandle_ = 0;							// メッシュコマンドステートSRVハンドル
 	uint32_t meshCommandStateUAVHandle_ = 0;							// メッシュコマンドステートUAVハンドル
@@ -645,7 +679,7 @@ private:
 	uint32_t freeListHandle_ = 0;										// フリーリストハンドル
 	uint32_t footprintMapHandle_ = 0;									// フットプリントマップハンドル
 	PostEffect postEffect_ = PostEffect::kNone;							// ポストエフェクト
-	bool isCulling_ = false;											// カリング有効フラグ
+	bool isCulling_ = false;											// カリングフラグ
 	bool isResult_ = false;												// 結果表示フラグ
 
 	/// @brief 平行光源の転送

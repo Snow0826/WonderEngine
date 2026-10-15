@@ -5,6 +5,7 @@
 #include "Texture.h"
 #include "Resource.h"
 #include "EntityComponentSystem.h"
+#include "CPUTimer.h"
 #include "Logger.h"
 
 #ifdef USE_IMGUI
@@ -21,6 +22,8 @@ ParticleManager::ParticleManager(Device *device, TextureManager *textureManager,
 ParticleManager::~ParticleManager() = default;
 
 void ParticleManager::CreateParticleGroup(const std::string &name, MeshType meshType, const std::string &textureFileName) {
+	CPUTimer timer;
+	timer.Begin();
 	// すでに読み込まれている場合は何もしない
 	if (particleGroups_.contains(name)) {
 		Logger::Log(*logStream_, "Particle already created: " + name + "\n");
@@ -90,7 +93,8 @@ void ParticleManager::CreateParticleGroup(const std::string &name, MeshType mesh
 	// パーティクルグループとバッファをマップに登録
 	particleResources_.emplace_back(std::move(particleResource));
 	particleGroups_.insert(std::make_pair(name, particleGroup));
-	Logger::Log(*logStream_, "Created particle: " + name + "\n");
+	timer.End();
+	Logger::Log(*logStream_, "Created particle: " + name + " in " + std::to_string(timer.GetMs()) + " ms\n");
 }
 
 ParticleGroup ParticleManager::FindParticleGroup(const std::string &name) {

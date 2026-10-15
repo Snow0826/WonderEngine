@@ -66,6 +66,7 @@
     <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
     <ClCompile Include="engine\Source\System\TreeGenerator.cpp" />
+    <ClCompile Include="engine\Source\System\TreeSpeciesDatabase.cpp" />
     <ClCompile Include="game\Source\Model\AnimatedCube.cpp" />
     <ClCompile Include="engine\Source\System\HierarchyWindow.cpp" />
     <ClCompile Include="engine\Source\System\InspectorWindow.cpp" />
@@ -85,6 +86,7 @@
     <ClCompile Include="game\Source\Model\Player.cpp" />
     <ClCompile Include="game\Source\Model\Ground.cpp" />
     <ClCompile Include="game\Source\System\CameraController.cpp" />
+    <ClCompile Include="engine\Source\System\PoissonDiskSampler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -159,6 +161,7 @@
     <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />
     <ClInclude Include="engine\Include\System\TreeGenerator.h" />
+    <ClInclude Include="engine\Include\System\TreeSpeciesDatabase.h" />
     <ClInclude Include="game\Include\Model\AnimatedCube.h" />
     <ClInclude Include="engine\Include\Component\MeshType.h" />
     <ClInclude Include="engine\Include\System\ComponentDrawerRegistry.h" />
@@ -181,6 +184,7 @@
     <ClInclude Include="game\Include\Model\Player.h" />
     <ClInclude Include="game\Include\Model\Ground.h" />
     <ClInclude Include="game\Include\System\CameraController.h" />
+    <ClInclude Include="engine\Include\System\PoissonDiskSampler.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

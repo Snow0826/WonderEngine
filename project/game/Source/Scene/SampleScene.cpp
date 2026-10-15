@@ -13,65 +13,20 @@
 #include "Player.h"
 #include "CameraController.h"
 #include "Primitive.h"
-#include "TreeGenerator.h"
+#include "TreeSpeciesDatabase.h"
+#include "PoissonDiskSampler.h"
 #include "DebugCamera.h"
 #include "DirectionalLight.h"
+#include "Random.h"
 #include "Logger.h"
+#include "CPUTimer.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
 
 namespace {
-	constexpr std::array<TreeConfig, 8> kTrees = {
-		TreeConfig{
-			.rootPosition = { 20.0f, 0.0f, -5.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
-			.crownCenter = { 20.0f, 5.0f, -5.0f }, .crownRadius = { 10.0f, 5.0f, 10.0f },
-			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 8.0f, .killRadius = 1.6f, .branchLength = 0.6f
-		},
-		TreeConfig{
-			.rootPosition = { 20.0f, 0.0f, 20.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
-			.crownCenter = { 20.0f, 10.0f, 20.0f }, .crownRadius = { 20.0f, 5.0f, 20.0f },
-			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 8.0f, .killRadius = 1.6f, .branchLength = 0.6f
-		},
-		TreeConfig{
-			.rootPosition = { -10.0f, 0.0f, 20.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
-			.crownCenter = { -10.0f, 10.0f, 20.0f }, .crownRadius = { 10.0f, 5.0f, 10.0f },
-			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 16.0f, .killRadius = 1.6f, .branchLength = 0.3f
-		},
-		TreeConfig{
-			.rootPosition = { -25.0f, 0.0f, 25.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
-			.crownCenter = { -25.0f, 20.0f, 25.0f }, .crownRadius = { 5.0f, 15.0f, 5.0f },
-			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 16.0f, .killRadius = 1.6f, .branchLength = 0.3f
-		},
-		TreeConfig{
-			.rootPosition = { -30.0f, 0.0f, 0.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
-			.crownCenter = { -30.0f, 5.0f, 0.0f }, .crownRadius = { 20.0f, 5.0f, 20.0f },
-			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 16.0f, .killRadius = 0.8f, .branchLength = 0.6f
-		},
-		TreeConfig{
-			.rootPosition = { -15.0f, 0.0f, -20.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
-			.crownCenter = { -15.0f, 15.0f, -20.0f }, .crownRadius = { 5.0f, 10.0f, 5.0f },
-			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 16.0f, .killRadius = 0.8f, .branchLength = 0.6f
-		},
-		TreeConfig{
-			.rootPosition = { 0.0f, 0.0f, -20.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
-			.crownCenter = { 0.0f, 5.0f, -15.0f }, .crownRadius = { 5.0f, 5.0f, 10.0f },
-			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 8.0f, .killRadius = 0.8f, .branchLength = 0.3f
-		},
-		TreeConfig{
-			.rootPosition = { 20.0f, 0.0f, -20.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
-			.crownCenter = { 25.0f, 5.0f, -20.0f }, .crownRadius = { 10.0f, 5.0f, 5.0f },
-			.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 8.0f, .killRadius = 0.8f, .branchLength = 0.3f
-		},
-	};
-
-	TreeConfig generateTree = {
-		.rootPosition = { 0.0f, 0.0f, 0.0f }, .rootDirection = { 0.0f, 1.0f, 0.0f },
-		.crownCenter = { 0.0f, 5.0f, 0.0f }, .crownRadius = { 10.0f, 5.0f, 10.0f },
-		.leafCount = 5000, .minRadius = 0.01f, .gamma = 2.0f, .influenceRadius = 8.0f, .killRadius = 1.6f, .branchLength = 0.3f
-	};
-
+	TreeConfig generateTree;
 	GroundDesc groundDesc = {
 		.modelName = "ground.obj",
 		.enableLighting = false,
@@ -90,51 +45,71 @@ SampleScene::~SampleScene() = default;
 
 void SampleScene::OnInitialize() {
 	// マネージャーの取得
-	MeshManager *meshManager = sceneManager_->GetMeshManager();
-	TextureManager *textureManager = sceneManager_->GetTextureManager();
-	ParticleManager *particleManager = sceneManager_->GetParticleManager();
-	std::ofstream *logStream = sceneManager_->GetLogStream();
-	Input *input = sceneManager_->GetInput();
+	SceneManager *sceneManager = GetSceneManager();
+	Registry *registry = GetRegistry();
+	InstanceAllocator *instanceAllocator = GetInstanceAllocator();
+	FootprintManager *footprintManager = GetFootprintManager();
+	MeshManager *meshManager = sceneManager->GetMeshManager();
+	TextureManager *textureManager = sceneManager->GetTextureManager();
+	ParticleManager *particleManager = sceneManager->GetParticleManager();
+	std::ofstream *logStream = sceneManager->GetLogStream();
+	Input *input = sceneManager->GetInput();
+	PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };
+	TreeGenerator treeGenerator{ registry, &primitiveGenerator, instanceAllocator, logStream };
+	PoissonDiskSampler sampler;
+	std::vector<Vector2> samples = sampler.Generate(1024.0f, 1024.0f, 64.0f);
 
 	// ジェネレーターの初期化
 	SkyboxGenerator skyboxGenerator{ meshManager, textureManager };
 
 	// スカイボックスエンティティの作成
-	SkyboxEntity::Create(registry_.get(), &skyboxGenerator);
+	SkyboxEntity::Create(registry, &skyboxGenerator);
 
 	// 地面の作成
-	GroundFactory::Create(*registry_, *instanceAllocator_, groundDesc);
+	GroundFactory::Create(*registry, *instanceAllocator, groundDesc);
 
 	// 森の作成
-	for (const TreeConfig &tree : kTrees) {
-		PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };
-		TreeGenerator treeGenerator{ registry_.get(), &primitiveGenerator, instanceAllocator_.get() };
-		uint32_t treeEntity = treeGenerator.Generate(tree);
+	CPUTimer treeTimer;
+	CPUTimer timer;
+	treeTimer.Begin();
+	for (const Vector2& sample : samples) {
+		timer.Begin();
+		TreeConfig treeConfig = MakeTreeConfig(TreeSpecies::Willow, { sample.x - 512.0f, 0.0f, sample.y - 512.0f });
+		uint32_t treeEntity = treeGenerator.Generate(treeConfig);
 		treeEntities_.emplace_back(treeEntity);
+		timer.End();
+		Logger::Log(*logStream, "Tree generation time: " + std::to_string(timer.GetMs()) + " ms\n");
 	}
+	treeTimer.End();
+	Logger::Log(*logStream, "Total tree generation time: " + std::to_string(treeTimer.GetMs()) + " ms\n");
+
 
 	// プレイヤーの初期化
-	player_ = std::make_unique<Player>(registry_.get(), instanceAllocator_.get(), footprintManager_.get());
+	player_ = std::make_unique<Player>(registry, instanceAllocator, footprintManager);
 	player_->Initialize();
-	player_->SetCameraEntity(cameraEntities_[mainCameraType_]);
+	player_->SetCameraEntity(GetCameraEntity(CameraType::kMainCamera));
 
 	// カメラコントローラーの初期化
-	cameraController_ = std::make_unique<CameraController>(registry_.get(), input);
-	cameraController_->Initialize(cameraEntities_[mainCameraType_], player_->GetEntity());
+	cameraController_ = std::make_unique<CameraController>(registry, input);
+	cameraController_->Initialize(GetCameraEntity(CameraType::kMainCamera), player_->GetEntity());
 
 	// 平行光源の設定
-	auto directionalLight = registry_->GetComponent<DirectionalLight>(directionalLightEntity_);
+	auto directionalLight = registry->GetComponent<DirectionalLight>(GetDirectionalLightEntity());
 	directionalLight->direction = { 0.5f, -1.0f, 0.2f };
 }
 
 void SampleScene::OnUpdate(float deltaTime) {
-	Input *input = sceneManager_->GetInput();
+	SceneManager *sceneManager = GetSceneManager();
+	Registry *registry = GetRegistry();
+	InstanceAllocator *instanceAllocator = GetInstanceAllocator();
+	Input *input = sceneManager->GetInput();
+	std::ofstream *logStream = sceneManager->GetLogStream();
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode("TreeGenerator")) {
 		ImGui::DragFloat3("RootPosition", &generateTree.rootPosition.x, 0.01f, -10.0f, 10.0f);
 		ImGui::DragFloat3("RootDirection", &generateTree.rootDirection.x, 0.01f, -1.0f, 1.0f);
-		ImGui::DragFloat3("CrownCenter", &generateTree.crownCenter.x, 0.01f, -10.0f, 10.0f);
-		ImGui::DragFloat3("CrownRadius", &generateTree.crownRadius.x, 0.01f, 1.0f, 10.0f);
+		ImGui::DragFloat3("CrownCenter", &generateTree.crown.center.x, 0.01f, -10.0f, 10.0f);
+		ImGui::DragFloat3("CrownRadius", &generateTree.crown.radius.x, 0.01f, 1.0f, 10.0f);
 		ImGui::DragInt("LeafCount", reinterpret_cast<int *>(&generateTree.leafCount), 1, 100, 5000);
 		ImGui::DragFloat("MinRadius", &generateTree.minRadius, 0.01f, 0.01f, 1.0f);
 		ImGui::DragFloat("Gamma", &generateTree.gamma, 0.01f, 1.0f, 5.0f);
@@ -142,10 +117,10 @@ void SampleScene::OnUpdate(float deltaTime) {
 		ImGui::DragFloat("KillRadius", &generateTree.killRadius, 0.01f, 0.1f, 5.0f);
 		ImGui::DragFloat("BranchLength", &generateTree.branchLength, 0.01f, 0.1f, 1.0f);
 		generateTree.rootDirection = generateTree.rootDirection.normalized();
-		MeshManager *meshManager = sceneManager_->GetMeshManager();
-		TextureManager *textureManager = sceneManager_->GetTextureManager();
+		MeshManager *meshManager = sceneManager->GetMeshManager();
+		TextureManager *textureManager = sceneManager->GetTextureManager();
 		PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };
-		TreeGenerator treeGenerator{ registry_.get(), &primitiveGenerator, instanceAllocator_.get() };
+		TreeGenerator treeGenerator{ registry, &primitiveGenerator, instanceAllocator, logStream };
 		if (ImGui::Button("Generate")) {
 			uint32_t treeEntity = treeGenerator.Generate(generateTree);
 			treeEntities_.emplace_back(treeEntity);
@@ -162,7 +137,7 @@ void SampleScene::OnUpdate(float deltaTime) {
 	if (ImGui::TreeNode("AnimatedCube")) {
 		ImGui::DragFloat3("Position", &animatedCubePosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		if (ImGui::Button("Generate")) {
-			AnimatedCube animatedCube{ registry_.get(), instanceAllocator_.get() };
+			AnimatedCube animatedCube{ registry, instanceAllocator };
 			animatedCube.Create(animatedCubePosition);
 		}
 		ImGui::TreePop();
@@ -172,7 +147,7 @@ void SampleScene::OnUpdate(float deltaTime) {
 	if (ImGui::TreeNode("SimpleSkin")) {
 		ImGui::DragFloat3("Position", &simpleSkinPosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		if (ImGui::Button("Generate")) {
-			SimpleSkin simpleSkin{ registry_.get(), instanceAllocator_.get() };
+			SimpleSkin simpleSkin{ registry, instanceAllocator };
 			simpleSkin.Create(simpleSkinPosition);
 		}
 		ImGui::TreePop();
@@ -182,7 +157,7 @@ void SampleScene::OnUpdate(float deltaTime) {
 	if (ImGui::TreeNode("WalkHuman")) {
 		ImGui::DragFloat3("Position", &walkHumanPosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		if (ImGui::Button("Generate")) {
-			Human human{ registry_.get(), instanceAllocator_.get() };
+			Human human{ registry, instanceAllocator };
 			human.Create("walk.gltf", walkHumanPosition);
 		}
 		ImGui::TreePop();
@@ -192,7 +167,7 @@ void SampleScene::OnUpdate(float deltaTime) {
 	if (ImGui::TreeNode("SneakWalkHuman")) {
 		ImGui::DragFloat3("Position", &sneakWalkHumanPosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 		if (ImGui::Button("Generate")) {
-			Human human{ registry_.get(), instanceAllocator_.get() };
+			Human human{ registry, instanceAllocator };
 			human.Create("sneakWalk.gltf", sneakWalkHumanPosition);
 		}
 		ImGui::TreePop();
@@ -200,7 +175,7 @@ void SampleScene::OnUpdate(float deltaTime) {
 #endif // USE_IMGUI
 
 	// メインカメラの更新
-	if (!isDebugCameraActive_) {
+	if (!IsDebugCameraActive()) {
 		cameraController_->Update();
 	}
 

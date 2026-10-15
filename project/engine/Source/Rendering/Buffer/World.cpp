@@ -28,6 +28,7 @@
 #include "FootprintMap.h"
 #include "Logger.h"
 #include <d3dx12.h>
+#include <unordered_map>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -478,6 +479,27 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(aabbBuffer_->GetResource(), uavBufferDesc, aabbUAVHandle_);
 	Logger::Log(logStream, "AABB UAVDescriptorIndex: " + std::to_string(aabbUAVHandle_) + "\n");
 
+	// 木単位AABB用Upload BufferとSRV
+	treeBoundsBuffer_ = Resource::CreateUploadBuffer(device, sizeof(AABBForGPU) * kMaxTrees);
+	treeBoundsBuffer_->SetName("TreeBounds");
+	treeBoundsBuffer_->Map(reinterpret_cast<void **>(&treeBoundsData_));
+	treeBoundsSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	srvBufferDesc.Buffer.NumElements = kMaxTrees;
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(AABBForGPU);
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(treeBoundsBuffer_->GetResource(), srvBufferDesc, treeBoundsSRVHandle_);
+
+	// 木単位可視状態用SRV/UAV
+	treeVisibilityBuffer_ = Resource::CreateRWBuffer(device, sizeof(uint32_t) * kMaxTrees);
+	treeVisibilityBuffer_->SetName("TreeVisibility");
+	treeVisibilitySRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	treeVisibilityUAVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	srvBufferDesc.Buffer.NumElements = kMaxTrees;
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(uint32_t);
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(treeVisibilityBuffer_->GetResource(), srvBufferDesc, treeVisibilitySRVHandle_);
+	uavBufferDesc.Buffer.NumElements = kMaxTrees;
+	uavBufferDesc.Buffer.StructureByteStride = sizeof(uint32_t);
+	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(treeVisibilityBuffer_->GetResource(), uavBufferDesc, treeVisibilityUAVHandle_);
+
 	// コマンドアップロードバッファの作成
 	commandUploadBuffer_ = Resource::CreateUploadBuffer(device, sizeof(MeshLOD) * kMaxAABB);
 	commandUploadBuffer_->SetName("CommandBufferUpload");
@@ -489,6 +511,7 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 	processedCommandHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// カリング済みコマンド用UAVの作成
+	uavBufferDesc.Buffer.NumElements = kMaxAABB;						// 要素数
 	uavBufferDesc.Buffer.StructureByteStride = sizeof(IndirectCommand);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(processedCommandBuffer_->GetResource(), uavBufferDesc, processedCommandHandle_);
 	Logger::Log(logStream, "ProcessedCommand UAVDescriptorIndex: " + std::to_string(processedCommandHandle_) + "\n");
@@ -500,6 +523,7 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 	meshCommandStateUAVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// メッシュコマンドステート用SRVの作成
+	srvBufferDesc.Buffer.NumElements = kMaxAABB;							// 要素数
 	srvBufferDesc.Buffer.StructureByteStride = sizeof(MeshCommandState);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(meshCommandStateBuffer_->GetResource(), srvBufferDesc, meshCommandStateSRVHandle_);
 	Logger::Log(logStream, "MeshCommandState SRVDescriptorIndex: " + std::to_string(meshCommandStateSRVHandle_) + "\n");
@@ -943,13 +967,33 @@ void World::TransferMeshLODData() {
 }
 
 void World::TransferCullingData() {
+	std::unordered_map<uint32_t, uint32_t> treeIndices;
 	if (registry_->GetComponentCount<DirtyCullingData>() > 0) {
 		meshInfoForAABBCounter_ = 0;
 		cylinderCounter_ = 0;
+		treeBoundsCounter_ = 0;
+		registry_->ForEach<TreeBounds>([&](uint32_t entity, TreeBounds *bounds) {
+			if (treeBoundsCounter_ >= kMaxTrees) {
+				return;
+			}
+			treeIndices.emplace(bounds->treeId, treeBoundsCounter_);
+			treeBoundsData_[treeBoundsCounter_].min = { bounds->min.x, bounds->min.y, bounds->min.z, 1.0f };
+			treeBoundsData_[treeBoundsCounter_].max = { bounds->max.x, bounds->max.y, bounds->max.z, 1.0f };
+			++treeBoundsCounter_;
+			}, exclude<Disabled>());
 		ZeroMemory(meshInfoForAABB_, sizeof(MeshInfoForAABB) * kMaxAABB);
 		ZeroMemory(cylinderData_, sizeof(Cylinder) * kMaxAABB);
 		registry_->AddComponentToAll<DirtyCullingData, InstanceHandle>();
 	}
+
+	auto getTreeIndex = [&](uint32_t entity) {
+		auto treeMember = registry_->GetComponent<TreeMember>(entity);
+		if (!treeMember) {
+			return 0xffffffffu;
+		}
+		auto it = treeIndices.find(treeMember->treeId);
+		return it == treeIndices.end() ? 0xffffffffu : it->second;
+		};
 
 	uint32_t cullingMeshDataOffset = 0;
 	uint32_t vertexOffset = 0;
@@ -970,6 +1014,7 @@ void World::TransferCullingData() {
 			cullingMeshData_[cullingMeshDataOffset].objectIndex = instanceHandle->value;
 			cullingMeshData_[cullingMeshDataOffset].lodCount = static_cast<uint32_t>(mesh.lods.size());
 			cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
+			cullingMeshData_[cullingMeshDataOffset].treeIndex = getTreeIndex(entity);
 			cullingMeshDataOffset++;
 		}
 
@@ -986,6 +1031,7 @@ void World::TransferCullingData() {
 		cullingMeshData_[cullingMeshDataOffset].objectIndex = instanceHandle->value;
 		cullingMeshData_[cullingMeshDataOffset].lodCount = 1;
 		cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
+		cullingMeshData_[cullingMeshDataOffset].treeIndex = getTreeIndex(entity);
 		cullingMeshDataOffset++;
 		}, exclude<Disabled>());
 

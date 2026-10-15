@@ -8,6 +8,7 @@
 #include "Logger.h"
 #include "StringConverter.h"
 #include "QuadricErrorMetrics.h"
+#include "CPUTimer.h"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <unordered_set>
@@ -18,6 +19,8 @@
 #endif // USE_IMGUI
 
 void ModelManager::LoadModel(std::string_view fileName) {
+	CPUTimer timer;
+	timer.Begin();
 	// すでに読み込まれている場合は何もしない
 	if (modelAssets_.contains(std::string(fileName))) {
 		Logger::Log(*logStream_, "Model already loaded: " + std::string(fileName) + "\n");
@@ -46,7 +49,8 @@ void ModelManager::LoadModel(std::string_view fileName) {
 	modelAsset->skinClusterHandle = skinClusterManager_->CreateSkinCluster(modelAsset->modelData);
 
 	// モデル名の設定
-	Logger::Log(*logStream_, "Loaded model: " + std::string(fileName) + "\n");
+	timer.End();
+	Logger::Log(*logStream_, "Loaded model: " + std::string(fileName) + " in " + std::to_string(timer.GetMs()) + " ms\n");
 	modelAssets_.insert(std::make_pair(std::string(fileName), std::move(modelAsset)));
 }
 

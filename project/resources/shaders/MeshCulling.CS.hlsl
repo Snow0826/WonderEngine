@@ -18,13 +18,7 @@ struct Mesh
     uint lodOffset; // Offset into the meshLODs buffer for this mesh's LODs
     uint lodCount; // Number of LODs for this mesh
     uint useCulling; // Flag indicating whether to use culling for this mesh (0: no culling, 1: use culling)
-};
-
-struct UVAABB
-{
-    float2 min; // Minimum corner of the bounding box in UV space
-    float2 max; // Maximum corner of the bounding box in UV space
-    float minZ; // Minimum Z value in NDC space for the bounding box
+    uint treeIndex; // Tree visibility index, or 0xffffffff for non-tree objects
 };
 
 struct MeshLOD
@@ -60,18 +54,17 @@ StructuredBuffer<Object> objects : register(t0); // SRV: Object data
 StructuredBuffer<Mesh> meshes : register(t1); // SRV: Meshes
 StructuredBuffer<MeshLOD> meshLODs : register(t2); // SRV: Mesh LODs
 StructuredBuffer<AABB> boxes : register(t3); // SRV: boxes
-Texture2D<float> gHiZTexture : register(t4); // SRV: Hi-Z texture for occlusion culling
+StructuredBuffer<uint> treeVisibility : register(t4); // SRV: Tree visibility buffer
+Texture2D<float> gHiZTexture : register(t5); // SRV: Hi-Z texture for occlusion culling
 SamplerState gSampler : register(s0); // Sampler for Hi-Z texture
 RWStructuredBuffer<MeshCommandState> meshCommandStates : register(u0); // UAV: Mesh Command States
 RWStructuredBuffer<MeshLODState> meshLODStates : register(u1); // UAV: Mesh LOD States
 RWStructuredBuffer<IndirectCommand> commands : register(u2); // UAV: Processed Indirect Commands
 RWByteAddressBuffer commandCounters : register(u3); // UAV: Command Counters for Processed Indirect Commands
 
-UVAABB GetBoxInUVSpace(AABB box);
+bool IsInsideFrustum(AABB box);
 
-uint isBoxInFrustum(AABB box);
-
-uint isOccludedInHiZ(AABB box);
+bool IsOccluded(AABB box);
 
 [numthreads(64, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
@@ -85,6 +78,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
     meshLODStates[DTid.x].visible = 0; // Initialize visibility to false
     meshLODStates[DTid.x].instanceIndex = 0; // Initialize instance index to 0
     Mesh mesh = meshes[DTid.x]; // Get culling data for this thread
+    if (mesh.treeIndex != 0xffffffff && treeVisibility[mesh.treeIndex] == 0)
+    {
+        return; // Skip detailed branch culling when the parent tree was rejected
+    }
     AABB box = boxes[DTid.x]; // Get bounding box for this mesh
     Object object = objects[mesh.objectIndex]; // Get object data for this mesh
     float3 center = (box.min.xyz + box.max.xyz) * 0.5f;
@@ -104,12 +101,12 @@ void main(uint3 DTid : SV_DispatchThreadID)
             return; // Cull invalid box
         }
     
-        if (!isBoxInFrustum(worldAABB))
+        if (!IsInsideFrustum(worldAABB))
         {
             return; // Cull box if outside frustum
         }
         
-        if (!isOccludedInHiZ(worldAABB))
+        if (IsOccluded(worldAABB))
         {
             return; // Cull box if behind HiZ depth
         }
@@ -148,139 +145,59 @@ void main(uint3 DTid : SV_DispatchThreadID)
     InterlockedAdd(meshCommandStates[meshLODIndex].instanceCount, 1);
 }
 
-UVAABB GetBoxInUVSpace(AABB box)
+bool IsInsideFrustum(AABB box)
 {
-    float4 corners[8];
-    corners[0] = float4(box.min.x, box.min.y, box.min.z, 1.0f);
-    corners[1] = float4(box.max.x, box.min.y, box.min.z, 1.0f);
-    corners[2] = float4(box.min.x, box.max.y, box.min.z, 1.0f);
-    corners[3] = float4(box.max.x, box.max.y, box.min.z, 1.0f);
-    corners[4] = float4(box.min.x, box.min.y, box.max.z, 1.0f);
-    corners[5] = float4(box.max.x, box.min.y, box.max.z, 1.0f);
-    corners[6] = float4(box.min.x, box.max.y, box.max.z, 1.0f);
-    corners[7] = float4(box.max.x, box.max.y, box.max.z, 1.0f);
+    for (uint planeIndex = 0; planeIndex < 6; ++planeIndex)
+    {
+        float3 positive = float3(
+            frustumPlanes[planeIndex].x >= 0.0f ? box.max.x : box.min.x,
+            frustumPlanes[planeIndex].y >= 0.0f ? box.max.y : box.min.y,
+            frustumPlanes[planeIndex].z >= 0.0f ? box.max.z : box.min.z);
+        if (dot(frustumPlanes[planeIndex], float4(positive, 1.0f)) < 0.0f)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool IsOccluded(AABB box)
+{
+    float3 corners[8] =
+    {
+        float3(box.min.x, box.min.y, box.min.z), float3(box.max.x, box.min.y, box.min.z),
+        float3(box.min.x, box.max.y, box.min.z), float3(box.max.x, box.max.y, box.min.z),
+        float3(box.min.x, box.min.y, box.max.z), float3(box.max.x, box.min.y, box.max.z),
+        float3(box.min.x, box.max.y, box.max.z), float3(box.max.x, box.max.y, box.max.z)
+    };
 
     float2 uvMin = float2(1.0f, 1.0f);
     float2 uvMax = float2(0.0f, 0.0f);
-    float minZ = 1.0f;
-    
-    for (uint i = 0; i < 8; i++)
+    float nearestDepth = 1.0f;
+    for (uint i = 0; i < 8; ++i)
     {
-        float4 clipSpacePos = mul(mul(corners[i], view), projection);
-        if (clipSpacePos.w <= 0.0f)
+        float4 clip = mul(mul(float4(corners[i], 1.0f), view), projection);
+        // Near-plane intersections need a conservative visible result.
+        if (clip.w <= 0.0001f)
         {
-            continue;
+            return false;
         }
-        
-        float3 ndcPos = clipSpacePos.xyz / clipSpacePos.w;
-        float2 uvPos = ndcPos.xy * 0.5f + 0.5f;
-        uvPos.y = 1.0f - uvPos.y; // Flip Y for texture space
-        uvMin = min(uvMin, uvPos);
-        uvMax = max(uvMax, uvPos);
-        minZ = min(minZ, ndcPos.z);
+        float3 ndc = clip.xyz / clip.w;
+        float2 uv = ndc.xy * 0.5f + 0.5f;
+        uv.y = 1.0f - uv.y;
+        uvMin = min(uvMin, uv);
+        uvMax = max(uvMax, uv);
+        nearestDepth = min(nearestDepth, ndc.z);
     }
-    
-    UVAABB uvBox;
-    uvBox.min = uvMin;
-    uvBox.max = uvMax;
-    uvBox.minZ = minZ;
-    return uvBox;
-}
 
-uint isBoxInFrustum(AABB box)
-{
-    for (uint i = 0; i < 6; i++)
-    {
-        uint r = 0;
-        r += (dot(frustumPlanes[i], float4(box.min.x, box.min.y, box.min.z, 1.0f)) < 0.0f) ? 1 : 0;
-        r += (dot(frustumPlanes[i], float4(box.max.x, box.min.y, box.min.z, 1.0f)) < 0.0f) ? 1 : 0;
-        r += (dot(frustumPlanes[i], float4(box.min.x, box.max.y, box.min.z, 1.0f)) < 0.0f) ? 1 : 0;
-        r += (dot(frustumPlanes[i], float4(box.max.x, box.max.y, box.min.z, 1.0f)) < 0.0f) ? 1 : 0;
-        r += (dot(frustumPlanes[i], float4(box.min.x, box.min.y, box.max.z, 1.0f)) < 0.0f) ? 1 : 0;
-        r += (dot(frustumPlanes[i], float4(box.max.x, box.min.y, box.max.z, 1.0f)) < 0.0f) ? 1 : 0;
-        r += (dot(frustumPlanes[i], float4(box.min.x, box.max.y, box.max.z, 1.0f)) < 0.0f) ? 1 : 0;
-        r += (dot(frustumPlanes[i], float4(box.max.x, box.max.y, box.max.z, 1.0f)) < 0.0f) ? 1 : 0;
-        if (r == 8)
-        {
-            return 0; // Box is outside the frustum
-        }
-    }
-    
-    uint r = 0;
-    for (uint a = 0; a < 8; a++)
-    {
-        r += ((frustumCorners[a].x > box.max.x) ? 1 : 0);
-        if (r == 8)
-        {
-            return 0; // Box is outside the frustum
-        }
-    }
-    
-    r = 0;
-    for (uint b = 0; b < 8; b++)
-    {
-        r += ((frustumCorners[b].x < box.min.x) ? 1 : 0);
-        if (r == 8)
-        {
-            return 0; // Box is outside the frustum
-        }
-    }
-    
-    r = 0;
-    for (uint c = 0; c < 8; c++)
-    {
-        r += ((frustumCorners[c].y > box.max.y) ? 1 : 0);
-        if (r == 8)
-        {
-            return 0; // Box is outside the frustum
-        }
-    }
-    
-    r = 0;
-    for (uint d = 0; d < 8; d++)
-    {
-        r += ((frustumCorners[d].y < box.min.y) ? 1 : 0);
-        if (r == 8)
-        {
-            return 0; // Box is outside the frustum
-        }
-    }
-    
-    r = 0;
-    for (uint e = 0; e < 8; e++)
-    {
-        r += ((frustumCorners[e].z > box.max.z) ? 1 : 0);
-        if (r == 8)
-        {
-            return 0; // Box is outside the frustum
-        }
-    }
-    
-    r = 0;
-    for (uint f = 0; f < 8; f++)
-    {
-        r += ((frustumCorners[f].z < box.min.z) ? 1 : 0);
-        if (r == 8)
-        {
-            return 0; // Box is outside the frustum
-        }
-    }
-    
-    return 1; // Box is inside the frustum
-}
-
-uint isOccludedInHiZ(AABB box)
-{
-    uint baseWidth, baseHeight;
-    gHiZTexture.GetDimensions(baseWidth, baseHeight);
-    const UVAABB uvBox = GetBoxInUVSpace(box);
-    const float2 boxWidth = uvBox.max - uvBox.min;
-    const float2 texelSize = boxWidth * float2(baseWidth, baseHeight);
-    const float mip = max(floor(log2(max(texelSize.x, texelSize.y))), 0.0f);
-    const float sample1 = gHiZTexture.SampleLevel(gSampler, uvBox.min, mip);
-    const float sample2 = gHiZTexture.SampleLevel(gSampler, float2(uvBox.max.x, uvBox.min.y), mip);
-    const float sample3 = gHiZTexture.SampleLevel(gSampler, float2(uvBox.min.x, uvBox.max.y), mip);
-    const float sample4 = gHiZTexture.SampleLevel(gSampler, uvBox.max, mip);
-    const float maxZ = max(max(sample1, sample2), max(sample3, sample4));
-    return (uvBox.minZ > maxZ) ? 0 : 1; // Return 0 if occluded, else 1
+    uint width, height;
+    gHiZTexture.GetDimensions(width, height);
+    const float2 pixelExtent = (uvMax - uvMin) * float2(width, height);
+    const float mip = max(floor(log2(max(pixelExtent.x, pixelExtent.y))), 0.0f);
+    const float sample1 = gHiZTexture.SampleLevel(gSampler, uvMin, mip);
+    const float sample2 = gHiZTexture.SampleLevel(gSampler, float2(uvMax.x, uvMin.y), mip);
+    const float sample3 = gHiZTexture.SampleLevel(gSampler, float2(uvMin.x, uvMax.y), mip);
+    const float sample4 = gHiZTexture.SampleLevel(gSampler, uvMax, mip);
+    float farthestOccluder = max(max(sample1, sample2), max(sample3, sample4));
+    return nearestDepth > farthestOccluder;
 }

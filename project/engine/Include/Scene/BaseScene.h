@@ -11,11 +11,10 @@ enum class CameraType {
 };
 
 class SceneManager;
-class FootprintManager;
 class InstanceAllocator;
-class TextManager;
 class SpriteManager;
-class World;
+class TextManager;
+class FootprintManager;
 class DebugRenderer;
 class Registry;
 class ComponentDrawerRegistry;
@@ -79,6 +78,9 @@ public:
 	/// @param deltaTime デルタタイム
 	void Update(float deltaTime);
 
+	/// @brief フレームの終了処理
+	void EndFrame();
+
 	/// @brief シーンの初期化処理(派生クラスで実装)
 	virtual void OnInitialize() = 0;
 
@@ -92,17 +94,51 @@ public:
 	/// @brief シーンのワールド変換後処理(派生クラスで実装)
 	virtual void OnAfterTransform() {}
 
+protected:
 	/// @brief シーンマネージャーを取得する
 	/// @return シーンマネージャー
 	SceneManager *GetSceneManager() const { return sceneManager_; }
 
-protected:
+	/// @brief レジストリを取得する
+	/// @return レジストリ
+	Registry *GetRegistry() const { return registry_.get(); }
+
+	/// @brief インスタンスアロケーターを取得する
+	/// @return インスタンスアロケーター
+	InstanceAllocator *GetInstanceAllocator() const { return instanceAllocator_.get(); }
+
+	/// @brief スプライトマネージャーを取得する
+	/// @return スプライトマネージャー
+	SpriteManager *GetSpriteManager() const { return spriteManager_.get(); }
+
+	/// @brief テキストマネージャーを取得する
+	/// @return テキストマネージャー
+	TextManager *GetTextManager() const { return textManager_.get(); }
+
+	/// @brief フットプリントマネージャーを取得する
+	/// @return フットプリントマネージャー
+	FootprintManager *GetFootprintManager() const { return footprintManager_.get(); }
+
+	/// @brief デバッグカメラがアクティブかどうかを取得する
+	/// @return デバッグカメラがアクティブな場合はtrueを返す
+	bool IsDebugCameraActive() const { return isDebugCameraActive_; }
+
+	/// @brief カメラエンティティを取得する
+	/// @param cameraType カメラの種類
+	/// @return カメラエンティティ
+	uint32_t GetCameraEntity(CameraType cameraType) const { return cameraEntities_[static_cast<uint32_t>(cameraType)]; }
+
+	/// @brief 平行光源エンティティを取得する
+	/// @return 平行光源エンティティ
+	uint32_t GetDirectionalLightEntity() const { return directionalLightEntity_; }
+
+private:
 	using CameraEntities = std::array<uint32_t, static_cast<uint32_t>(CameraType::kCountOfCameraType)>;
 	SceneManager *sceneManager_ = nullptr;												// シーンマネージャー
-	std::unique_ptr<FootprintManager> footprintManager_ = nullptr;						// フットプリントマネージャー
 	std::unique_ptr<InstanceAllocator> instanceAllocator_ = nullptr;					// インスタンスアロケーター
-	std::unique_ptr<TextManager> textManager_ = nullptr;								// テキストマネージャー
 	std::unique_ptr<SpriteManager> spriteManager_ = nullptr;							// スプライトマネージャー
+	std::unique_ptr<TextManager> textManager_ = nullptr;								// テキストマネージャー
+	std::unique_ptr<FootprintManager> footprintManager_ = nullptr;						// フットプリントマネージャー
 	std::unique_ptr<DebugRenderer> debugRenderer_ = nullptr;							// デバッグレンダラー
 	std::unique_ptr<Registry> registry_ = nullptr;										// レジストリ
 	std::unique_ptr<ComponentDrawerRegistry> componentDrawerRegistry_ = nullptr;		// コンポーネント描画関数レジストリ
@@ -149,8 +185,11 @@ protected:
 	std::unique_ptr<Grid> grid_ = nullptr;												// グリッド
 	std::unique_ptr<DebugCamera> debugCamera_ = nullptr;								// デバッグカメラ
 	bool isDebugCameraActive_ = false;													// デバッグカメラの有効フラグ
-	uint32_t directionalLightEntity_ = 0;												// 平行光源のエンティティ
 	CameraEntities cameraEntities_{};													// カメラエンティティリスト
-	uint32_t mainCameraType_ = static_cast<uint32_t>(CameraType::kMainCamera);			// メインカメラのタイプ
-	uint32_t debugCameraType_ = static_cast<uint32_t>(CameraType::kDebugCamera);		// デバッグカメラのタイプ
+	uint32_t directionalLightEntity_ = 0;												// 平行光源のエンティティ
+
+	/// @brief カメラエンティティを設定する
+	/// @param cameraType カメラの種類
+	/// @param entity カメラエンティティ
+	void SetCameraEntity(CameraType cameraType, uint32_t entity) { cameraEntities_[static_cast<uint32_t>(cameraType)] = entity; }
 };

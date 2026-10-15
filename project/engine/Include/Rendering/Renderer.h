@@ -127,7 +127,8 @@ private:
 	ID3D12RootSignature *depthStencilCopyRootSignature_ = nullptr;								// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	ID3D12RootSignature *generateHiZMipMapRootSignature_ = nullptr;								// HiZミップマップ生成用ルートシグネチャ
 	ID3D12RootSignature *clearMeshCommandStatesRootSignature_ = nullptr;						// メッシュコマンドステートのクリア用ルートシグネチャ
-	ID3D12RootSignature *occlusionCullingRootSignature_ = nullptr;								// オクルージョンカリング用ルートシグネチャ
+	ID3D12RootSignature *treeCullingRootSignature_ = nullptr;									// 木のカリング用ルートシグネチャ
+	ID3D12RootSignature *meshCullingRootSignature_ = nullptr;									// メッシュカリング用ルートシグネチャ
 	ID3D12RootSignature *prefixSumRootSignature_ = nullptr;										// 累積和計算用ルートシグネチャ
 	ID3D12RootSignature *setInstanceCountRootSignature_ = nullptr;								// インスタンス数の反映用ルートシグネチャ
 	ID3D12RootSignature *setInstanceIndexRootSignature_ = nullptr;								// インスタンスインデックスの反映用ルートシグネチャ
@@ -159,7 +160,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthStencilCopyPipelineState_ = nullptr;		// 深度ステンシルテクスチャコピー用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> generateHiZMipMapPipelineState_ = nullptr;		// HiZミップマップ生成用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> clearMeshCommandStatesPipelineState_ = nullptr;	// メッシュコマンドステートのクリア用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> occlusionCullingPipelineState_ = nullptr;		// オクルージョンカリング用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> treeCullingPipelineState_ = nullptr;			// 木のカリング用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> meshCullingPipelineState_ = nullptr;			// メッシュカリング用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> prefixSumPipelineState_ = nullptr;				// 累積和計算用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState>	setInstanceCountPipelineState_ = nullptr;		// インスタンス数の反映用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState>	setInstanceIndexPipelineState_ = nullptr;		// インスタンスインデックスの反映用パイプラインステート
@@ -194,8 +196,11 @@ private:
 	/// @brief メッシュコマンドステートのクリア
 	void ClearMeshCommandStates();
 
-	/// @brief オクルージョンカリング
-	void OcclusionCulling();
+	/// @brief 木のカリング
+	void TreeCulling();
+
+	/// @brief メッシュカリング
+	void MeshCulling();
 
 	/// @brief 累積和計算
 	void PrefixSum();

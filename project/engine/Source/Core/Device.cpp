@@ -425,8 +425,21 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create ClearMeshCommandStatesRootSignature\n");
 	clearMeshCommandStatesRootSignature_->SetName(L"ClearMeshCommandStatesRootSignature");
 
-	// オクルージョンカリング用ルートシグネチャの作成
-	occlusionCullingRootSignature_ = RootSignature()
+	// 木カリング用ルートシグネチャの作成
+	treeCullingRootSignature_ = RootSignature()
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 0)												// 0:Frustum
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 1)												// 1:ViewProjection
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 2, 1)									// 2:Constant
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 3:AABB
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 4:HiZTexture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 5:TreeVisibility
+		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_ALL)	// Samplerを追加
+		.Create(logStream, device_);
+	Logger::Log(logStream, "Create TreeCullingRootSignature\n");
+	treeCullingRootSignature_->SetName(L"TreeCullingRootSignature");
+
+	// メッシュカリング用ルートシグネチャの作成
+	meshCullingRootSignature_ = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 0)												// 0:Frustum
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 1)												// 1:ViewProjection
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 2)												// 2:CameraPosition
@@ -435,15 +448,16 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 5:Mesh
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 6:MeshLOD
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 3)	// 7:AABB
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 4)	// 8:HiZTexture
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 9:MeshCommandState
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 10:MeshLODState
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 11:ProcessedIndirectCommand
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 3)	// 12:ProcessedIndirectCommandCounter
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 4)	// 8:TreeVisibility
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 5)	// 9:HiZTexture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 10:MeshCommandState
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 11:MeshLODState
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 12:ProcessedIndirectCommand
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 3)	// 13:ProcessedIndirectCommandCounter
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_ALL)	// Samplerを追加
 		.Create(logStream, device_);
-	Logger::Log(logStream, "Create OcclusionCullingRootSignature\n");
-	occlusionCullingRootSignature_->SetName(L"OcclusionCullingRootSignature");
+	Logger::Log(logStream, "Create MeshCullingRootSignature\n");
+	meshCullingRootSignature_->SetName(L"MeshCullingRootSignature");
 
 	// 累積和計算用ルートシグネチャの作成
 	prefixSumRootSignature_ = RootSignature()

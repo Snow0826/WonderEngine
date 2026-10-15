@@ -69,14 +69,6 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	skinClusterManager->SetRegistry(registry_.get());
 	particleManager->SetRegistry(registry_.get());
 
-	// デバッグレンダラーの生成
-	debugRenderer_ = std::make_unique<DebugRenderer>(world);
-	renderer->SetDebugRenderer(debugRenderer_.get());
-
-	// フットプリントマネージャーの生成
-	footprintManager_ = std::make_unique<FootprintManager>(registry_.get());
-	renderer->SetFootprintManager(footprintManager_.get());
-
 	// インスタンスアロケーターの生成
 	instanceAllocator_ = std::make_unique<InstanceAllocator>(registry_.get());
 
@@ -85,6 +77,14 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 
 	// テキストマネージャーの生成
 	textManager_ = std::make_unique<TextManager>(registry_.get(), spriteManager_.get());
+
+	// フットプリントマネージャーの生成
+	footprintManager_ = std::make_unique<FootprintManager>(registry_.get());
+	renderer->SetFootprintManager(footprintManager_.get());
+
+	// デバッグレンダラーの生成
+	debugRenderer_ = std::make_unique<DebugRenderer>(world);
+	renderer->SetDebugRenderer(debugRenderer_.get());
 
 	// システムの生成
 	transformSystem_ = std::make_unique<TransformSystem>(registry_.get());
@@ -181,21 +181,21 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	gameViewWindow_ = std::make_unique<GameViewWindow>(registry_.get(), device, world);
 
 	// メインカメラの生成と初期化
-	cameraEntities_[mainCameraType_] = registry_->GenerateEntity();
-	registry_->AddComponent(cameraEntities_[mainCameraType_], Camera{});
-	registry_->AddComponent(cameraEntities_[mainCameraType_], QuaternionTransform{ .translate = {.y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({.y = 5.0f, .z = -10.0f }, {}, {.y = 1.0f }) });
-	registry_->AddComponent(cameraEntities_[mainCameraType_], Relationship{});
-	registry_->AddComponent(cameraEntities_[mainCameraType_], RenderingCamera{});
-	registry_->AddComponent(cameraEntities_[mainCameraType_], MainCamera{});
-	registry_->AddComponent(cameraEntities_[mainCameraType_], FrustumRenderer{});
-	transformSystem_->MarkDirty(cameraEntities_[mainCameraType_]);
+	SetCameraEntity(CameraType::kMainCamera, registry_->GenerateEntity());
+	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), Camera{});
+	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), QuaternionTransform{ .translate = {.y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({.y = 5.0f, .z = -10.0f }, {}, {.y = 1.0f }) });
+	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), Relationship{});
+	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), RenderingCamera{});
+	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), MainCamera{});
+	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), FrustumRenderer{});
+	transformSystem_->MarkDirty(GetCameraEntity(CameraType::kMainCamera));
 
 	// デバッグカメラの生成と初期化
-	cameraEntities_[debugCameraType_] = registry_->GenerateEntity();
-	registry_->AddComponent(cameraEntities_[debugCameraType_], Camera{});
-	registry_->AddComponent(cameraEntities_[debugCameraType_], QuaternionTransform{ .translate = {.y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({.y = 5.0f, .z = -10.0f }, {}, {.y = 1.0f }) });
-	registry_->AddComponent(cameraEntities_[debugCameraType_], Relationship{});
-	transformSystem_->MarkDirty(cameraEntities_[debugCameraType_]);
+	SetCameraEntity(CameraType::kDebugCamera, registry_->GenerateEntity());
+	registry_->AddComponent(GetCameraEntity(CameraType::kDebugCamera), Camera{});
+	registry_->AddComponent(GetCameraEntity(CameraType::kDebugCamera), QuaternionTransform{ .translate = {.y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({.y = 5.0f, .z = -10.0f }, {}, {.y = 1.0f }) });
+	registry_->AddComponent(GetCameraEntity(CameraType::kDebugCamera), Relationship{});
+	transformSystem_->MarkDirty(GetCameraEntity(CameraType::kDebugCamera));
 
 	// 平行光源の生成と初期化
 	directionalLightEntity_ = registry_->GenerateEntity();
@@ -214,7 +214,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 
 	// デバッグカメラの生成と初期化
 	debugCamera_ = std::make_unique<DebugCamera>(registry_.get(), input);
-	debugCamera_->Initialize(cameraEntities_[debugCameraType_]);
+	debugCamera_->Initialize(GetCameraEntity(CameraType::kDebugCamera));
 
 	// 派生クラスの初期化処理の呼び出し
 	OnInitialize();
@@ -248,9 +248,9 @@ void BaseScene::Update(float deltaTime) {
 	if (ImGui::Checkbox("DebugCameraActive", &isDebugCameraActive_)) {
 		if (isDebugCameraActive_) {
 			debugCamera_->Reset();
-			cameraSystem_->SwitchRenderingCamera(cameraEntities_[debugCameraType_]);
+			cameraSystem_->SwitchRenderingCamera(GetCameraEntity(CameraType::kDebugCamera));
 		} else {
-			cameraSystem_->SwitchRenderingCamera(cameraEntities_[mainCameraType_]);
+			cameraSystem_->SwitchRenderingCamera(GetCameraEntity(CameraType::kMainCamera));
 		}
 	}
 
@@ -339,6 +339,11 @@ void BaseScene::Update(float deltaTime) {
 	// ワールドの更新
 	world->Update(deltaTime);
 
+	// デバッグレンダラーのフレーム終了
+	debugRenderer_->EndFrame();
+}
+
+void BaseScene::EndFrame() {
 	// DirtyComponentのクリア
 	registry_->ClearComponent<DirtyTransform>();
 	registry_->ClearComponent<DirtyRelationshipTransform>();
@@ -346,7 +351,4 @@ void BaseScene::Update(float deltaTime) {
 	registry_->ClearComponent<DirtyTextureData>();
 	registry_->ClearComponent<DirtyMeshLOD>();
 	registry_->ClearComponent<DirtyCullingData>();
-
-	// デバッグレンダラーのフレーム終了
-	debugRenderer_->EndFrame();
 }

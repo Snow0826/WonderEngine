@@ -39,11 +39,11 @@ public:
 
 	/// @brief コンポーネント描画関数の配列への参照を取得
 	/// @return コンポーネント描画関数の配列への参照
-	std::vector<DrawFunc> &GetComponentDrawers() { return componentDrawers_; }
+	const std::vector<DrawFunc> &GetComponentDrawers() const { return componentDrawers_; }
 
-	/// @brief タグコンポーネント用の配列への参照を取得
-	/// @return タグコンポーネント用の配列への参照
-	std::vector<std::string> &GetTagComponents() { return tagComponents_; }
+	/// @brief タグコンポーネントの配列への参照を取得
+	/// @return タグコンポーネントの配列への参照
+	const std::vector<std::string> &GetTagComponents() const { return tagComponents_; }
 
 private:
 	Registry *registry_ = nullptr;				// レジストリ

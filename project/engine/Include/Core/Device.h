@@ -190,9 +190,13 @@ public:
 	/// @return HiZミップマップ生成用ルートシグネチャ
 	ID3D12RootSignature *GetGenerateHiZMipMapRootSignature() const { return generateHiZMipMapRootSignature_.Get(); }
 
-	/// @brief オクルージョンカリング用ルートシグネチャを取得
-	/// @return オクルージョンカリング用ルートシグネチャ
-	ID3D12RootSignature *GetOcclusionCullingRootSignature() const { return occlusionCullingRootSignature_.Get(); }
+	/// @brief 木カリング用ルートシグネチャを取得
+	/// @return 木カリング用ルートシグネチャ
+	ID3D12RootSignature *GetTreeCullingRootSignature() const { return treeCullingRootSignature_.Get(); }
+
+	/// @brief メッシュカリング用ルートシグネチャを取得
+	/// @return メッシュカリング用ルートシグネチャ
+	ID3D12RootSignature *GetMeshCullingRootSignature() const { return meshCullingRootSignature_.Get(); }
 
 	/// @brief メッシュコマンドステートのクリア用ルートシグネチャを取得
 	/// @return メッシュコマンドステートのクリア用ルートシグネチャ
@@ -269,7 +273,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthStencilCopyRootSignature_ = nullptr;		// 深度ステンシルテクスチャコピー用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> generateHiZMipMapRootSignature_ = nullptr;		// HiZミップマップ生成用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> clearMeshCommandStatesRootSignature_ = nullptr;	// メッシュコマンドステートのクリア用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> occlusionCullingRootSignature_ = nullptr;		// オクルージョンカリング用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> treeCullingRootSignature_ = nullptr;			// 木のカリング用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> meshCullingRootSignature_ = nullptr;			// メッシュカリング用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> prefixSumRootSignature_ = nullptr;				// 累積和計算用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> setInstanceCountRootSignature_ = nullptr;		// インスタンス数の反映用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> setInstanceIndexRootSignature_ = nullptr;		// インスタンスインデックスの反映用ルートシグネチャ

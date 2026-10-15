@@ -22,6 +22,13 @@
 #pragma comment(lib, "Dbghelp.lib")
 
 Application::Application() {
+	// デルタタイマーの初期化
+	deltaTimer_ = std::make_unique<CPUTimer>();
+
+	// CPUタイマーの初期化
+	cpuTimer_ = std::make_unique<CPUTimer>();
+	cpuTimer_->Begin();	// CPUタイマーの開始
+
 	// COMライブラリの初期化
 	HRESULT hr = CoInitializeEx(0, COINIT_MULTITHREADED);
 	assert(SUCCEEDED(hr));
@@ -30,43 +37,53 @@ Application::Application() {
 	logStream_ = Logger::OpenLogFile();
 
 	// ウィンドウの初期化
+	CPUTimer logTimer;
+	logTimer.Begin();
 	window_ = std::make_unique<Window>();
 	window_->Initialize();
-	Logger::Log(logStream_, "Create Window\n");
+	logTimer.End();
+	Logger::Log(logStream_, "Create Window " + std::to_string(logTimer.GetMs()) + " ms\n");
 
 	// デバイスの初期化
+	logTimer.Begin();
 	device_ = std::make_unique<Device>();
 	device_->Initialize(logStream_, *window_);
-	Logger::Log(logStream_, "Create Device\n");
+	logTimer.End();
+	Logger::Log(logStream_, "Create Device " + std::to_string(logTimer.GetMs()) + " ms\n");
 
 	// オーディオの初期化
+	logTimer.Begin();
 	audio_ = std::make_unique<Audio>(&logStream_);
 	audio_->Initialize();
-	Logger::Log(logStream_, "Create Audio\n");
+	logTimer.End();
+	Logger::Log(logStream_, "Create Audio " + std::to_string(logTimer.GetMs()) + " ms\n");
 
 	// インプットの初期化
+	logTimer.Begin();
 	input_ = std::make_unique<Input>();
 	input_->Initialize(*window_);
-	Logger::Log(logStream_, "Create Input\n");
+	logTimer.End();
+	Logger::Log(logStream_, "Create Input " + std::to_string(logTimer.GetMs()) + " ms\n");
 
 	// レンダラーの初期化
+	logTimer.Begin();
 	renderer_ = std::make_unique<Renderer>(device_.get());
 	renderer_->Initialize(logStream_);
-	Logger::Log(logStream_, "Create Renderer\n");
+	logTimer.End();
+	Logger::Log(logStream_, "Create Renderer " + std::to_string(logTimer.GetMs()) + " ms\n");
 
 	// シーンマネージャーの初期化
+	logTimer.Begin();
 	sceneManager_ = std::make_unique<SceneManager>();
 	sceneManager_->Initialize(device_.get(), input_.get(), audio_.get(), renderer_.get(), &logStream_);
-	Logger::Log(logStream_, "Create SceneManager\n");
-
-	// デルタタイマーの初期化
-	deltaTimer_ = std::make_unique<CPUTimer>();
-
-	// CPUタイマーの初期化
-	cpuTimer_ = std::make_unique<CPUTimer>();
+	logTimer.End();
+	Logger::Log(logStream_, "Create SceneManager " + std::to_string(logTimer.GetMs()) + " ms\n");
 
 	// GPUタイマーの初期化
 	gpuTimer_ = std::make_unique<GPUTimer>(device_.get());
+
+	cpuTimer_->End();	// CPUタイマーの終了
+	Logger::Log(logStream_, "Application Initialization Time: " + std::to_string(cpuTimer_->GetMs()) + " ms\n");
 }
 
 Application::~Application() {
@@ -116,6 +133,8 @@ void Application::Run() {
 
 		gpuTimer_->End();	// GPUタイマーの終了
 		gpuTimer_->Resolve();	// GPUタイマーの結果をReadbackBufferにコピー
+
+		sceneManager_->EndFrame();	// フレームの終了処理
 
 		cpuTimer_->End();	// CPUタイマーの終了
 

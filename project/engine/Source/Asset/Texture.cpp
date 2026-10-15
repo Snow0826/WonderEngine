@@ -4,6 +4,7 @@
 #include "Logger.h"
 #include "Device.h"
 #include "d3dx12.h"
+#include "CPUTimer.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -13,6 +14,8 @@ TextureManager::TextureManager(Device *device, std::ofstream *logStream) : devic
 TextureManager::~TextureManager() = default;
 
 uint32_t TextureManager::LoadTexture(const std::string &fileName) {
+	CPUTimer timer;
+	timer.Begin();
 	// すでに読み込まれている場合は何もしない
 	auto it = textures_.find(fileName);
 	if (it != textures_.end()) {
@@ -78,7 +81,8 @@ uint32_t TextureManager::LoadTexture(const std::string &fileName) {
 
 	// テクスチャリストに追加
 	textures_.insert(std::make_pair(fileName, std::move(texture)));
-	Logger::Log(*logStream_, "Loaded texture: " + fileName + "\n");
+	timer.End();
+	Logger::Log(*logStream_, "Loaded texture: " + fileName + " in " + std::to_string(timer.GetMs()) + " ms\n");
 	return textures_.at(fileName)->readHandle;
 }
 

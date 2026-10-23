@@ -33,3 +33,9 @@ void GameViewWindow::Draw() {
 	ImGui::End();
 #endif // USE_IMGUI
 }
+
+void GameViewWindow::Edit() {
+#ifdef USE_IMGUI
+	ImGui::Checkbox("GameView", &isOpen_);
+#endif // USE_IMGUI
+}

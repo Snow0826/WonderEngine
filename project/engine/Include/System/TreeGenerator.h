@@ -6,6 +6,17 @@
 #include <memory>
 #include <random>
 
+/// @brief 樹種
+enum class TreeSpecies {
+	Zelkova,	// ケヤキ
+	Kunugi,		// クヌギ
+	Konara,		// コナラ
+	Beech,		// ブナ
+	Cedar,		// スギ
+	Pine,		// マツ
+	Willow		// ヤナギ
+};
+
 /// @brief 樹冠形状
 enum class CrownShape {
 	Sphere,			// 球形
@@ -35,6 +46,24 @@ struct Branch final {
 	uint32_t growCount = 0;			// 成長カウント
 };
 
+/// @brief 枝の経路上の点
+struct BranchPathPoint final {
+	Vector3 position;		// 位置
+	Vector3 direction;		// 方向
+	float radius = 0.0f;	// 半径
+	float distance = 0.0f;	// 経路に沿った累積距離
+};
+
+/// @brief 枝の経路
+struct BranchPath final {
+	std::vector<BranchPathPoint> points;	// 経路上の点
+};
+
+/// @brief 枝のメッシュ
+struct BranchMesh final {
+	std::vector<BranchPath> paths;	// 枝の経路
+};
+
 /// @brief グリッドセル
 struct GridCell final {
 	int32_t x = 0;	// X座標
@@ -58,27 +87,8 @@ struct GridCellHash final {
 	}
 };
 
-/// @brief 枝のデータ
-struct BranchData final {
-	float bottomRadius = 0.0f;	// 下半径
-	float topRadius = 0.0f;		// 上半径
-	float inverseLength = 0.0f;	// 長さの逆数
-};
-
-/// @brief 木のメンバー
-struct TreeMember final {
-	uint32_t treeId = 0;	// 木のID
-};
-
-/// @brief 木の境界ボックス
-struct TreeBounds final {
-	uint32_t treeId = 0;	// 木のID
-	Vector3 min;	// 最小座標
-	Vector3 max;	// 最大座標
-};
-
 /// @brief 樹冠
-struct TreeCrown {
+struct TreeCrown final {
 	Vector3 center = { 0.0f, 5.0f, 0.0f };	// 中心位置
 	Vector3 radius = { 5.0f, 5.0f, 5.0f };	// 半径
 	CrownShape shape = CrownShape::Ellipsoid;	// 樹冠形状
@@ -90,7 +100,8 @@ struct TreeCrown {
 };
 
 /// @brief 木の設定
-struct TreeConfig {
+struct TreeConfig final {
+	TreeSpecies species = TreeSpecies::Zelkova;	// 樹種
 	Vector3 rootPosition;	// 根の位置
 	Vector3 rootDirection = { 0.0f, 1.0f, 0.0f };	// 根の方向
 	TreeCrown crown;	// 樹冠
@@ -145,9 +156,10 @@ private:
 	std::unordered_map<GridCell, std::vector<Branch *>, GridCellHash> branchGrid_;	// グリッドセルごとの枝のマップ
 	float gridCellSize_ = 1.0f;	// グリッドセルのサイズ
 	TreeCrown currentCrown_;	// 現在の樹冠
+	uint32_t treeCounter_ = 0;	// 木のカウンター
 	std::mt19937 randomEngine_;	// 乱数生成器
 	CPUTimer timer_;	// CPUタイマー
-	
+
 	/// @brief 葉の生成
 	/// @param crownCenter 葉の生成範囲の中心
 	/// @param crownRadius 葉の生成範囲の半径
@@ -200,19 +212,45 @@ private:
 	/// @param branch 枝
 	void AddBranchToGrid(Branch *branch);
 
-	/// @brief 枝を再帰的に作成する
-	/// @param branch 枝
-	/// @param parentEntity 親のエンティティID
-	/// @param parentWorldRotation 親のワールド回転
-	/// @param branchLength 枝の長さ
-	/// @param branchPrimitive 枝のプリミティブ
-	/// @param treeId 木のID
-	/// @return 作成された枝のエンティティID
-	uint32_t CreateBranchRecursive(Branch *branch, uint32_t parentEntity, const Quaternion &parentWorldRotation, float branchLength, const Primitive &branchPrimitive, uint32_t treeId);
+	/// @brief 枝のメッシュを作成する
+	/// @return 作成された枝のメッシュ
+	BranchMesh CreateBranchMesh();
 
-	/// @brief 葉を作成する
-	/// @param parentEntity 親のエンティティID
-	/// @param treeId 木のID
-	/// @return 作成された葉のエンティティID
-	uint32_t CreateLeaf(uint32_t parentEntity, uint32_t treeId);
+	/// @brief 枝の経路を作る
+	/// @param start 最初の枝
+	/// @param firstChild 最初の子の枝
+	/// @param result 枝の経路
+	void TraceBranchPath(Branch *start, Branch *firstChild, BranchMesh &result);
+
+	/// @brief 枝の経路上の点を作成する
+	/// @param branch 枝
+	/// @return 作成された枝の経路上の点
+	BranchPathPoint MakeBranchPathPoint(const Branch *branch);
+
+	/// @brief Hermite曲線の長さを近似する
+	/// @param startPosition 始点
+	/// @param endPosition 終点
+	/// @param startTangent 始点の接線
+	/// @param endTangent 終点の接線
+	/// @param samples サンプル数
+	/// @return 近似された長さ
+	float ApproximateHermiteLength(const Vector3 &startPosition, const Vector3 &endPosition, const Vector3 &startTangent, const Vector3 &endTangent, uint32_t samples = 16);
+};
+
+/// @brief 木の設定インスペクター
+class TreeConfigInspector {
+public:
+	/// @brief コンストラクタ
+	/// @param registry レジストリ
+	/// @param treeGenerator 木生成器
+	TreeConfigInspector(Registry *registry, TreeGenerator *treeGenerator) : registry_(registry), treeGenerator_(treeGenerator) {}
+
+	/// @brief 木の設定インスペクターの描画
+	/// @param entity エンティティ
+	void Draw(uint32_t entity);
+
+private:
+	Registry *registry_ = nullptr;
+	TreeGenerator *treeGenerator_ = nullptr;
+	std::vector<uint32_t> treeEntities_;
 };

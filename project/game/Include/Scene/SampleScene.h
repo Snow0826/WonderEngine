@@ -1,6 +1,5 @@
 #pragma once
 #include "BaseScene.h"
-#include <vector>
 
 class Player;
 class CameraController;
@@ -22,8 +21,6 @@ public:
 	void OnUpdate(float deltaTime) override;
 
 private:
-	std::vector<uint32_t> treeEntities_;	// 木のエンティティIDのリスト
-	uint32_t softBodyEntity_ = 0;			// ソフトボディのエンティティID
 	std::unique_ptr<Player> player_;		// プレイヤー
 	std::unique_ptr<CameraController> cameraController_;	// カメラコントローラー
 };

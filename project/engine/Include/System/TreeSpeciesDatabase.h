@@ -1,16 +1,9 @@
 #pragma once
 #include "TreeGenerator.h"
 
-/// @brief 樹種
-enum class TreeSpecies {
-	Zelkova,	// ケヤキ
-	Kunugi,		// クヌギ
-	Konara,		// コナラ
-	Beech,		// ブナ
-	Cedar,		// スギ
-	Pine,		// マツ
-	Willow		// ヤナギ
-};
+/// @brief 樹種の設定を生成する 
+/// @param config 生成する木の設定
+void MakeTreeConfig(TreeConfig &config);
 
 /// @brief 指定された樹種の設定を生成する
 /// @param species 樹種

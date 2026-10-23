@@ -1,6 +1,7 @@
 #pragma once
 #include "Collision.h"
 #include <string>
+#include <vector>
 
 /// @brief プリミティブ
 struct Primitive final {
@@ -12,6 +13,7 @@ struct Primitive final {
 
 class MeshManager;
 class TextureManager;
+struct BranchMesh;
 
 /// @brief プリミティブジェネレーター
 class PrimitiveGenerator final {
@@ -56,7 +58,43 @@ public:
 	/// @return 円柱
 	Primitive CreateCylinder(const std::string &meshName, uint32_t divide, float topRadius, float bottomRadius, float height, bool cap, const std::string &textureFileName);
 
+	/// @brief 木の作成
+	/// @param meshName メッシュ名
+	/// @param branchMesh 枝のメッシュ
+	/// @param lengthSegments スプライン方向の分割数
+	/// @param radialSegments 円周方向の分割数
+	/// @param uvScale UVスケール
+	/// @param textureFileName テクスチャファイル名
+	/// @return 木
+	Primitive CreateTree(const std::string &meshName, const BranchMesh &branchMesh, uint32_t lengthSegments, uint32_t radialSegments, float uvScale, const std::string &textureFileName);
+
+	/// @brief 作成されたメッシュ名のリストを取得する
+	/// @return 作成されたメッシュ名のリスト
+	const std::vector<std::string> &GetMeshNames() const { return meshNames_; }
+
 private:
 	MeshManager *meshManager_ = nullptr;		// メッシュマネージャー
 	TextureManager *textureManager_ = nullptr;	// テクスチャマネージャー
+	std::vector<std::string> meshNames_;	// 作成されたメッシュ名のリスト
+};
+
+class Registry;
+
+/// @brief プリミティブインスペクター
+class PrimitiveInspector final {
+public:
+	/// @brief コンストラクタ
+	/// @param registry レジストリ
+	/// @param primitiveGenerator プリミティブジェネレーター
+	/// @param meshManager メッシュマネージャー
+	PrimitiveInspector(Registry *registry, PrimitiveGenerator *primitiveGenerator, MeshManager *meshManager) : registry_(registry), primitiveGenerator_(primitiveGenerator), meshManager_(meshManager) {}
+
+	/// @brief プリミティブインスペクターの描画
+	/// @param entity エンティティ
+	void Draw(uint32_t entity);
+
+private:
+	Registry *registry_ = nullptr;			// レジストリ
+	PrimitiveGenerator *primitiveGenerator_ = nullptr;	// プリミティブジェネレーター
+	MeshManager *meshManager_ = nullptr;	// メッシュマネージャー
 };

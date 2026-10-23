@@ -1,7 +1,7 @@
 #include "IndirectCommand.hlsli"
 #include "AABB.hlsli"
 
-static const uint kMaxMeshType = 5; // Number of mesh types (Model, Plane, Box, Ring, Cylinder)
+static const uint kMaxMeshType = 6; // Number of mesh types (Model, Plane, Box, Ring, Cylinder, Tree)
 static const uint kMaxBlendMode = 6; // Number of blend modes (None, Normal, Additive, Subtractive, Multiplicative, Screen)
 static const uint kCreatingCommandIndex = (uint) -2; // Special value indicating that a command is being created
 
@@ -18,7 +18,6 @@ struct Mesh
     uint lodOffset; // Offset into the meshLODs buffer for this mesh's LODs
     uint lodCount; // Number of LODs for this mesh
     uint useCulling; // Flag indicating whether to use culling for this mesh (0: no culling, 1: use culling)
-    uint treeIndex; // Tree visibility index, or 0xffffffff for non-tree objects
 };
 
 struct MeshLOD
@@ -54,8 +53,7 @@ StructuredBuffer<Object> objects : register(t0); // SRV: Object data
 StructuredBuffer<Mesh> meshes : register(t1); // SRV: Meshes
 StructuredBuffer<MeshLOD> meshLODs : register(t2); // SRV: Mesh LODs
 StructuredBuffer<AABB> boxes : register(t3); // SRV: boxes
-StructuredBuffer<uint> treeVisibility : register(t4); // SRV: Tree visibility buffer
-Texture2D<float> gHiZTexture : register(t5); // SRV: Hi-Z texture for occlusion culling
+Texture2D<float> gHiZTexture : register(t4); // SRV: Hi-Z texture for occlusion culling
 SamplerState gSampler : register(s0); // Sampler for Hi-Z texture
 RWStructuredBuffer<MeshCommandState> meshCommandStates : register(u0); // UAV: Mesh Command States
 RWStructuredBuffer<MeshLODState> meshLODStates : register(u1); // UAV: Mesh LOD States
@@ -78,10 +76,6 @@ void main(uint3 DTid : SV_DispatchThreadID)
     meshLODStates[DTid.x].visible = 0; // Initialize visibility to false
     meshLODStates[DTid.x].instanceIndex = 0; // Initialize instance index to 0
     Mesh mesh = meshes[DTid.x]; // Get culling data for this thread
-    if (mesh.treeIndex != 0xffffffff && treeVisibility[mesh.treeIndex] == 0)
-    {
-        return; // Skip detailed branch culling when the parent tree was rejected
-    }
     AABB box = boxes[DTid.x]; // Get bounding box for this mesh
     Object object = objects[mesh.objectIndex]; // Get object data for this mesh
     float3 center = (box.min.xyz + box.max.xyz) * 0.5f;

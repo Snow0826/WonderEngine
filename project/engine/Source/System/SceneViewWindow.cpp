@@ -48,3 +48,9 @@ void SceneViewWindow::Draw() {
 	ImGui::End();
 #endif // USE_IMGUI
 }
+
+void SceneViewWindow::Edit() {
+#ifdef USE_IMGUI
+	ImGui::Checkbox("SceneView", &isOpen_);
+#endif // USE_IMGUI
+}

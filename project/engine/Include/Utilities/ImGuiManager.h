@@ -31,6 +31,13 @@ public:
 	/// @brief ImGuiの終了
 	static void Finalize();
 
+	/// @brief コンボボックスの描画
+	/// @param label ラベル
+	/// @param currentItem 現在選択されているアイテム
+	/// @param items アイテムのリスト
+	/// @return 選択が変更された場合はtrue、それ以外はfalse
+	static bool Combo(const std::string &label, std::string &currentItem, const std::vector<std::string> &items);
+
 private:
 	/// @brief ImGuiのコンテキスト
 	struct ImGuiDescriptorContext {

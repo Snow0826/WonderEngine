@@ -22,10 +22,13 @@ public:
 
 	/// @brief 描画
 	void Draw();
+	
+	/// @brief 編集
+	void Edit();
 
-	/// @brief ウィンドウの開閉状態への参照を取得
-	/// @return ウィンドウの開閉状態への参照
-	bool &IsOpen() { return isOpen_; }
+	/// @brief ウィンドウの開閉状態を取得する
+	/// @return ウィンドウの開閉状態
+	bool IsOpen() { return isOpen_; }
 
 private:
 	Registry *registry_ = nullptr;	// レジストリ

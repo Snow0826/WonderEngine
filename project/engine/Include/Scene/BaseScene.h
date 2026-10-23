@@ -16,6 +16,8 @@ class SpriteManager;
 class TextManager;
 class FootprintManager;
 class DebugRenderer;
+class PrimitiveGenerator;
+class TreeGenerator;
 class Registry;
 class ComponentDrawerRegistry;
 class HierarchyWindow;
@@ -24,6 +26,7 @@ class SceneViewWindow;
 class GameViewWindow;
 class BlendModeInspector;
 class ModelInspector;
+class PrimitiveInspector;
 class SpriteInspector;
 class ParticleGroupInspector;
 class EmitterSphereInspector;
@@ -37,6 +40,7 @@ class PointLightInspector;
 class SpotLightInspector;
 class RigidBodyInspector;
 class SoftBodyInspector;
+class TreeConfigInspector;
 class FootprintInspector;
 class AABBInspector;
 class SphereInspector;
@@ -119,6 +123,10 @@ protected:
 	/// @return フットプリントマネージャー
 	FootprintManager *GetFootprintManager() const { return footprintManager_.get(); }
 
+	/// @brief 木の生成器を取得する
+	/// @return 木の生成器
+	TreeGenerator *GetTreeGenerator() const { return treeGenerator_.get(); }
+
 	/// @brief デバッグカメラがアクティブかどうかを取得する
 	/// @return デバッグカメラがアクティブな場合はtrueを返す
 	bool IsDebugCameraActive() const { return isDebugCameraActive_; }
@@ -140,6 +148,8 @@ private:
 	std::unique_ptr<TextManager> textManager_ = nullptr;								// テキストマネージャー
 	std::unique_ptr<FootprintManager> footprintManager_ = nullptr;						// フットプリントマネージャー
 	std::unique_ptr<DebugRenderer> debugRenderer_ = nullptr;							// デバッグレンダラー
+	std::unique_ptr<PrimitiveGenerator> primitiveGenerator_ = nullptr;					// プリミティブジェネレーター
+	std::unique_ptr<TreeGenerator> treeGenerator_ = nullptr;							// 木の生成器
 	std::unique_ptr<Registry> registry_ = nullptr;										// レジストリ
 	std::unique_ptr<ComponentDrawerRegistry> componentDrawerRegistry_ = nullptr;		// コンポーネント描画関数レジストリ
 	std::unique_ptr<HierarchyWindow> hierarchyWindow_ = nullptr;						// 階層ウィンドウ
@@ -149,6 +159,7 @@ private:
 	std::unique_ptr<SelectionContext> selection_ = nullptr;								// 選択コンテキスト
 	std::unique_ptr<BlendModeInspector> blendModeInspector_ = nullptr;					// ブレンドモードインスペクター
 	std::unique_ptr<ModelInspector> modelInspector_ = nullptr;							// モデルインスペクター
+	std::unique_ptr<PrimitiveInspector> primitiveInspector_ = nullptr;					// プリミティブインスペクター
 	std::unique_ptr<SpriteInspector> spriteInspector_ = nullptr;						// スプライトインスペクター
 	std::unique_ptr<ParticleGroupInspector> particleGroupInspector_ = nullptr;			// パーティクルグループインスペクター
 	std::unique_ptr<EmitterSphereInspector> emitterSphereInspector_ = nullptr;			// 球状エミッターインスペクター
@@ -162,6 +173,7 @@ private:
 	std::unique_ptr<SpotLightInspector> spotLightInspector_ = nullptr;					// スポットライトインスペクター
 	std::unique_ptr<RigidBodyInspector> rigidBodyInspector_ = nullptr;					// 剛体インスペクター
 	std::unique_ptr<SoftBodyInspector> softBodyInspector_ = nullptr;					// ソフトボディインスペクター
+	std::unique_ptr<TreeConfigInspector> treeConfigInspector_ = nullptr;				// 木の設定インスペクター
 	std::unique_ptr<FootprintInspector> footprintInspector_ = nullptr;					// フットプリントインスペクター
 	std::unique_ptr<AABBInspector> aabbInspector_ = nullptr;							// AABBインスペクター
 	std::unique_ptr<SphereInspector> sphereInspector_ = nullptr;						// 球インスペクター

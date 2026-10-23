@@ -1,7 +1,12 @@
 #include "TreeSpeciesDatabase.h"
 
+void MakeTreeConfig(TreeConfig &config) {
+	config = MakeTreeConfig(config.species, config.rootPosition);
+}
+
 TreeConfig MakeTreeConfig(TreeSpecies species, const Vector3 &rootPosition) {
 	TreeConfig config;
+	config.species = species;
 	config.rootPosition = rootPosition;
 	config.crown.center = rootPosition;
 	config.leafCount = 5000;
@@ -78,7 +83,7 @@ TreeConfig MakeTreeConfig(TreeSpecies species, const Vector3 &rootPosition) {
 		config.crown.upwardBias = 0.58f;
 		config.crown.outwardBias = 0.42f;
 		config.influenceRadius = 1.87f;
-		config.killRadius = 0.56f;
+		config.killRadius = 1.12f;
 		config.branchLength = 0.58f;
 		config.minRadius = 0.018f;
 		config.gamma = 5.0f;

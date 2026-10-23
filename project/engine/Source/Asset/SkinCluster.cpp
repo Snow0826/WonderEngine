@@ -12,7 +12,8 @@ uint32_t SkinClusterManager::CreateSkinCluster(const ModelData &modelData) {
 
 	uint32_t skinClusterIndex = static_cast<uint32_t>(skinClusters_.size());
 	DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device_->GetGpuCbvSrvUavDescriptorHeap();
-	std::vector<VertexData> vertices = modelData.meshes.back().lods.back().vertices;
+	VertexData *vertexData = meshManager_->GetVertexData(modelData.meshes.back().lods.back().meshName);
+	size_t vertexCount = meshManager_->GetVertexCount(modelData.meshes.back().lods.back().meshName);
 	std::unique_ptr<SkinCluster> skinCluster = std::make_unique<SkinCluster>();
 
 	// Palette用のResourceを確保
@@ -36,34 +37,34 @@ uint32_t SkinClusterManager::CreateSkinCluster(const ModelData &modelData) {
 
 	// Influence用のResourceを確保
 	VertexInfluence *mappedInfluence = nullptr;
-	skinCluster->influenceResource = Resource::CreateUploadBuffer(device_, sizeof(VertexInfluence) * vertices.size());
+	skinCluster->influenceResource = Resource::CreateUploadBuffer(device_, sizeof(VertexInfluence) * vertexCount);
 	skinCluster->influenceResource->Map(reinterpret_cast<void **>(&mappedInfluence));
-	std::memset(mappedInfluence, 0, sizeof(VertexInfluence) * vertices.size());
-	skinCluster->mappedInfluence = { mappedInfluence, vertices.size() };
+	std::memset(mappedInfluence, 0, sizeof(VertexInfluence) * vertexCount);
+	skinCluster->mappedInfluence = { mappedInfluence, vertexCount };
 	skinCluster->influenceSRVHandle = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// Influence用のSRVを作成
-	srvDesc.Buffer.NumElements = static_cast<UINT>(vertices.size());
+	srvDesc.Buffer.NumElements = static_cast<UINT>(vertexCount);
 	srvDesc.Buffer.StructureByteStride = sizeof(VertexInfluence);
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(skinCluster->influenceResource->GetResource(), srvDesc, skinCluster->influenceSRVHandle);
 	Logger::Log(*logStream_, "VertexInfluence SRVDescriptorIndex: " + std::to_string(skinCluster->influenceSRVHandle) + "\n");
 
 	// InputVertex用のResourceを確保
 	VertexData *mappedVertex = nullptr;
-	skinCluster->inputVertexResource = Resource::CreateUploadBuffer(device_, sizeof(VertexData) * vertices.size());
+	skinCluster->inputVertexResource = Resource::CreateUploadBuffer(device_, sizeof(VertexData) * vertexCount);
 	skinCluster->inputVertexResource->Map(reinterpret_cast<void **>(&mappedVertex));
-	std::memcpy(mappedVertex, vertices.data(), sizeof(VertexData) * vertices.size());
-	skinCluster->mappedVertex = { mappedVertex, vertices.size() };
+	std::memcpy(mappedVertex, vertexData, sizeof(VertexData) * vertexCount);
+	skinCluster->mappedVertex = { mappedVertex, vertexCount };
 	skinCluster->vertexSRVHandle = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// InputVertex用のSRVを作成
-	srvDesc.Buffer.NumElements = static_cast<UINT>(vertices.size());
+	srvDesc.Buffer.NumElements = static_cast<UINT>(vertexCount);
 	srvDesc.Buffer.StructureByteStride = sizeof(VertexData);
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(skinCluster->inputVertexResource->GetResource(), srvDesc, skinCluster->vertexSRVHandle);
 	Logger::Log(*logStream_, "InputVertex SRVDescriptorIndex: " + std::to_string(skinCluster->vertexSRVHandle) + "\n");
 
 	// OutputVertex用のResourceを確保
-	skinCluster->outputVertexResource = Resource::CreateRWBuffer(device_, sizeof(VertexData) * vertices.size());
+	skinCluster->outputVertexResource = Resource::CreateRWBuffer(device_, sizeof(VertexData) * vertexCount);
 	skinCluster->vertexUAVHandle = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// OutputVertex用のUAVを作成
@@ -71,7 +72,7 @@ uint32_t SkinClusterManager::CreateSkinCluster(const ModelData &modelData) {
 	uavDesc.Format = DXGI_FORMAT_UNKNOWN;
 	uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
 	uavDesc.Buffer.FirstElement = 0;
-	uavDesc.Buffer.NumElements = static_cast<UINT>(vertices.size());
+	uavDesc.Buffer.NumElements = static_cast<UINT>(vertexCount);
 	uavDesc.Buffer.StructureByteStride = sizeof(VertexData);
 	uavDesc.Buffer.CounterOffsetInBytes = 0;
 	uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
@@ -80,7 +81,7 @@ uint32_t SkinClusterManager::CreateSkinCluster(const ModelData &modelData) {
 
 	// OutputVertex用のVertexBufferViewを作成
 	skinCluster->outputVertexBufferView.BufferLocation = skinCluster->outputVertexResource->GetGPUVirtualAddress();
-	skinCluster->outputVertexBufferView.SizeInBytes = static_cast<UINT>(sizeof(VertexData) * vertices.size());
+	skinCluster->outputVertexBufferView.SizeInBytes = static_cast<UINT>(sizeof(VertexData) * vertexCount);
 	skinCluster->outputVertexBufferView.StrideInBytes = sizeof(VertexData);
 
 	// InverseBindPoseMatrixを格納する場所を作成して、単位行列で埋める

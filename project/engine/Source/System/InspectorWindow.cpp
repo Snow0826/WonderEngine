@@ -2,6 +2,7 @@
 #include "EntityComponentSystem.h"
 #include "ComponentDrawerRegistry.h"
 #include "SelectionContext.h"
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
@@ -13,11 +14,22 @@ void InspectorWindow::Draw() {
 	}
 
 	if (ImGui::Begin("Inspector", &isOpen_)) {
-		ImGui::Text("Entity %u", selection_->selectedEntity);
+		auto name = registry_->GetComponent<Name>(selection_->selectedEntity);
+		if (name && !name->value.empty()) {
+			ImGui::Text("%s", name->value.c_str());
+		} else {
+			ImGui::Text("Entity %u", selection_->selectedEntity);
+		}
 		DrawComponents(selection_->selectedEntity);
 		DrawTagComponents(selection_->selectedEntity);
 	}
 	ImGui::End();
+#endif // USE_IMGUI
+}
+
+void InspectorWindow::Edit() {
+#ifdef USE_IMGUI
+	ImGui::Checkbox("Inspector", &isOpen_);
 #endif // USE_IMGUI
 }
 

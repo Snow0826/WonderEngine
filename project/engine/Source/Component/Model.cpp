@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "Model.h"
 #include "EntityComponentSystem.h"
+#include "World.h"
 #include "VertexBuffer.h"
 #include "Texture.h"
 #include "SkinCluster.h"
@@ -16,6 +17,7 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#include <ImGuiManager.h>
 #endif // USE_IMGUI
 
 void ModelManager::LoadModel(std::string_view fileName) {
@@ -32,13 +34,6 @@ void ModelManager::LoadModel(std::string_view fileName) {
 	// モデルデータの読み込み
 	modelAsset->modelData = LoadModelData(std::string(fileName));
 
-	// メッシュの作成
-	for (const MeshData &mesh : modelAsset->modelData.meshes) {
-		for (const MeshLODData &lod : mesh.lods) {
-			meshManager_->CreateMesh(lod.meshName, lod);
-		}
-	}
-
 	// テクスチャの読み込み
 	for (const MaterialData &materialData : modelAsset->modelData.materials) {
 		modelAsset->textureHandle.emplace_back(textureManager_->LoadTexture(materialData.textureFilePath));
@@ -52,6 +47,7 @@ void ModelManager::LoadModel(std::string_view fileName) {
 	timer.End();
 	Logger::Log(*logStream_, "Loaded model: " + std::string(fileName) + " in " + std::to_string(timer.GetMs()) + " ms\n");
 	modelAssets_.insert(std::make_pair(std::string(fileName), std::move(modelAsset)));
+	modelNames_.emplace_back(std::string(fileName));
 }
 
 ModelAsset* ModelManager::FindModel(std::string_view fileName) const {
@@ -60,26 +56,6 @@ ModelAsset* ModelManager::FindModel(std::string_view fileName) const {
 		return nullptr;
 	}
 	return it->second.get();
-}
-
-bool ModelManager::Combo(const std::string &label, Model *model) {
-	bool changed = false;
-#ifdef USE_IMGUI
-	if (ImGui::BeginCombo(label.c_str(), model ? model->name.c_str() : "Select Model")) {
-		for (auto &[name, storedModel] : modelAssets_) {
-			bool isSelected = (model && storedModel->name == model->name);
-			if (ImGui::Selectable(storedModel->name.c_str(), isSelected)) {
-				model->name = storedModel->name;
-				changed = true;
-			}
-			if (isSelected) {
-				ImGui::SetItemDefaultFocus();
-			}
-		}
-		ImGui::EndCombo();
-	}
-#endif // USE_IMGUI
-	return changed;
 }
 
 void ModelManager::UpdateSkeleton(Skeleton &skeleton) {
@@ -122,33 +98,33 @@ ModelData ModelManager::LoadModelData(const std::string &fileName) {
 	// メッシュの読み込み
 	assert(scene->HasMeshes());	// メッシュがないのは対応しない
 	for (uint32_t meshIndex = 0; meshIndex < scene->mNumMeshes; ++meshIndex) {
-		aiMesh *mesh = scene->mMeshes[meshIndex];
-		MeshLODData meshLODData;
+		aiMesh *importMesh = scene->mMeshes[meshIndex];
+		Mesh mesh;
 
 		// 頂点データの読み込み
-		for (uint32_t vertexIndex = 0; vertexIndex < mesh->mNumVertices; ++vertexIndex) {
-			aiVector3D position = mesh->mVertices[vertexIndex];
-			aiVector3D texcoord = mesh->HasTextureCoords(0) ? mesh->mTextureCoords[0][vertexIndex] : aiVector3D(0, 0, 0);
-			aiVector3D normal = mesh->HasNormals() ? mesh->mNormals[vertexIndex] : aiVector3D(0, 0, 0);
+		for (uint32_t vertexIndex = 0; vertexIndex < importMesh->mNumVertices; ++vertexIndex) {
+			aiVector3D position = importMesh->mVertices[vertexIndex];
+			aiVector3D texcoord = importMesh->HasTextureCoords(0) ? importMesh->mTextureCoords[0][vertexIndex] : aiVector3D(0, 0, 0);
+			aiVector3D normal = importMesh->HasNormals() ? importMesh->mNormals[vertexIndex] : aiVector3D(0, 0, 0);
 			VertexData vertex = {
 				.position = { -position.x, position.y, position.z, 1.0f },
 				.texcoord = { texcoord.x, texcoord.y },
 				.normal = { -normal.x, normal.y, normal.z }
 			};
-			meshLODData.vertices.emplace_back(vertex);
+			mesh.vertices.emplace_back(vertex);
 		}
 
 		// インデックスデータの読み込み
-		for (uint32_t faceIndex = 0; faceIndex < mesh->mNumFaces; ++faceIndex) {
-			aiFace &face = mesh->mFaces[faceIndex];
+		for (uint32_t faceIndex = 0; faceIndex < importMesh->mNumFaces; ++faceIndex) {
+			aiFace &face = importMesh->mFaces[faceIndex];
 			for (uint32_t index = 0; index < face.mNumIndices; ++index) {
-				meshLODData.indices.emplace_back(face.mIndices[index]);
+				mesh.indices.emplace_back(face.mIndices[index]);
 			}
 		}
 
 		// スキンクラスターの読み込み
-		for (uint32_t boneIndex = 0; boneIndex < mesh->mNumBones; ++boneIndex) {
-			aiBone *bone = mesh->mBones[boneIndex];
+		for (uint32_t boneIndex = 0; boneIndex < importMesh->mNumBones; ++boneIndex) {
+			aiBone *bone = importMesh->mBones[boneIndex];
 			aiVector3D scale, translate;
 			aiQuaternion rotate;
 			bone->mOffsetMatrix.Inverse().Decompose(scale, rotate, translate);
@@ -166,31 +142,34 @@ ModelData ModelManager::LoadModelData(const std::string &fileName) {
 			modelData.skinClusterData.emplace(bone->mName.C_Str(), jointWeightData);
 		}
 
-		meshLODData = meshManager_->ReIndexMeshLODData(meshLODData);
-		meshLODData.error = 0.0f;
-		meshLODData.meshName = fileName + mesh->mName.C_Str();
+		mesh = meshManager_->ReIndexMesh(mesh);
+		MeshLODData meshLODData = {
+			.meshName = importMesh->mName.C_Str(),
+			.error = 0.0f
+		};
+		meshManager_->CreateMesh(meshLODData.meshName, mesh);
 		MeshData meshData;
 		meshData.lods.emplace_back(meshLODData);
-		meshData.materialIndex = mesh->mMaterialIndex;
+		meshData.materialIndex = importMesh->mMaterialIndex;
 		modelData.meshes.emplace_back(meshData);
 	}
 
 	// マテリアルの読み込み
 	assert(scene->HasMaterials()); // マテリアルがないのは対応しない
 	for (uint32_t materialIndex = 0; materialIndex < scene->mNumMaterials; ++materialIndex) {
-		aiMaterial *material = scene->mMaterials[materialIndex];
-		MaterialData materialData;
-		if (std::string(material->GetName().C_Str()) == "DefaultMaterial") {
-			materialData.textureFilePath = "white8x8.png";
+		aiMaterial *importMaterial = scene->mMaterials[materialIndex];
+		MaterialData material;
+		if (std::string(importMaterial->GetName().C_Str()) == "DefaultMaterial") {
+			material.textureFilePath = "white8x8.png";
 		}
 
-		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
+		if (importMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0) {
 			aiString textureFilePath;
-			if (material->GetTexture(aiTextureType_DIFFUSE, 0, &textureFilePath) == AI_SUCCESS) {
-				materialData.textureFilePath = textureFilePath.C_Str();
+			if (importMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &textureFilePath) == AI_SUCCESS) {
+				material.textureFilePath = textureFilePath.C_Str();
 			}
 		}
-		modelData.materials.emplace_back(materialData);
+		modelData.materials.emplace_back(material);
 	}
 
 	// アニメーションの読み込み
@@ -308,18 +287,24 @@ void ModelInspector::Draw([[maybe_unused]] uint32_t entity) {
 #ifdef USE_IMGUI
 	if (ImGui::TreeNode("Model")) {
 		if (auto model = registry_->GetComponent<Model>(entity)) {
-			ModelAsset *modelAsset = modelManager_->FindModel(model->name);
-			if (modelManager_->Combo(modelAsset->modelData.format, model)) {
+			if (ImGuiManager::Combo("Model", model->name, modelManager_->GetModelNames())) {
 				TransformSystem transformSystem{ registry_ };
 				transformSystem.MarkDirty(entity);
+				registry_->AddComponent(entity, DirtyTextureData{});
+				registry_->AddComponent(entity, DirtyMeshLOD{});
+				registry_->AddComponent(entity, DirtyCullingData{});
 			}
 
+			ModelAsset *modelAsset = modelManager_->FindModel(model->name);
 			for (size_t i = 0; i < modelAsset->modelData.meshes.size(); i++) {
 				if (ImGui::TreeNode(("Mesh" + std::to_string(i)).c_str())) {
 					for (size_t j = 0; j < modelAsset->modelData.meshes[i].lods.size(); j++) {
 						if (ImGui::TreeNode(("LOD" + std::to_string(j)).c_str())) {
-							ImGui::Text("vertices: %zu", modelAsset->modelData.meshes[i].lods[j].vertices.size());
-							ImGui::Text("indices: %zu", modelAsset->modelData.meshes[i].lods[j].indices.size());
+							size_t vertexCount = meshManager_->GetVertexCount(modelAsset->modelData.meshes[i].lods[j].meshName);
+							uint32_t indexCount = meshManager_->GetIndexCount(modelAsset->modelData.meshes[i].lods[j].meshName);
+							ImGui::Text("vertices: %zu", vertexCount);
+							ImGui::Text("indices: %zu", indexCount);
+							ImGui::Text("triangles: %zu", indexCount / 3);
 							ImGui::TreePop();
 						}
 					}

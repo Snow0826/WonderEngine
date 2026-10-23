@@ -52,6 +52,8 @@ void ParticleManager::CreateParticleGroup(const std::string &name, MeshType mesh
 			particleGroup.meshName = name + "Cylinder";
 			meshManager_->CreateCylinder(particleGroup.meshName, 32, 1.0f, 1.0f, 3.0f, false);
 			break;
+		case MeshType::kTree:
+			break;
 		case MeshType::kCountOfMeshType:
 			break;
 		default:

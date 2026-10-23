@@ -1,6 +1,6 @@
 #include "EntityComponentSystem.h"
 #include "Model.h"
-#include "Easing.h"
+#include "Interpolation.h"
 
 void AnimationSystem::Update(float deltaTime) {
 	// アニメーション時間の更新
@@ -125,7 +125,7 @@ Vector3 AnimationSystem::SampleLinearVector3(const std::vector<KeyFrameVector3> 
 		const KeyFrameVector3 &kf1 = keyframes[i + 1];
 		if (time >= kf0.time && time <= kf1.time) {
 			float t = (time - kf0.time) / (kf1.time - kf0.time);
-			return Easing<Vector3>::Lerp(kf0.value, kf1.value, t);
+			return Interpolation<Vector3>::Lerp(kf0.value, kf1.value, t);
 		}
 	}
 	return keyframes.back().value;

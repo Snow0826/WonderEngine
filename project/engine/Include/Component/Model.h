@@ -67,7 +67,6 @@ struct ModelAsset final {
 	std::vector<uint32_t> textureHandle;	// テクスチャハンドル
 	std::vector<bool> enableMipMaps;		// ミップマップ有効フラグ
 	uint32_t skinClusterHandle = 0;			// スキンクラスターハンドル
-	std::string name;						// モデル名
 };
 
 /// @brief モデル
@@ -104,11 +103,9 @@ public:
 	/// @return モデル
 	ModelAsset* FindModel(std::string_view fileName) const;
 
-	/// @brief モデルコンボボックスの表示
-	/// @param label ラベル
-	/// @param model モデル
-	/// @return 選択されたかどうか
-	bool Combo(const std::string &label, Model *model);
+	/// @brief 読み込んだモデル名リストの取得
+	/// @return 読み込んだモデル名リスト
+	const std::vector<std::string> &GetModelNames() const { return modelNames_; }
 
 	/// @brief スケルトンの更新
 	/// @param skeleton スケルトン
@@ -125,6 +122,7 @@ private:
 	SkinClusterManager *skinClusterManager_ = nullptr;	// スキンクラスターマネージャー
 	std::ofstream *logStream_ = nullptr;				// ログ出力用のストリーム
 	std::unordered_map<std::string, std::unique_ptr<ModelAsset>> modelAssets_;	// 読み込んだモデルアセットのマップ
+	std::vector<std::string> modelNames_;	// 読み込んだモデル名リスト
 
 	/// @brief モデルデータの読み込み
 	/// @param fileName モデル名
@@ -157,7 +155,8 @@ public:
 	/// @brief コンストラクタ
 	/// @param registry レジストリ
 	/// @param modelManager モデルマネージャー
-	ModelInspector(Registry *registry, ModelManager *modelManager) : registry_(registry) , modelManager_(modelManager) {}
+	/// @param meshManager メッシュマネージャー
+	ModelInspector(Registry *registry, ModelManager *modelManager, MeshManager *meshManager) : registry_(registry) , modelManager_(modelManager) , meshManager_(meshManager) {}
 
 	/// @brief モデルインスペクターの描画
 	/// @param entity エンティティ
@@ -166,4 +165,5 @@ public:
 private:
 	Registry *registry_ = nullptr;			// レジストリ
 	ModelManager *modelManager_ = nullptr;	// モデルマネージャー
+	MeshManager *meshManager_ = nullptr;	// メッシュマネージャー
 };

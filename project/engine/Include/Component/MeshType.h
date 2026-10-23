@@ -7,5 +7,6 @@ enum class MeshType {
 	kBox,				// 立方体
 	kRing,				// 円環
 	kCylinder,			// 円柱
+	kTree,				// 木
 	kCountOfMeshType	// メッシュの種類の数
 };

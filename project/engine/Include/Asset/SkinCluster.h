@@ -43,14 +43,16 @@ struct SkinCluster final {
 class Device;
 class Registry;
 class ModelManager;
+class MeshManager;
 
 /// @brief スキンクラスターマネージャー
 class SkinClusterManager final {
 public:
 	/// @brief コンストラクタ
 	/// @param device デバイス
+	/// @param meshManager メッシュマネージャー
 	/// @param logStream ログ出力ストリーム
-	SkinClusterManager(Device *device, std::ofstream *logStream) : device_(device), logStream_(logStream) {}
+	SkinClusterManager(Device *device, MeshManager *meshManager, std::ofstream *logStream) : device_(device), meshManager_(meshManager), logStream_(logStream) {}
 
 	/// @brief スキンクラスターの作成
 	/// @param modelData モデルデータ
@@ -98,5 +100,6 @@ private:
 	std::ofstream *logStream_ = nullptr;	// ログ出力用のストリーム
 	Registry *registry_ = nullptr;	// レジストリ
 	ModelManager *modelManager_ = nullptr;	// モデルマネージャー
+	MeshManager *meshManager_ = nullptr;	// メッシュマネージャー
 	std::vector<std::unique_ptr<SkinCluster>> skinClusters_;	// スキンクラスターリスト
 };

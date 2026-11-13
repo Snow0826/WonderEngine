@@ -6,6 +6,17 @@
 #include <memory>
 #include <random>
 
+/// @brief 樹種
+enum class TreeSpecies {
+	Zelkova,	// ケヤキ
+	Kunugi,		// クヌギ
+	Konara,		// コナラ
+	Beech,		// ブナ
+	Cedar,		// スギ
+	Pine,		// マツ
+	Willow		// ヤナギ
+};
+
 /// @brief 樹冠形状
 enum class CrownShape {
 	Sphere,			// 球形
@@ -25,14 +36,32 @@ struct Leaf final {
 
 /// @brief 枝（Branch）
 struct Branch final {
-	Vector3 position;				// 位置
-	Vector3 direction;				// 方向
-	float radius = 0.0f;			// 半径
-	uint32_t generation = 0;		// 根からの世代数
-	Branch *parent = nullptr;		// 親の枝
+	Vector3 position;	// 位置
+	Vector3 direction = { 0.0f, 1.0f, 0.0f };	// 方向
+	float radius = 0.0f;	// 半径
+	uint32_t generation = 0;	// 根からの世代数
+	Branch *parent = nullptr;	// 親の枝
 	std::vector<Branch *> children;	// 子の枝
-	Vector3 growDirection;			// 成長方向
-	uint32_t growCount = 0;			// 成長カウント
+	Vector3 growDirection;	// 成長方向
+	uint32_t growCount = 0;	// 成長カウント
+};
+
+/// @brief 枝の経路上の点
+struct BranchPathPoint final {
+	Vector3 position;		// 位置
+	Vector3 direction;		// 方向
+	float radius = 0.0f;	// 半径
+	float distance = 0.0f;	// 経路に沿った累積距離
+};
+
+/// @brief 枝の経路
+struct BranchPath final {
+	std::vector<BranchPathPoint> points;	// 経路上の点
+};
+
+/// @brief 枝のメッシュ
+struct BranchMesh final {
+	std::vector<BranchPath> paths;	// 枝の経路
 };
 
 /// @brief グリッドセル
@@ -58,29 +87,10 @@ struct GridCellHash final {
 	}
 };
 
-/// @brief 枝のデータ
-struct BranchData final {
-	float bottomRadius = 0.0f;	// 下半径
-	float topRadius = 0.0f;		// 上半径
-	float inverseLength = 0.0f;	// 長さの逆数
-};
-
-/// @brief 木のメンバー
-struct TreeMember final {
-	uint32_t treeId = 0;	// 木のID
-};
-
-/// @brief 木の境界ボックス
-struct TreeBounds final {
-	uint32_t treeId = 0;	// 木のID
-	Vector3 min;	// 最小座標
-	Vector3 max;	// 最大座標
-};
-
 /// @brief 樹冠
-struct TreeCrown {
-	Vector3 center = { 0.0f, 5.0f, 0.0f };	// 中心位置
-	Vector3 radius = { 5.0f, 5.0f, 5.0f };	// 半径
+struct TreeCrown final {
+	Vector3 center;	// 中心位置
+	Vector3 radius;	// 半径
 	CrownShape shape = CrownShape::Ellipsoid;	// 樹冠形状
 	float surfaceBias = 0.0f;	// 樹冠表面へのバイアス
 	float topBias = 0.0f;		// 樹冠上端へのバイアス
@@ -90,9 +100,8 @@ struct TreeCrown {
 };
 
 /// @brief 木の設定
-struct TreeConfig {
-	Vector3 rootPosition;	// 根の位置
-	Vector3 rootDirection = { 0.0f, 1.0f, 0.0f };	// 根の方向
+struct TreeConfig final {
+	TreeSpecies species = TreeSpecies::Zelkova;	// 樹種
 	TreeCrown crown;	// 樹冠
 	uint32_t leafCount = 5000;	// 葉の数
 	float minRadius = 0.01f;	// 枝の最小半径
@@ -109,9 +118,7 @@ struct TreeConfig {
 	uint32_t maxBranches = 0; // 0なら上限なし
 };
 
-class Registry;
 class PrimitiveGenerator;
-class InstanceAllocator;
 struct Vector3;
 struct Quaternion;
 struct Primitive;
@@ -120,62 +127,51 @@ struct Primitive;
 class TreeGenerator {
 public:
 	/// @brief コンストラクタ
-	/// @param registry レジストリ
 	/// @param primitiveGenerator プリミティブジェネレーター
-	/// @param instanceAllocator インスタンスアロケーター
 	/// @param logStream ログストリーム
-	TreeGenerator(Registry *registry, PrimitiveGenerator *primitiveGenerator, InstanceAllocator *instanceAllocator, std::ofstream *logStream) : registry_(registry), primitiveGenerator_(primitiveGenerator), instanceAllocator_(instanceAllocator), logStream_(logStream) {}
+	TreeGenerator(PrimitiveGenerator *primitiveGenerator, std::ofstream *logStream) : primitiveGenerator_(primitiveGenerator), logStream_(logStream) {}
 
 	/// @brief 木の生成
 	/// @param tree 木の設定
-	/// @return 生成された木のエンティティID
-	uint32_t Generate(const TreeConfig &tree);
-
-	/// @brief 木の削除
-	/// @param entity 削除する木のエンティティID
-	void Delete(uint32_t entity);
+	/// @return 生成された木のプリミティブ
+	Primitive Generate(const TreeConfig &tree);
 
 private:
-	Registry *registry_ = nullptr;						// レジストリ
 	PrimitiveGenerator *primitiveGenerator_ = nullptr;	// プリミティブジェネレーター
-	InstanceAllocator *instanceAllocator_ = nullptr;	// インスタンスアロケーター
 	std::ofstream *logStream_ = nullptr;				// ログストリーム
 	std::vector<Leaf> leaves_;							// 葉のリスト
 	std::vector<std::unique_ptr<Branch>> branches_;		// 枝のリスト
 	std::unordered_map<GridCell, std::vector<Branch *>, GridCellHash> branchGrid_;	// グリッドセルごとの枝のマップ
 	float gridCellSize_ = 1.0f;	// グリッドセルのサイズ
-	TreeCrown currentCrown_;	// 現在の樹冠
 	std::mt19937 randomEngine_;	// 乱数生成器
+	uint32_t treeMeshCounter_ = 0;	// 木のメッシュカウンター
 	CPUTimer timer_;	// CPUタイマー
-	
+
 	/// @brief 葉の生成
-	/// @param crownCenter 葉の生成範囲の中心
-	/// @param crownRadius 葉の生成範囲の半径
+	/// @param crown 樹冠
 	/// @param leafCount 葉の数
-	void GenerateLeaves(const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount);
+	void GenerateLeaves(const TreeCrown &crown, uint32_t leafCount);
 
 	/// @brief 根の枝の生成
-	/// @param rootPosition 根の位置
-	/// @param rootDirection 根の方向
-	void GenerateRootBranch(const Vector3 &rootPosition, const Vector3 &rootDirection);
+	void GenerateRootBranch();
 
 	/// @brief 幹の生成
 	/// @param trunkHeight 幹の高さ
 	/// @param branchLength 枝の長さ
-	/// @param rootDirection 根の方向
-	void GenerateTrunk(float trunkHeight, float branchLength, const Vector3 &rootDirection);
+	void GenerateTrunk(float trunkHeight, float branchLength);
 
 	/// @brief 最も近い枝を見つける
 	/// @param influenceRadius 影響半径
 	/// @param killRadius 消滅半径
-	void FindClosestBranch(float influenceRadius, float killRadius);
+	/// @param crown 樹冠
+	void FindClosestBranch(float influenceRadius, float killRadius, const TreeCrown &crown);
 
 	/// @brief グリッド内で最も近い枝を見つける
 	/// @param position 位置
 	/// @param influenceRadius 影響半径
 	/// @param killRadius 消滅半径
 	/// @return 最も近い枝のポインタ、見つからなかった場合はnullptr
-	Branch* FindClosestBranchInGrid(const Vector3 &position, float influenceRadius, float killRadius);
+	Branch *FindClosestBranchInGrid(const Vector3 &position, float influenceRadius, float killRadius);
 
 	/// @brief 枝を成長させる
 	/// @param branchLength 枝の長さ
@@ -200,19 +196,54 @@ private:
 	/// @param branch 枝
 	void AddBranchToGrid(Branch *branch);
 
-	/// @brief 枝を再帰的に作成する
-	/// @param branch 枝
-	/// @param parentEntity 親のエンティティID
-	/// @param parentWorldRotation 親のワールド回転
-	/// @param branchLength 枝の長さ
-	/// @param branchPrimitive 枝のプリミティブ
-	/// @param treeId 木のID
-	/// @return 作成された枝のエンティティID
-	uint32_t CreateBranchRecursive(Branch *branch, uint32_t parentEntity, const Quaternion &parentWorldRotation, float branchLength, const Primitive &branchPrimitive, uint32_t treeId);
+	/// @brief 枝のメッシュを作成する
+	/// @return 作成された枝のメッシュ
+	BranchMesh CreateBranchMesh();
 
-	/// @brief 葉を作成する
-	/// @param parentEntity 親のエンティティID
-	/// @param treeId 木のID
-	/// @return 作成された葉のエンティティID
-	uint32_t CreateLeaf(uint32_t parentEntity, uint32_t treeId);
+	/// @brief 枝の経路を作る
+	/// @param start 最初の枝
+	/// @param firstChild 最初の子の枝
+	/// @param result 枝の経路
+	void TraceBranchPath(Branch *start, Branch *firstChild, BranchMesh &result);
+
+	/// @brief 枝の経路上の点を作成する
+	/// @param branch 枝
+	/// @return 作成された枝の経路上の点
+	BranchPathPoint MakeBranchPathPoint(const Branch *branch);
+
+	/// @brief Hermite曲線の長さを近似する
+	/// @param startPosition 始点
+	/// @param endPosition 終点
+	/// @param startTangent 始点の接線
+	/// @param endTangent 終点の接線
+	/// @param samples サンプル数
+	/// @return 近似された長さ
+	float ApproximateHermiteLength(const Vector3 &startPosition, const Vector3 &endPosition, const Vector3 &startTangent, const Vector3 &endTangent, uint32_t samples = 16);
+};
+
+class Registry;
+class TreeEntityManager;
+
+/// @brief 木の設定インスペクター
+class TreeConfigInspector {
+public:
+	/// @brief コンストラクタ
+	/// @param registry レジストリ
+	/// @param treeGenerator 木の生成器
+	/// @param treeEntityManager 木のエンティティマネージャー
+	TreeConfigInspector(Registry *registry, TreeGenerator *treeGenerator, TreeEntityManager *treeEntityManager)
+		: registry_(registry)
+		, treeGenerator_(treeGenerator)
+		, treeEntityManager_(treeEntityManager) {
+	}
+
+	/// @brief 木の設定インスペクターの描画
+	/// @param entity エンティティ
+	void Draw(uint32_t entity);
+
+private:
+	Registry *registry_ = nullptr;	// レジストリ
+	TreeGenerator *treeGenerator_ = nullptr;	// 木の生成器
+	TreeEntityManager *treeEntityManager_ = nullptr;	// 木のエンティティマネージャー
+	std::vector<uint32_t> treeEntities_;	// 木のエンティティリスト
 };

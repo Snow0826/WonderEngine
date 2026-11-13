@@ -1,5 +1,5 @@
 #include "Vector3.h"
-#include "Easing.h"
+#include "Interpolation.h"
 #include <algorithm>
 #include <numbers>
 
@@ -99,7 +99,7 @@ Vector3 Slerp(const Vector3 &start, const Vector3 &end, float t) {
 	}
 	float length1 = normalizedStart.length();
 	float length2 = normalizedEnd.length();
-	float length = Easing<float>::Lerp(length1, length2, t);
+	float length = Interpolation<float>::Lerp(length1, length2, t);
 	return slerp * length;
 }
 

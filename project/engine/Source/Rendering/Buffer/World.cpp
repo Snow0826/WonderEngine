@@ -131,7 +131,7 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 
 	// InstanceData用StructuredBufferの作成
 	uint32_t structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kInstanceData);
-	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(InstanceData) * kMaxObject);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(TransformationMatrix) * kMaxObject);
 	structuredBuffers_[structuredBufferIndex]->SetName("InstanceData");
 	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&instanceData_));
 	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
@@ -143,7 +143,7 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 	srvBufferDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;	// 標準設定
 	srvBufferDesc.Buffer.FirstElement = 0;												// 先頭の要素
 	srvBufferDesc.Buffer.NumElements = kMaxObject;										// 要素数
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(InstanceData);					// 構造体のサイズ
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(TransformationMatrix);			// 構造体のサイズ
 	srvBufferDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;							// 特になし
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 
@@ -234,19 +234,6 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 	srvBufferDesc.Buffer.StructureByteStride = sizeof(SdBoxData);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 	Logger::Log(logStream, "SdBoxData SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
-
-	// Cylinder用StructuredBufferの作成
-	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kCylinder);
-	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(Cylinder) * kMaxAABB);
-	structuredBuffers_[structuredBufferIndex]->SetName("Cylinder");
-	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&cylinderData_));
-	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-
-	// Cylinder用SRVの作成
-	srvBufferDesc.Buffer.NumElements = kMaxAABB;					// 要素数
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(Cylinder);	// 構造体のサイズ
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
-	Logger::Log(logStream, "Cylinder SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
 	// MeshInfoForAABB用StructuredBufferの作成
 	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kMeshInfoForAABB);
@@ -479,27 +466,6 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(aabbBuffer_->GetResource(), uavBufferDesc, aabbUAVHandle_);
 	Logger::Log(logStream, "AABB UAVDescriptorIndex: " + std::to_string(aabbUAVHandle_) + "\n");
 
-	// 木単位AABB用Upload BufferとSRV
-	treeBoundsBuffer_ = Resource::CreateUploadBuffer(device, sizeof(AABBForGPU) * kMaxTrees);
-	treeBoundsBuffer_->SetName("TreeBounds");
-	treeBoundsBuffer_->Map(reinterpret_cast<void **>(&treeBoundsData_));
-	treeBoundsSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	srvBufferDesc.Buffer.NumElements = kMaxTrees;
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(AABBForGPU);
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(treeBoundsBuffer_->GetResource(), srvBufferDesc, treeBoundsSRVHandle_);
-
-	// 木単位可視状態用SRV/UAV
-	treeVisibilityBuffer_ = Resource::CreateRWBuffer(device, sizeof(uint32_t) * kMaxTrees);
-	treeVisibilityBuffer_->SetName("TreeVisibility");
-	treeVisibilitySRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	treeVisibilityUAVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	srvBufferDesc.Buffer.NumElements = kMaxTrees;
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(uint32_t);
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(treeVisibilityBuffer_->GetResource(), srvBufferDesc, treeVisibilitySRVHandle_);
-	uavBufferDesc.Buffer.NumElements = kMaxTrees;
-	uavBufferDesc.Buffer.StructureByteStride = sizeof(uint32_t);
-	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(treeVisibilityBuffer_->GetResource(), uavBufferDesc, treeVisibilityUAVHandle_);
-
 	// コマンドアップロードバッファの作成
 	commandUploadBuffer_ = Resource::CreateUploadBuffer(device, sizeof(MeshLOD) * kMaxAABB);
 	commandUploadBuffer_->SetName("CommandBufferUpload");
@@ -660,10 +626,29 @@ void World::Edit() {
 #ifdef USE_IMGUI
 	ImGui::Text("Time: %.1f", perFrame_.time);
 	ImGui::Text("DeltaTime: %.4f", perFrame_.deltaTime);
-	ImGui::Text("MeshLODCount: %d", meshLODCounter_);
-	ImGui::Text("CylinderCount: %d", cylinderCounter_);
-	ImGui::Text("MeshInfoForAABBCount: %d", meshInfoForAABBCounter_);
-	ImGui::Text("CullingMeshCount: %d", cullingConstantsData_.meshCount);
+	ImGui::Text("MeshLODCount: %zu", meshLODCounter_);
+	ImGui::Text("MeshInfoForAABBCount: %zu", meshInfoForAABBCounter_);
+	ImGui::Text("CullingMeshCount: %zu", cullingConstantsData_.meshCount);
+	uint32_t vertexCount = 0;
+	uint32_t indexCount = 0;
+	registry_->ForEach<Model>([&](uint32_t entity, Model *model) {
+		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
+		for (const MeshData &mesh : modelAsset->modelData.meshes) {
+			for (const MeshLODData &lod : mesh.lods) {
+				vertexCount += static_cast<uint32_t>(meshManager_->GetVertexCount(lod.meshName));
+				indexCount += meshManager_->GetIndexCount(lod.meshName);
+			}
+		}
+		}, exclude<Disabled>());
+
+	registry_->ForEach<Primitive>([&](uint32_t entity, Primitive *primitive) {
+		vertexCount += static_cast<uint32_t>(meshManager_->GetVertexCount(primitive->meshName));
+		indexCount += meshManager_->GetIndexCount(primitive->meshName);
+		}, exclude<Disabled>());
+
+	ImGui::Text("VertexCount: %zu", vertexCount);
+	ImGui::Text("IndexCount: %zu", indexCount);
+	ImGui::Text("TriangleCount: %zu", indexCount / 3);
 
 	if (ImGui::Checkbox("Culling", &isCulling_)) {
 		if (isCulling_) {
@@ -854,12 +839,7 @@ void World::TransferWorldTransform() {
 			transformationMatrix.worldMatrix *= quaternionTransform->worldMatrix;
 		}
 		transformationMatrix.worldInverseTransposeMatrix = transformationMatrix.worldMatrix.inverse().transpose();
-		instanceData_[instanceHandle->value].transformationMatrix = transformationMatrix;
-		if (auto branchData = registry_->GetComponent<BranchData>(entity)) {
-			instanceData_[instanceHandle->value].bottomRadius = branchData->bottomRadius;
-			instanceData_[instanceHandle->value].topRadius = branchData->topRadius;
-			instanceData_[instanceHandle->value].inverseBranchLength = branchData->inverseLength;
-		}
+		instanceData_[instanceHandle->value] = transformationMatrix;
 		}, exclude<Disabled>());
 }
 
@@ -967,33 +947,11 @@ void World::TransferMeshLODData() {
 }
 
 void World::TransferCullingData() {
-	std::unordered_map<uint32_t, uint32_t> treeIndices;
 	if (registry_->GetComponentCount<DirtyCullingData>() > 0) {
 		meshInfoForAABBCounter_ = 0;
-		cylinderCounter_ = 0;
-		treeBoundsCounter_ = 0;
-		registry_->ForEach<TreeBounds>([&](uint32_t entity, TreeBounds *bounds) {
-			if (treeBoundsCounter_ >= kMaxTrees) {
-				return;
-			}
-			treeIndices.emplace(bounds->treeId, treeBoundsCounter_);
-			treeBoundsData_[treeBoundsCounter_].min = { bounds->min.x, bounds->min.y, bounds->min.z, 1.0f };
-			treeBoundsData_[treeBoundsCounter_].max = { bounds->max.x, bounds->max.y, bounds->max.z, 1.0f };
-			++treeBoundsCounter_;
-			}, exclude<Disabled>());
 		ZeroMemory(meshInfoForAABB_, sizeof(MeshInfoForAABB) * kMaxAABB);
-		ZeroMemory(cylinderData_, sizeof(Cylinder) * kMaxAABB);
 		registry_->AddComponentToAll<DirtyCullingData, InstanceHandle>();
 	}
-
-	auto getTreeIndex = [&](uint32_t entity) {
-		auto treeMember = registry_->GetComponent<TreeMember>(entity);
-		if (!treeMember) {
-			return 0xffffffffu;
-		}
-		auto it = treeIndices.find(treeMember->treeId);
-		return it == treeIndices.end() ? 0xffffffffu : it->second;
-		};
 
 	uint32_t cullingMeshDataOffset = 0;
 	uint32_t vertexOffset = 0;
@@ -1003,18 +961,18 @@ void World::TransferCullingData() {
 		for (const MeshData &mesh : modelAsset->modelData.meshes) {
 			for (const MeshLODData &lod : mesh.lods) {
 				meshInfoForAABB->vertexOffset = vertexOffset;
-				meshInfoForAABB->vertexCount = static_cast<uint32_t>(lod.vertices.size());
+				meshInfoForAABB->vertexCount = static_cast<uint32_t>(meshManager_->GetVertexCount(lod.meshName));
 				meshInfoForAABB->aabbIndex = cullingMeshDataOffset;
 				vertexOffset += meshInfoForAABB->vertexCount;
+				VertexData *vertexData = meshManager_->GetVertexData(lod.meshName);
 				for (uint32_t i = 0; i < meshInfoForAABB->vertexCount; i++) {
-					vertexDataForAABB_[meshInfoForAABB->vertexOffset + i].position = lod.vertices[i].position;
+					vertexDataForAABB_[meshInfoForAABB->vertexOffset + i].position = vertexData[i].position;
 				}
 			}
 
 			cullingMeshData_[cullingMeshDataOffset].objectIndex = instanceHandle->value;
 			cullingMeshData_[cullingMeshDataOffset].lodCount = static_cast<uint32_t>(mesh.lods.size());
 			cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
-			cullingMeshData_[cullingMeshDataOffset].treeIndex = getTreeIndex(entity);
 			cullingMeshDataOffset++;
 		}
 
@@ -1022,17 +980,22 @@ void World::TransferCullingData() {
 		}, exclude<Disabled>());
 
 	registry_->ForEach<Primitive, MeshType, BlendMode, InstanceHandle, DirtyCullingData>([&](uint32_t entity, Primitive *primitive, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyCullingData *dirtyCullingData) {
-		if (auto cylinder = registry_->GetComponent<Cylinder>(entity)) {
-			cylinder->aabbIndex = cullingMeshDataOffset;
-			cylinderData_[cylinderCounter_] = *cylinder;
-			cylinderCounter_++;
+		MeshInfoForAABB *meshInfoForAABB = &meshInfoForAABB_[meshInfoForAABBCounter_];
+		VertexData *vertexData = meshManager_->GetVertexData(primitive->meshName);
+		size_t vertexCount = meshManager_->GetVertexCount(primitive->meshName);
+		meshInfoForAABB->vertexOffset = vertexOffset;
+		meshInfoForAABB->vertexCount = static_cast<uint32_t>(vertexCount);
+		meshInfoForAABB->aabbIndex = cullingMeshDataOffset;
+		vertexOffset += meshInfoForAABB->vertexCount;
+		for (uint32_t i = 0; i < meshInfoForAABB->vertexCount; i++) {
+			vertexDataForAABB_[meshInfoForAABB->vertexOffset + i].position = vertexData[i].position;
 		}
 
 		cullingMeshData_[cullingMeshDataOffset].objectIndex = instanceHandle->value;
 		cullingMeshData_[cullingMeshDataOffset].lodCount = 1;
 		cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
-		cullingMeshData_[cullingMeshDataOffset].treeIndex = getTreeIndex(entity);
 		cullingMeshDataOffset++;
+		meshInfoForAABBCounter_++;
 		}, exclude<Disabled>());
 
 	registry_->ForEach<MeshType, BlendMode, InstanceHandle, DirtyTransform>([&](uint32_t entity, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyTransform *dirtyTransform) {

@@ -32,7 +32,8 @@ namespace {
 		PIX_COLOR(255, 255, 0),	// MeshType::kPlane
 		PIX_COLOR(255, 0, 255),	// MeshType::kBox
 		PIX_COLOR(0, 255, 0),	// MeshType::kRing
-		PIX_COLOR(0, 255, 255)	// MeshType::kCylinder
+		PIX_COLOR(0, 255, 255),	// MeshType::kCylinder
+		PIX_COLOR(255, 255, 255)	// MeshType::kTree
 	};
 
 	// メッシュタイプ名リスト
@@ -42,6 +43,7 @@ namespace {
 		"Box",
 		"Ring",
 		"Cylinder",
+		"Tree"
 	};
 
 	// ブレンドモード名リスト
@@ -85,12 +87,10 @@ Renderer::Renderer(Device *device)
 	, initializeParticleRootSignature_(device->GetInitializeParticleRootSignature())
 	, emitParticleRootSignature_(device->GetEmitParticleRootSignature())
 	, updateParticleRootSignature_(device->GetUpdateParticleRootSignature())
-	, createCylinderAABBRootSignature_(device->GetCreateCylinderAABBRootSignature())
-	, createModelAABBRootSignature_(device->GetCreateModelAABBRootSignature())
+	, createAABBRootSignature_(device->GetCreateAABBRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
 	, clearMeshCommandStatesRootSignature_(device->GetClearMeshCommandStatesRootSignature())
-	, treeCullingRootSignature_(device->GetTreeCullingRootSignature())
 	, meshCullingRootSignature_(device->GetMeshCullingRootSignature())
 	, prefixSumRootSignature_(device->GetPrefixSumRootSignature())
 	, setInstanceCountRootSignature_(device->GetSetInstanceCountRootSignature())
@@ -278,10 +278,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> raymarchingPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Raymarching.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(raymarchingPSBlob);
 
-	// 枝のシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> branchVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Branch.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(branchVSBlob);
-
 	// スキニングのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> skinningCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Skinning.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(skinningCSBlob);
@@ -298,13 +294,9 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> updateParticleCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/UpdateParticle.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(updateParticleCSBlob);
 
-	// 円柱のAABB生成のシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> createCylinderAABBCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/CreateCylinderAABB.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(createCylinderAABBCSBlob);
-
-	// モデルのAABB生成のシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> createModelAABBCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/CreateModelAABB.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(createModelAABBCSBlob);
+	// AABB生成のシェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> createAABBCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/CreateAABB.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(createAABBCSBlob);
 
 	// 深度ステンシルテクスチャコピーのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> depthStencilCopyCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthStencilCopy.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -317,10 +309,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// メッシュコマンドステートのクリア用シェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> clearMeshCommandStatesCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/ClearMeshCommandStates.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(clearMeshCommandStatesCSBlob);
-
-	// 木のカリングのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> treeCullingCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/TreeCulling.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(treeCullingCSBlob);
 
 	// メッシュカリングのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> meshCullingCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/MeshCulling.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -354,7 +342,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
@@ -363,17 +350,16 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
 					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
 					.Create(device_->GetDevice(), ringObject3dRootSignature_);
-			} else if (static_cast<MeshType>(i) == MeshType::kCylinder) {
+			} else if (static_cast<MeshType>(i) == MeshType::kCylinder || static_cast<MeshType>(i) == MeshType::kTree) {
 				meshPipelineState_[i][j] = PipelineState()
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
 					.SetDepthState(writeLessEqualDepthStencilDesc)												// DepthStencilState
-					.SetVertexShader(branchVSBlob->GetBufferPointer(), branchVSBlob->GetBufferSize())			// 頂点シェーダー
+					.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
 					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
 					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
 					.Create(device_->GetDevice(), object3dRootSignature_);
@@ -382,7 +368,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
@@ -406,7 +391,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
@@ -420,7 +404,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
@@ -434,7 +417,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 					.SetBlendState(blendDescList[j])															// BlendState
 					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
@@ -456,7 +438,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 			.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
 			.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
 			.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-			.AddInput("SECTION", 0, DXGI_FORMAT_R32_UINT, 0, D3D12_APPEND_ALIGNED_ELEMENT)				// セクション番号
 			.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
 			.SetBlendState(blendDescList[i])															// BlendState
 			.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
@@ -682,19 +663,12 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create UpdateParticlePipelineState\n");
 	updateParticlePipelineState_->SetName(L"UpdateParticlePipelineState");
 
-	// 円柱のAABB生成用パイプラインステートの生成
-	createCylinderAABBPipelineState_ = PipelineState()
-		.SetComputeShader(createCylinderAABBCSBlob->GetBufferPointer(), createCylinderAABBCSBlob->GetBufferSize())	// コンピュートシェーダー
-		.Create(device_->GetDevice(), createCylinderAABBRootSignature_);
-	Logger::Log(logStream, "Create CreateCylinderAABBPipelineState\n");
-	createCylinderAABBPipelineState_->SetName(L"CreateCylinderAABBPipelineState");
-
-	// モデルのAABB生成用パイプラインステートの生成
-	createModelAABBPipelineState_ = PipelineState()
-		.SetComputeShader(createModelAABBCSBlob->GetBufferPointer(), createModelAABBCSBlob->GetBufferSize())	// コンピュートシェーダー
-		.Create(device_->GetDevice(), createModelAABBRootSignature_);
-	Logger::Log(logStream, "Create CreateModelAABBPipelineState\n");
-	createModelAABBPipelineState_->SetName(L"CreateModelAABBPipelineState");
+	// AABB生成用パイプラインステートの生成
+	createAABBPipelineState_ = PipelineState()
+		.SetComputeShader(createAABBCSBlob->GetBufferPointer(), createAABBCSBlob->GetBufferSize())	// コンピュートシェーダー
+		.Create(device_->GetDevice(), createAABBRootSignature_);
+	Logger::Log(logStream, "Create CreateAABBPipelineState\n");
+	createAABBPipelineState_->SetName(L"CreateAABBPipelineState");
 
 	// 深度ステンシルテクスチャコピー用パイプラインステートの生成
 	depthStencilCopyPipelineState_ = PipelineState()
@@ -716,13 +690,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 		.Create(device_->GetDevice(), clearMeshCommandStatesRootSignature_);
 	Logger::Log(logStream, "Create ClearMeshCommandStatesPipelineState\n");
 	clearMeshCommandStatesPipelineState_->SetName(L"ClearMeshCommandStatesPipelineState");
-
-	// 木のカリング用パイプラインステートの生成
-	treeCullingPipelineState_ = PipelineState()
-		.SetComputeShader(treeCullingCSBlob->GetBufferPointer(), treeCullingCSBlob->GetBufferSize())
-		.Create(device_->GetDevice(), treeCullingRootSignature_);
-	Logger::Log(logStream, "Create TreeCullingPipelineState\n");
-	treeCullingPipelineState_->SetName(L"TreeCullingPipelineState");
 
 	// メッシュカリング用パイプラインステートの生成
 	meshCullingPipelineState_ = PipelineState()
@@ -818,11 +785,8 @@ void Renderer::Render() {
 	// パーティクルの更新
 	UpdateParticle();
 
-	// 円柱のAABBの生成
-	CreateCylinderAABB();
-
-	// モデルのAABBの生成
-	CreateModelAABB();
+	// AABBの生成
+	CreateAABB();
 
 	// スキニングの実行
 	Skinning();
@@ -832,9 +796,6 @@ void Renderer::Render() {
 
 	// HiZミップマップの生成
 	GenerateHiZMipMap();
-
-	// 木のカリング
-	TreeCulling();
 
 	// メッシュコマンドステートのクリア
 	ClearMeshCommandStates();
@@ -964,7 +925,7 @@ void Renderer::Skinning() {
 
 	registry_->ForEach<Model, SkinMesh>([&](uint32_t entity, Model *model, SkinMesh *skinMesh) {
 		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
-		size_t vertexCount = modelAsset->modelData.meshes.back().lods.back().vertices.size();
+		size_t vertexCount = meshManager_->GetVertexCount(modelAsset->modelData.meshes.back().lods.back().meshName);
 		commandList_->SetComputeRoot32BitConstants(0, 1, &vertexCount, 0);
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, skinClusterManager_->GetPaletteSRVHandle(modelAsset->skinClusterHandle));
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, skinClusterManager_->GetVertexSRVHandle(modelAsset->skinClusterHandle));
@@ -974,30 +935,18 @@ void Renderer::Skinning() {
 		}, exclude<Disabled>());
 }
 
-void Renderer::CreateCylinderAABB() {
-	commandList_->SetComputeRootSignature(createCylinderAABBRootSignature_);
-	commandList_->SetPipelineState(createCylinderAABBPipelineState_.Get());
+void Renderer::CreateAABB() {
+	if (registry_->GetComponentCount<DirtyCullingData>() > 0) {
+		commandList_->SetComputeRootSignature(createAABBRootSignature_);
+		commandList_->SetPipelineState(createAABBPipelineState_.Get());
 
-	uint32_t cylinderCount = world_->GetCylinderCounter();
-	commandList_->SetComputeRoot32BitConstants(0, 1, &cylinderCount, 0);
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetStructuredBufferHandle(StructuredBufferType::kCylinder));
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetAABBUAVHandle());
-	uint32_t dispatchCount = (cylinderCount + 63) / 64;
-	if (dispatchCount > 0) {
-		commandList_->Dispatch(dispatchCount, 1, 1);
-	}
-}
-
-void Renderer::CreateModelAABB() {
-	commandList_->SetComputeRootSignature(createModelAABBRootSignature_);
-	commandList_->SetPipelineState(createModelAABBPipelineState_.Get());
-
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, world_->GetStructuredBufferHandle(StructuredBufferType::kMeshInfoForAABB));
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetStructuredBufferHandle(StructuredBufferType::kVertexDataForAABB));
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetAABBUAVHandle());
-	uint32_t meshInfoForAABBCount = world_->GetMeshInfoForAABBCounter();
-	if (meshInfoForAABBCount > 0) {
-		commandList_->Dispatch(meshInfoForAABBCount, 1, 1);
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, world_->GetStructuredBufferHandle(StructuredBufferType::kMeshInfoForAABB));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetStructuredBufferHandle(StructuredBufferType::kVertexDataForAABB));
+		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetAABBUAVHandle());
+		uint32_t meshInfoForAABBCount = world_->GetMeshInfoForAABBCounter();
+		if (meshInfoForAABBCount > 0) {
+			commandList_->Dispatch(meshInfoForAABBCount, 1, 1);
+		}
 	}
 }
 
@@ -1075,28 +1024,6 @@ void Renderer::ClearMeshCommandStates() {
 	}
 }
 
-void Renderer::TreeCulling() {
-	const uint32_t treeCount = world_->GetTreeBoundsCount();
-	if (treeCount == 0) {
-		return;
-	}
-
-	commandList_->SetComputeRootSignature(treeCullingRootSignature_);
-	commandList_->SetPipelineState(treeCullingPipelineState_.Get());
-	world_->GetConstantBuffer(ConstantBufferType::kFrustum)->BindToCompute(0, 0);
-	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToCompute(1, 1);
-	CullingTreeConstantsData constants = { .treeCount = treeCount };
-	commandList_->SetComputeRoot32BitConstants(2, sizeof(CullingTreeConstantsData) / sizeof(uint32_t), &constants, 0);
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetTreeBoundsSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetHiZTextureSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetTreeVisibilityUAVHandle());
-
-	world_->GetTreeVisibilityBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	commandList_->Dispatch((treeCount + 63) / 64, 1, 1);
-	world_->GetTreeVisibilityBuffer()->UAVBarrier();
-	world_->GetTreeVisibilityBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-}
-
 void Renderer::MeshCulling() {
 	// メッシュカリング用ルートシグネチャとパイプラインステートの設定
 	commandList_->SetComputeRootSignature(meshCullingRootSignature_);
@@ -1116,12 +1043,11 @@ void Renderer::MeshCulling() {
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetStructuredBufferHandle(StructuredBufferType::kCullingMeshData));
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetStructuredBufferHandle(StructuredBufferType::kMeshLOD));
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetAABBSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetTreeVisibilitySRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetHiZTextureSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(10, world_->GetMeshCommandStateUAVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(11, world_->GetMeshLODStateUAVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(12, world_->GetProcessedCommandHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(13, world_->GetCommandCounterHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetHiZTextureSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetMeshCommandStateUAVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(10, world_->GetMeshLODStateUAVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(11, world_->GetProcessedCommandHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(12, world_->GetCommandCounterHandle());
 
 	// コマンドバッファの転送
 	if (registry_->GetComponentCount<DirtyMeshLOD>() > 0) {

@@ -15,15 +15,18 @@ void TransformManipulator::Draw() {
 	auto eulerTransform = registry_->GetComponent<EulerTransform>(selection_->selectedEntity);
 	auto quaternionTransform = registry_->GetComponent<QuaternionTransform>(selection_->selectedEntity);
 	registry_->ForEach<Camera, QuaternionTransform, RenderingCamera>([&](uint32_t cameraEntity, Camera *camera, QuaternionTransform *cameraQuaternionTransform, RenderingCamera *renderingCamera) {
+		// ビュープロジェクションデータの取得
 		ViewProjectionData viewProjectionData = MakeViewProjection(*camera, *cameraQuaternionTransform);
 		if (eulerTransform) {
+			// EulerTransformの変換行列の操作
 			if (transformSystem.ManipulateTransform(&viewProjectionData.view.m[0][0], &viewProjectionData.projection.m[0][0], &eulerTransform->worldMatrix.m[0][0])) {
 				Vector3 rotate;
 				ImGuizmo::DecomposeMatrixToComponents(&eulerTransform->worldMatrix.m[0][0], &eulerTransform->translate.x, &rotate.x, &eulerTransform->scale.x);
-				eulerTransform->rotate = rotate * (std::numbers::pi_v<float> / 180.0f);	// Convert degrees to radians
+				eulerTransform->rotate = rotate * (std::numbers::pi_v<float> / 180.0f);
 				transformSystem.MarkDirty(selection_->selectedEntity);
 			}
 		} else if (quaternionTransform) {
+			// QuaternionTransformの変換行列の操作
 			if (transformSystem.ManipulateTransform(&viewProjectionData.view.m[0][0], &viewProjectionData.projection.m[0][0], &quaternionTransform->worldMatrix.m[0][0])) {
 				Vector3 rotate;
 				ImGuizmo::DecomposeMatrixToComponents(&quaternionTransform->worldMatrix.m[0][0], &quaternionTransform->translate.x, &rotate.x, &quaternionTransform->scale.x);

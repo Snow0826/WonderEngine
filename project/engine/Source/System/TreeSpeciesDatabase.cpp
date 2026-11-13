@@ -1,9 +1,12 @@
 #include "TreeSpeciesDatabase.h"
 
-TreeConfig MakeTreeConfig(TreeSpecies species, const Vector3 &rootPosition) {
+void MakeTreeConfig(TreeConfig &config) {
+	config = MakeTreeConfig(config.species);
+}
+
+TreeConfig MakeTreeConfig(TreeSpecies species) {
 	TreeConfig config;
-	config.rootPosition = rootPosition;
-	config.crown.center = rootPosition;
+	config.species = species;
 	config.leafCount = 5000;
 	config.randomSeed = 0;
 	config.maxIterations = 180;

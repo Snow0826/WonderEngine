@@ -3,7 +3,7 @@
 #include "EntityComponentSystem.h"
 #include "Transform.h"
 #include "Input.h"
-#include "Easing.h"
+#include "Interpolation.h"
 #include <algorithm>
 #include <numbers>
 
@@ -72,7 +72,7 @@ void CameraController::Update() {
 	sphericalPosition_.z = std::clamp(sphericalPosition_.z, 0.01f, std::numbers::pi_v<float> -0.01f); // 仰角の回転制限
 
 	// カメラの位置を更新
-	targetPosition_ = Easing<Vector3>::Lerp(targetPosition_, targetPosition, 0.1f);
+	targetPosition_ = Interpolation<Vector3>::Lerp(targetPosition_, targetPosition, 0.1f);
 	cameraTransform->translate = targetPosition_ + ToCartesian(sphericalPosition_);
 
 	// カメラの向きを更新

@@ -17,10 +17,10 @@ namespace {
 
 void Player::Initialize() {
 	entity_ = registry_->GenerateEntity();
+	registry_->AddComponent(entity_, Name{ .value = "Player" });
 	registry_->AddComponent(entity_, MeshType::kModel);
 	registry_->AddComponent(entity_, BlendMode::kBlendModeNone);
 	registry_->AddComponent(entity_, EulerTransform{ .translate = Vector3{ 0.0f, 1.0f, 0.0f } });
-	registry_->AddComponent(entity_, Relationship{});
 	registry_->AddComponent(entity_, Material{ .environmentCoefficient = 0.0f });
 	registry_->AddComponent(entity_, DirtyTransform{});
 	registry_->AddComponent(entity_, DirtyRelationshipTransform{});

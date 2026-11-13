@@ -117,9 +117,6 @@ Microsoft::WRL::ComPtr<IDxcBlob> PipelineState::CompileShader(std::ofstream &log
 		filePath.c_str(),	// シェーダーのファイル名
 		L"-E", L"main",		// エントリーポイント
 		L"-T", profile,		// プロファイル
-		L"-Zi",				// デバッグ情報を出力する
-		L"-Qembed_debug",	// デバッグ情報を埋め込む
-		L"-Od",				// 最適化しない
 		L"-Zpr",			// パイプラインコンパイラを使用する
 	};
 

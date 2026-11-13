@@ -1,5 +1,5 @@
 #include "PerlinNoise.h"
-#include "Easing.h"
+#include "Interpolation.h"
 #include <random>
 
 PerlinNoise::PerlinNoise() {
@@ -50,19 +50,19 @@ float PerlinNoise::Noise(float x, float y, float z) const {
 	uint32_t BA = permutation_[B] + Z;
 	uint32_t BB = permutation_[B + 1] + Z;
 	// Blend the results from the corners
-	return Easing<float>::Lerp(
-		Easing<float>::Lerp(
-			Easing<float>::Lerp(
-				grad(permutation_[AA	], x	, y		, z		),
-				grad(permutation_[BA	], x - 1, y		, z		), u),
-			Easing<float>::Lerp(
-				grad(permutation_[AB	], x	, y - 1	, z		),
-				grad(permutation_[BB	], x - 1, y - 1	, z		), u), v),
-		Easing<float>::Lerp(
-			Easing<float>::Lerp(
-				grad(permutation_[AA + 1], x	, y		, z - 1	),
-				grad(permutation_[BA + 1], x - 1, y		, z - 1	), u),
-			Easing<float>::Lerp(
+	return Interpolation<float>::Lerp(
+		Interpolation<float>::Lerp(
+			Interpolation<float>::Lerp(
+				grad(permutation_[AA], x, y, z),
+				grad(permutation_[BA], x - 1, y, z), u),
+			Interpolation<float>::Lerp(
+				grad(permutation_[AB], x, y - 1, z),
+				grad(permutation_[BB], x - 1, y - 1, z), u), v),
+		Interpolation<float>::Lerp(
+			Interpolation<float>::Lerp(
+				grad(permutation_[AA + 1], x, y, z - 1),
+				grad(permutation_[BA + 1], x - 1, y, z - 1), u),
+			Interpolation<float>::Lerp(
 				grad(permutation_[AB + 1], x	, y - 1	, z - 1	),
 				grad(permutation_[BB + 1], x - 1, y - 1	, z - 1	), u), v), w);
 }

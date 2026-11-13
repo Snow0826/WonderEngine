@@ -161,7 +161,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\System\HierarchyWindow.cpp" />
     <ClCompile Include="engine\Source\System\InspectorWindow.cpp" />
     <ClCompile Include="engine\Source\System\GameViewWindow.cpp" />
-    <ClCompile Include="game\Source\Model\AnimatedCube.cpp" />
     <ClCompile Include="engine\Source\System\TreeGenerator.cpp" />
     <ClCompile Include="engine\Source\System\TreeSpeciesDatabase.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
@@ -224,12 +223,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Utilities\Logger.cpp" />
     <ClCompile Include="engine\Source\Utilities\StringConverter.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\FrustumRenderer.cpp" />
-    <ClCompile Include="game\Source\Particle\ParticleObject.cpp" />
     <ClCompile Include="game\Source\Scene\SampleScene.cpp" />
-    <ClCompile Include="game\Source\Model\Human.cpp" />
     <ClCompile Include="engine\Source\Component\InstanceAllocator.cpp" />
     <ClCompile Include="engine\Source\Utilities\GPUTimer.cpp" />
-    <ClCompile Include="game\Source\Model\Ground.cpp" />
+    <ClCompile Include="game\Source\Model\GroundFactory.cpp" />
     <ClCompile Include="game\Source\System\CameraController.cpp" />
     <ClCompile Include="main.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Development|x64'">MaxSpeed</Optimization>
@@ -238,10 +235,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Asset\Mesh.cpp" />
     <ClCompile Include="engine\Source\Physics\RigidBody.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\SphereRenderer.cpp" />
-    <ClCompile Include="game\Source\Model\SkyboxEntity.cpp" />
+    <ClCompile Include="game\Source\Model\SkyboxFactory.cpp" />
     <ClCompile Include="engine\Source\Component\Light\PointLight.cpp" />
     <ClCompile Include="engine\Source\Math\Quaternion.cpp" />
-    <ClCompile Include="game\Source\Model\SimpleSkin.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer\SkeletonRenderer.cpp" />
     <ClCompile Include="engine\Source\System\SceneViewWindow.cpp" />
     <ClCompile Include="engine\Source\System\TransformManipulator.cpp" />
@@ -249,9 +245,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Component\SoftBody.cpp" />
     <ClCompile Include="game\Source\Model\Player.cpp" />
     <ClCompile Include="engine\Source\System\PoissonDiskSampler.cpp" />
+    <ClCompile Include="engine\Source\System\TreeEntityManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Component\Primitive.h" />
+    <ClInclude Include="engine\Include\Math\Interpolation.h" />
     <ClInclude Include="engine\Include\System\CollisionSystem.h" />
     <ClInclude Include="engine\Include\Component\MeshType.h" />
     <ClInclude Include="engine\Include\System\HierarchyWindow.h" />
@@ -259,7 +257,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\System\InspectorWindow.h" />
     <ClInclude Include="engine\Include\System\SelectionContext.h" />
     <ClInclude Include="engine\Include\System\GameViewWindow.h" />
-    <ClInclude Include="game\Include\Model\AnimatedCube.h" />
     <ClInclude Include="engine\Include\System\TreeGenerator.h" />
     <ClInclude Include="engine\Include\System\TreeSpeciesDatabase.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />
@@ -327,15 +324,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\Utilities\StringConverter.h" />
     <ClInclude Include="engine\Include\Asset\Mesh.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\FrustumRenderer.h" />
-    <ClInclude Include="game\Include\Particle\ParticleObject.h" />
+    <ClInclude Include="game\Include\Model\Player.h" />
     <ClInclude Include="game\Include\Scene\SampleScene.h" />
     <ClInclude Include="engine\Include\Physics\RigidBody.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\SphereRenderer.h" />
-    <ClInclude Include="game\Include\Model\SkyboxEntity.h" />
+    <ClInclude Include="game\Include\Model\SkyboxFactory.h" />
     <ClInclude Include="engine\Include\Component\Light\PointLight.h" />
     <ClInclude Include="engine\Include\Math\Quaternion.h" />
-    <ClInclude Include="game\Include\Model\SimpleSkin.h" />
-    <ClInclude Include="game\Include\Model\Human.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer\SkeletonRenderer.h" />
     <ClInclude Include="engine\Include\System\SceneViewWindow.h" />
     <ClInclude Include="engine\Include\System\TransformManipulator.h" />
@@ -343,10 +338,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\Component\InstanceAllocator.h" />
     <ClInclude Include="engine\Include\Utilities\GPUTimer.h" />
     <ClInclude Include="engine\Include\Component\SoftBody.h" />
-    <ClInclude Include="game\Include\Model\Player.h" />
-    <ClInclude Include="game\Include\Model\Ground.h" />
+    <ClInclude Include="game\Include\Model\GroundFactory.h" />
     <ClInclude Include="game\Include\System\CameraController.h" />
     <ClInclude Include="engine\Include\System\PoissonDiskSampler.h" />
+    <ClInclude Include="engine\Include\System\TreeEntityManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

@@ -57,16 +57,12 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	renderer_->SetMeshManager(meshManager_.get());
 
 	// スキンクラスターマネージャーの生成
-	skinClusterManager_ = std::make_unique<SkinClusterManager>(device_, logStream_);
+	skinClusterManager_ = std::make_unique<SkinClusterManager>(device_, meshManager_.get(), logStream_);
 	renderer_->SetSkinClusterManager(skinClusterManager_.get());
 
 	// モデルの読み込み
 	timer.Begin();
 	modelManager_ = std::make_unique<ModelManager>(textureManager_.get(), meshManager_.get(), skinClusterManager_.get(), logStream_);
-	modelManager_->LoadModel("AnimatedCube.gltf");
-	modelManager_->LoadModel("simpleSkin.gltf");
-	modelManager_->LoadModel("walk.gltf");
-	modelManager_->LoadModel("sneakWalk.gltf");
 	modelManager_->LoadModel("sphere.obj");
 	modelManager_->LoadModel("ground.obj");
 	skinClusterManager_->SetModelManager(modelManager_.get());
@@ -77,7 +73,6 @@ void SceneManager::Initialize(Device *device, Input *input, Audio *audio, Render
 	// パーティクルグループの作成
 	timer.Begin();
 	particleManager_ = std::make_unique<ParticleManager>(device_, textureManager_.get(), meshManager_.get(), logStream_);
-	particleManager_->CreateParticleGroup("Default", MeshType::kPlane, "circle2.png");
 	renderer_->SetParticleManager(particleManager_.get());
 	timer.End();
 	Logger::Log(*logStream_, "Loaded particle systems: " + std::to_string(timer.GetMs()) + " ms\n");

@@ -3,6 +3,7 @@
 #include "SelectionContext.h"
 #include "Transform.h"
 #include <string>
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
@@ -13,10 +14,11 @@ void HierarchyWindow::Draw() {
 		return;
 	}
 
+	// ウィンドウの描画
 	if (ImGui::Begin("Hierarchy", &isOpen_)) {
 		for (uint32_t e = 0; e < registry_->GetEntityCount(); ++e) {
 			auto relationship = registry_->GetComponent<Relationship>(e);
-			if (relationship && relationship->parent == std::numeric_limits<uint32_t>::max()) {
+			if (!relationship || relationship->parent == std::numeric_limits<uint32_t>::max()) {
 				DrawEntity(e);
 			}
 		}
@@ -25,20 +27,36 @@ void HierarchyWindow::Draw() {
 #endif // USE_IMGUI
 }
 
+void HierarchyWindow::Edit() {
+#ifdef USE_IMGUI
+	ImGui::Checkbox("Hierarchy", &isOpen_);
+#endif // USE_IMGUI
+}
+
 void HierarchyWindow::DrawEntity([[maybe_unused]] uint32_t entity) {
 #ifdef USE_IMGUI
-	auto relationship = registry_->GetComponent<Relationship>(entity);
+	// ImGuiのツリーノードのフラグを設定
 	ImGuiTreeNodeFlags flags = 0;
+	auto relationship = registry_->GetComponent<Relationship>(entity);
 	if (!relationship || relationship->children.empty()) {
 		flags |= ImGuiTreeNodeFlags_Leaf;
 	}
 
-	bool open = ImGui::TreeNodeEx(("Entity " + std::to_string(entity)).c_str(), flags);
+	// ツリーノードの描画
+	bool open = false;
+	auto name = registry_->GetComponent<Name>(entity);
+	if (name && !name->value.empty()) {
+		open = ImGui::TreeNodeEx(name->value.c_str(), flags);
+	} else {
+		open = ImGui::TreeNodeEx(("Entity " + std::to_string(entity)).c_str(), flags);
+	}
 
+	// エンティティがクリックされた場合、選択コンテキストを更新
 	if (ImGui::IsWindowFocused() && ImGui::IsItemClicked()) {
 		selection_->selectedEntity = entity;
 	}
 
+	// 子エンティティの描画
 	if (open) {
 		if (relationship) {
 			for (uint32_t child : relationship->children) {

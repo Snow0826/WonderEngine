@@ -18,9 +18,8 @@ public:
 	/// @brief 描画
 	void Draw();
 
-	/// @brief ウィンドウの開閉状態への参照を取得
-	/// @return ウィンドウの開閉状態への参照
-	bool &IsOpen() { return isOpen_; }
+	/// @brief 編集
+	void Edit();
 
 private:
 	Registry *registry_ = nullptr;	// レジストリ

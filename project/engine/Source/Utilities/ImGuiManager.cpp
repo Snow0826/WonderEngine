@@ -69,3 +69,23 @@ void ImGuiManager::Finalize() {
 	ImGui::DestroyContext();
 #endif // USE_IMGUI
 }
+
+bool ImGuiManager::Combo([[maybe_unused]] const std::string &label, [[maybe_unused]] std::string &currentItem, [[maybe_unused]] const std::vector<std::string> &items) {
+	bool changed = false;
+#ifdef USE_IMGUI
+	if (ImGui::BeginCombo(label.c_str(), currentItem.c_str())) {
+		for (const std::string &item : items) {
+			bool isSelected = (currentItem == item);
+			if (ImGui::Selectable(item.c_str(), isSelected)) {
+				currentItem = item;
+				changed = true;
+			}
+			if (isSelected) {
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
+	}
+#endif // USE_IMGUI
+	return changed;
+}

@@ -7,12 +7,16 @@
 #include <unordered_map>
 #include <d3d12.h>
 
-/// @brief メッシュLODデータ
-struct MeshLODData final {
+/// @brief メッシュ
+struct Mesh final {
 	std::vector<VertexData> vertices;	// 頂点リスト
 	std::vector<uint32_t> indices;		// インデックスリスト
-	float error = 0.0f;					// LODエラー
-	std::string meshName;				// メッシュ名
+};
+
+/// @brief メッシュLODデータ
+struct MeshLODData final {
+	std::string meshName;	// メッシュ名
+	float error = 0.0f;		// LODエラー
 };
 
 /// @brief メッシュデータ
@@ -24,14 +28,16 @@ struct MeshData final {
 class VertexBuffer;
 class IndexBuffer;
 
-/// @brief メッシュ
-struct Mesh final {
+/// @brief メッシュバッファ
+struct MeshBuffer final {
 	std::unique_ptr<VertexBuffer> vertexBuffer = nullptr;	// 頂点バッファ
 	std::unique_ptr<IndexBuffer> indexBuffer = nullptr;		// インデックスバッファ
 };
 
 class Device;
 struct MeshLOD;
+struct BranchMesh;
+struct BranchPathPoint;
 
 /// @brief メッシュマネージャー
 class MeshManager final {
@@ -46,8 +52,8 @@ public:
 
 	/// @brief メッシュの生成
 	/// @param meshName メッシュ名
-	/// @param meshLODData メッシュLODデータ
-	void CreateMesh(const std::string &meshName, const MeshLODData &meshLODData);
+	/// @param mesh メッシュ
+	void CreateMesh(const std::string &meshName, const Mesh &mesh);
 
 	/// @brief スプライトの生成
 	/// @param meshName メッシュ名
@@ -77,6 +83,14 @@ public:
 	/// @param cap キャップの有無
 	void CreateCylinder(const std::string &meshName, uint32_t divide, float topRadius, float bottomRadius, float height, bool cap = true);
 
+	/// @brief 木の生成
+	/// @param meshName メッシュ名
+	/// @param branchMesh 枝のメッシュ
+	/// @param lengthSegments スプライン方向の分割数
+	/// @param radialSegments 円周方向の分割数
+	/// @param uvScale UVスケール
+	void CreateTree(const std::string &meshName, const BranchMesh &branchMesh, uint32_t lengthSegments = 8, uint32_t radialSegments = 8, float uvScale = 1.0f);
+
 	/// @brief 描画
 	/// @param meshName メッシュ名
 	/// @param instanceCount インスタンス数
@@ -97,15 +111,20 @@ public:
 	/// @return 頂点データ
 	VertexData *GetVertexData(const std::string &meshName) const;
 
+	/// @brief 頂点数の取得
+	/// @param meshName メッシュ名
+	/// @return 頂点数
+	size_t GetVertexCount(const std::string &meshName) const;
+
 	/// @brief インデックス数の取得
 	/// @param meshName メッシュ名
 	/// @return インデックス数
 	UINT GetIndexCount(const std::string &meshName) const;
 
-	/// @brief メッシュLODデータの再インデックス化
-	/// @param meshLODData メッシュLODデータ
-	/// @return 再インデックス化されたメッシュLODデータ
-	static MeshLODData ReIndexMeshLODData(const MeshLODData &meshLODData);
+	/// @brief メッシュの再インデックス化
+	/// @param mesh メッシュ
+	/// @return 再インデックス化されたメッシュ
+	static Mesh ReIndexMesh(const Mesh &mesh);
 
 	/// @brief ローカル球の生成
 	/// @param meshName メッシュ名
@@ -125,5 +144,20 @@ public:
 private:
 	Device *device_ = nullptr;	// デバイス
 	std::ofstream *logStream_ = nullptr;	// ログ出力用のストリーム
-	std::unordered_map<std::string, std::unique_ptr<Mesh>> meshes_;	// メッシュリスト
+	std::unordered_map<std::string, std::unique_ptr<MeshBuffer>> meshBuffers_;	// メッシュバッファリスト
+
+	/// @brief エルミート曲線のチューブを生成する
+	/// @param start 始点
+	/// @param end 終点
+	/// @param lengthSegments スプライン方向の分割数
+	/// @param radialSegments 円周方向の分割数
+	/// @param frameNormal フレームのノーマル
+	/// @param uvScale UVスケール
+	/// @return 生成されたメッシュ
+	Mesh CreateHermiteTubeSegment(const BranchPathPoint &start, const BranchPathPoint &end, uint32_t lengthSegments, uint32_t radialSegments, Vector3 &frameNormal, float uvScale = 1.0f);
+
+	/// @brief メッシュを結合する
+	/// @param destination 結合先のメッシュ
+	/// @param source 結合元のメッシュ
+	void AppendMesh(Mesh &destination, const Mesh &source);
 };

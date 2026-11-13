@@ -1,10 +1,19 @@
 #pragma once
+#include <string>
 #include <vector>
 #include <memory>
 
+/// @brief 名前
+struct Name final {
+	std::string value;	// 値
+};
+
+/// @brief 除外コンポーネント
+/// @tparam ...Ts 除外するコンポーネントの型
 template<typename... Ts>
 struct exclude final {};
 
+/// @brief 無効化コンポーネント
 struct Disabled final {};
 
 /// @brief コンポーネントプールのインターフェース

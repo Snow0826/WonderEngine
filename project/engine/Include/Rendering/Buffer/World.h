@@ -15,13 +15,6 @@ struct ParticlePerViewData final {
 	Matrix4x4 billboardMatrix;	// ビルボード行列
 };
 
-/// @brief 円柱
-struct Cylinder final {
-	float radius = 0.0f;	// 半径
-	float height = 0.0f;	// 高さ
-	uint32_t aabbIndex = 0;	// AABBインデックス
-};
-
 /// @brief AABB用のメッシュ情報
 struct MeshInfoForAABB final {
 	uint32_t vertexOffset = 0;	// 頂点オフセット
@@ -44,11 +37,6 @@ struct Uint4 final {
 
 /// @brief キューオフセットリスト
 using QueueOffsets = std::array<Uint4, (static_cast<uint32_t>(MeshType::kCountOfMeshType) *static_cast<uint32_t>(BlendMode::kCountOfBlendMode) + 3) / 4>;
-
-/// @brief カリング木定数データ
-struct CullingTreeConstantsData final {
-	uint32_t treeCount = 0;	// 木の数
-};
 
 /// @brief カリング定数データ
 struct CullingConstantsData final {
@@ -76,7 +64,6 @@ struct CullingMeshData final {
 	uint32_t lodOffset = 0;		// LODオフセット
 	uint32_t lodCount = 0;		// LOD数
 	uint32_t useCulling = 0;	// カリングを使用するか
-	uint32_t treeIndex = 0xffffffffu;	// 木単位可視状態のインデックス。非木は無効値
 };
 
 /// @brief カリングデータが変更されたフラグ
@@ -275,7 +262,6 @@ enum class StructuredBufferType {
 	kSpotLight,						// スポットライト
 	kSdSphereData,					// 球状SDFデータ
 	kSdBoxData,						// ボックスSDFデータ
-	kCylinder,						// 円柱
 	kMeshInfoForAABB,				// AABB用のメッシュ情報
 	kVertexDataForAABB,				// AABB用の頂点データ
 	kCullingMeshData,				// カリングメッシュデータ
@@ -312,7 +298,7 @@ namespace Rendering {
 }
 struct PointLight;
 struct SpotLight;
-struct InstanceData;
+struct TransformationMatrix;
 struct Material;
 
 /// @brief ワールド
@@ -413,10 +399,6 @@ public:
 	/// @return メッシュLODカウンター
 	uint32_t GetMeshLODCounter() const { return meshLODCounter_; }
 
-	/// @brief 円柱カウンターを取得
-	/// @return 円柱カウンター
-	uint32_t GetCylinderCounter() const { return cylinderCounter_; }
-
 	/// @brief AABB用のメッシュ情報カウンターを取得
 	/// @return AABB用のメッシュ情報カウンター
 	uint32_t GetMeshInfoForAABBCounter() const { return meshInfoForAABBCounter_; }
@@ -496,26 +478,6 @@ public:
 	/// @return AABB用UAVハンドル
 	uint32_t GetAABBUAVHandle() const { return aabbUAVHandle_; }
 
-	/// @brief カリング木の境界ボックスSRVハンドルを取得
-	/// @return カリング木の境界ボックスSRVハンドル
-	uint32_t GetTreeBoundsSRVHandle() const { return treeBoundsSRVHandle_; }
-
-	/// @brief カリング木の可視状態用SRVハンドルを取得
-	/// @return カリング木の可視状態用SRVハンドル
-	uint32_t GetTreeVisibilitySRVHandle() const { return treeVisibilitySRVHandle_; }
-	
-	/// @brief カリング木の可視状態用UAVハンドルを取得
-	/// @return カリング木の可視状態用UAVハンドル
-	uint32_t GetTreeVisibilityUAVHandle() const { return treeVisibilityUAVHandle_; }
-	
-	/// @brief カリング木の可視状態用バッファを取得
-	/// @return カリング木の可視状態用バッファ
-	Resource *GetTreeVisibilityBuffer() { return treeVisibilityBuffer_.get(); }
-	
-	/// @brief カリング木の境界ボックス数を取得
-	/// @return カリング木の境界ボックス数
-	uint32_t GetTreeBoundsCount() const { return treeBoundsCounter_; }
-
 	/// @brief カリング済みコマンドハンドルを取得
 	/// @return カリング済みコマンドハンドル
 	uint32_t GetProcessedCommandHandle() const { return processedCommandHandle_; }
@@ -585,10 +547,9 @@ private:
 	static inline constexpr uint32_t kMaxSpotLight = 32;				// 最大スポットライト数
 	static inline constexpr uint32_t kMaxSdSphereData = 1024;			// 最大球状SDF数
 	static inline constexpr uint32_t kMaxSdBoxData = 1024;				// 最大ボックスSDF数
-	static inline constexpr uint32_t kMaxObject = 10000000;				// 最大オブジェクト数
-	static inline constexpr uint32_t kMaxAABB = 10000000;				// 最大AABB数
-	static inline constexpr uint32_t kMaxTrees = 100000;				// 最大カリング対象木数
-	static inline constexpr uint32_t kMaxVertices = 10000000;			// 最大頂点数
+	static inline constexpr uint32_t kMaxObject = 100000;				// 最大オブジェクト数
+	static inline constexpr uint32_t kMaxAABB = 100000;					// 最大AABB数
+	static inline constexpr uint32_t kMaxVertices = 100000000;			// 最大頂点数
 	static inline constexpr uint32_t kMaxFootprint = 64;				// 最大フットプリント数
 	static inline constexpr uint32_t kMaxCommandPerQueue = 1024;		// コマンドキューあたりの最大コマンド数
 	Registry *registry_ = nullptr;										// レジストリ
@@ -603,8 +564,6 @@ private:
 	std::unique_ptr<Resource> postEffectRenderTexture_ = nullptr;		// ポストエフェクトのレンダーテクスチャ
 	std::unique_ptr<Resource> hiZTexture_ = nullptr;					// Hi-Zテクスチャ
 	std::unique_ptr<Resource> aabbBuffer_ = nullptr;					// AABBバッファ
-	std::unique_ptr<Resource> treeBoundsBuffer_ = nullptr;				// 木のAABBバッファ
-	std::unique_ptr<Resource> treeVisibilityBuffer_ = nullptr;			// 木の可視状態バッファ
 	std::unique_ptr<Resource> commandUploadBuffer_ = nullptr;			// コマンドアップロードバッファ
 	std::unique_ptr<Resource> processedCommandBuffer_ = nullptr;		// カリング済みコマンドバッファ
 	std::unique_ptr<Resource> meshCommandStateBuffer_ = nullptr;		// メッシュコマンドステートバッファ
@@ -616,7 +575,6 @@ private:
 	std::unique_ptr<Resource> footprintMapBuffer_ = nullptr;			// フットプリントマップバッファ
 	std::unique_ptr<Resource> footprintMapReadbackBuffer_ = nullptr;	// フットプリントマップ読み戻しバッファ
 	uint32_t meshLODCounter_ = 0;										// メッシュLODカウンター
-	uint32_t cylinderCounter_ = 0;										// 円柱カウンター
 	uint32_t meshInfoForAABBCounter_ = 0;								// AABB用のメッシュ情報カウンター
 	CullingConstantsData cullingConstantsData_;							// カリング定数データ
 	GrayscaleColor grayscaleColor_;										// グレースケールカラー
@@ -634,19 +592,16 @@ private:
 	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
 	Int4 *colorData_ = nullptr;											// 色データ
 	MeshLOD *meshLODData_ = nullptr;									// メッシュLODデータ
-	InstanceData *instanceData_ = nullptr;								// インスタンスデータ
+	TransformationMatrix *instanceData_ = nullptr;						// インスタンスデータ
 	Material *materialData_ = nullptr;									// マテリアルデータ
 	TextureData *textureData_ = nullptr;								// テクスチャデータ
 	Rendering::Line *lineData_ = nullptr;								// ラインデータ
 	PointLight *pointLightData_ = nullptr;								// 点光源データ
 	SpotLight *spotLightData_ = nullptr;								// スポットライトデータ
-	Cylinder *cylinderData_ = nullptr;									// 円柱データ
 	MeshInfoForAABB *meshInfoForAABB_ = nullptr;						// AABB用のメッシュ情報
 	VertexDataForAABB *vertexDataForAABB_ = nullptr;					// AABB用の頂点データ
 	CullingMeshData *cullingMeshData_ = nullptr;						// カリングメッシュデータ
 	CullingObjectData *cullingObjectData_ = nullptr;					// カリングオブジェクトデータ
-	AABBForGPU *treeBoundsData_ = nullptr;								// 木のAABBデータ
-	uint32_t treeBoundsCounter_ = 0;									// 木のAABBカウンター
 	SdSphereData *sdSphereData_ = nullptr;								// 球状SDFデータ
 	SdBoxData *sdBoxData_ = nullptr;									// ボックスSDFデータ
 	uint32_t mipLevels_ = 0;											// ミップレベル数
@@ -664,9 +619,6 @@ private:
 	std::vector<uint32_t> hiZMipMapWriteHandles_;						// Hi-Zミップマップ書き込みハンドル
 	uint32_t aabbSRVHandle_ = 0;										// AABB用SRVハンドル
 	uint32_t aabbUAVHandle_ = 0;										// AABB用UAVハンドル
-	uint32_t treeBoundsSRVHandle_ = 0;									// 木AABB用SRVハンドル
-	uint32_t treeVisibilitySRVHandle_ = 0;								// 木の可視状態用SRVハンドル
-	uint32_t treeVisibilityUAVHandle_ = 0;								// 木の可視状態用UAVハンドル
 	uint32_t processedCommandHandle_ = 0;								// カリング済みコマンドハンドル
 	uint32_t meshCommandStateSRVHandle_ = 0;							// メッシュコマンドステートSRVハンドル
 	uint32_t meshCommandStateUAVHandle_ = 0;							// メッシュコマンドステートUAVハンドル

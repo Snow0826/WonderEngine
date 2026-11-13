@@ -16,6 +16,7 @@
 #include "InstanceAllocator.h"
 #include "Texture.h"
 #include "SkinCluster.h"
+#include "Primitive.h"
 #include "Material.h"
 #include "UVTransform.h"
 #include "Model.h"
@@ -27,6 +28,8 @@
 #include "SpotLight.h"
 #include "RigidBody.h"
 #include "SoftBody.h"
+#include "TreeGenerator.h"
+#include "TreeEntityManager.h"
 #include "Footprint.h"
 #include "CollisionSystem.h"
 #include "AABBRenderer.h"
@@ -55,9 +58,10 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	Device *device = sceneManager_->GetDevice();
 	Input *input = sceneManager_->GetInput();
 	Renderer *renderer = sceneManager_->GetRenderer();
+	std::ofstream *logStream = sceneManager_->GetLogStream();
 	World *world = sceneManager_->GetWorld();
-	TextureManager *textureManager = sceneManager_->GetTextureManager();
 	MeshManager *meshManager = sceneManager_->GetMeshManager();
+	TextureManager *textureManager = sceneManager_->GetTextureManager();
 	SkinClusterManager *skinClusterManager = sceneManager_->GetSkinClusterManager();
 	ModelManager *modelManager = sceneManager_->GetModelManager();
 	ParticleManager *particleManager = sceneManager_->GetParticleManager();
@@ -86,6 +90,15 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	debugRenderer_ = std::make_unique<DebugRenderer>(world);
 	renderer->SetDebugRenderer(debugRenderer_.get());
 
+	// プリミティブジェネレーターの生成
+	primitiveGenerator_ = std::make_unique<PrimitiveGenerator>(meshManager, textureManager);
+
+	// 木の生成器の生成
+	treeGenerator_ = std::make_unique<TreeGenerator>(primitiveGenerator_.get(), logStream);
+
+	// 木のエンティティマネージャーの生成
+	treeEntityManager_ = std::make_unique<TreeEntityManager>(registry_.get(), instanceAllocator_.get());
+
 	// システムの生成
 	transformSystem_ = std::make_unique<TransformSystem>(registry_.get());
 	cameraSystem_ = std::make_unique<CameraSystem>(registry_.get());
@@ -102,7 +115,8 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 
 	// インスペクターの生成
 	blendModeInspector_ = std::make_unique<BlendModeInspector>(registry_.get());
-	modelInspector_ = std::make_unique<ModelInspector>(registry_.get(), modelManager);
+	modelInspector_ = std::make_unique<ModelInspector>(registry_.get(), modelManager, meshManager);
+	primitiveInspector_ = std::make_unique<PrimitiveInspector>(registry_.get(), primitiveGenerator_.get(), meshManager);
 	spriteInspector_ = std::make_unique<SpriteInspector>(registry_.get(), textureManager);
 	particleGroupInspector_ = std::make_unique<ParticleGroupInspector>(registry_.get(), textureManager);
 	emitterSphereInspector_ = std::make_unique<EmitterSphereInspector>(registry_.get());
@@ -116,6 +130,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	spotLightInspector_ = std::make_unique<SpotLightInspector>(registry_.get());
 	rigidBodyInspector_ = std::make_unique<RigidBodyInspector>(registry_.get());
 	softBodyInspector_ = std::make_unique<SoftBodyInspector>(registry_.get());
+	treeConfigInspector_ = std::make_unique<TreeConfigInspector>(registry_.get(), treeGenerator_.get(), treeEntityManager_.get());
 	footprintInspector_ = std::make_unique<FootprintInspector>(registry_.get());
 	aabbInspector_ = std::make_unique<AABBInspector>(registry_.get());
 	sphereInspector_ = std::make_unique<SphereInspector>(registry_.get());
@@ -127,6 +142,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	componentDrawerRegistry_ = std::make_unique<ComponentDrawerRegistry>(registry_.get());
 	componentDrawerRegistry_->RegisterComponentDrawer<BlendMode>([this](uint32_t entity) { blendModeInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Model>([this](uint32_t entity) { modelInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<Primitive>([this](uint32_t entity) { primitiveInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Sprite>([this](uint32_t entity) { spriteInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<ParticleGroup>([this](uint32_t entity) { particleGroupInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<EmitterSphere>([this](uint32_t entity) { emitterSphereInspector_->Draw(entity); });
@@ -141,6 +157,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	componentDrawerRegistry_->RegisterComponentDrawer<SpotLight>([this](uint32_t entity) { spotLightInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<RigidBody>([this](uint32_t entity) { rigidBodyInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<SoftBodyDataForCPU>([this](uint32_t entity) { softBodyInspector_->Draw(entity); });
+	componentDrawerRegistry_->RegisterComponentDrawer<TreeConfig>([this](uint32_t entity) { treeConfigInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Footprint>([this](uint32_t entity) { footprintInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Collision::AABB>([this](uint32_t entity) { aabbInspector_->Draw(entity); });
 	componentDrawerRegistry_->RegisterComponentDrawer<Collision::Sphere>([this](uint32_t entity) { sphereInspector_->Draw(entity); });
@@ -182,9 +199,9 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 
 	// メインカメラの生成と初期化
 	SetCameraEntity(CameraType::kMainCamera, registry_->GenerateEntity());
+	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), Name{ .value = "MainCamera" });
 	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), Camera{});
 	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), QuaternionTransform{ .translate = {.y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({.y = 5.0f, .z = -10.0f }, {}, {.y = 1.0f }) });
-	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), Relationship{});
 	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), RenderingCamera{});
 	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), MainCamera{});
 	registry_->AddComponent(GetCameraEntity(CameraType::kMainCamera), FrustumRenderer{});
@@ -192,15 +209,15 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 
 	// デバッグカメラの生成と初期化
 	SetCameraEntity(CameraType::kDebugCamera, registry_->GenerateEntity());
+	registry_->AddComponent(GetCameraEntity(CameraType::kDebugCamera), Name{ .value = "DebugCamera" });
 	registry_->AddComponent(GetCameraEntity(CameraType::kDebugCamera), Camera{});
 	registry_->AddComponent(GetCameraEntity(CameraType::kDebugCamera), QuaternionTransform{ .translate = {.y = 5.0f, .z = -10.0f }, .rotateMatrix = LookAt({.y = 5.0f, .z = -10.0f }, {}, {.y = 1.0f }) });
-	registry_->AddComponent(GetCameraEntity(CameraType::kDebugCamera), Relationship{});
 	transformSystem_->MarkDirty(GetCameraEntity(CameraType::kDebugCamera));
 
 	// 平行光源の生成と初期化
 	directionalLightEntity_ = registry_->GenerateEntity();
+	registry_->AddComponent(directionalLightEntity_, Name{ .value = "DirectionalLight" });
 	registry_->AddComponent(directionalLightEntity_, DirectionalLight{});
-	registry_->AddComponent(directionalLightEntity_, Relationship{});
 
 	// ビットマップフォントの初期化
 	bitmapFont_ = std::make_unique<BitmapFont>(registry_.get(), spriteManager_.get());
@@ -234,10 +251,10 @@ void BaseScene::Update(float deltaTime) {
 	world->Edit();
 
 	// ウィンドウの表示切り替え
-	ImGui::Checkbox("Hierarchy", &hierarchyWindow_->IsOpen());
-	ImGui::Checkbox("Inspector", &inspectorWindow_->IsOpen());
-	ImGui::Checkbox("SceneView", &sceneViewWindow_->IsOpen());
-	ImGui::Checkbox("GameView", &gameViewWindow_->IsOpen());
+	hierarchyWindow_->Edit();
+	inspectorWindow_->Edit();
+	sceneViewWindow_->Edit();
+	gameViewWindow_->Edit();
 	renderer->SetSceneViewVisible(sceneViewWindow_->IsOpen());
 	renderer->SetGameViewVisible(gameViewWindow_->IsOpen());
 

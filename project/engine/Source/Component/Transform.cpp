@@ -8,7 +8,7 @@
 #endif // USE_IMGUI
 
 void TransformSystem::Update() {
-	registry_->ForEach<Relationship, DirtyTransform, DirtyRelationshipTransform>([&](uint32_t entity, Relationship *relationship, DirtyTransform *dirtyTransform, DirtyRelationshipTransform *dirtyRelationshipTransform) {
+	registry_->ForEach<DirtyTransform, DirtyRelationshipTransform>([&](uint32_t entity, DirtyTransform *dirtyTransform, DirtyRelationshipTransform *dirtyRelationshipTransform) {
 		UpdateWorldMatrix(entity, MakeIdentity4x4());
 		}, exclude<Disabled>());
 }

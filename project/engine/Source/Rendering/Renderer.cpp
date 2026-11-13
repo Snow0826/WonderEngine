@@ -294,7 +294,7 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> updateParticleCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/UpdateParticle.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(updateParticleCSBlob);
 
-	// モデルのAABB生成のシェーダーのコンパイル
+	// AABB生成のシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> createAABBCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/CreateAABB.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(createAABBCSBlob);
 
@@ -785,7 +785,7 @@ void Renderer::Render() {
 	// パーティクルの更新
 	UpdateParticle();
 
-	// モデルのAABBの生成
+	// AABBの生成
 	CreateAABB();
 
 	// スキニングの実行

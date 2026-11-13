@@ -81,9 +81,6 @@ Application::Application() {
 
 	// GPUタイマーの初期化
 	gpuTimer_ = std::make_unique<GPUTimer>(device_.get());
-
-	cpuTimer_->End();	// CPUタイマーの終了
-	Logger::Log(logStream_, "Application Initialization Time: " + std::to_string(cpuTimer_->GetMs()) + " ms\n");
 }
 
 Application::~Application() {
@@ -99,6 +96,7 @@ Application::~Application() {
 }
 
 void Application::Run() {
+	bool isInitialized = false;	// 初期化フラグ
 	// ウィンドウの×ボタンが押されるまでループ
 	while (true) {
 		float deltaTime = static_cast<float>(deltaTimer_->GetMs() / 1000.0);	// デルタタイムの取得
@@ -108,6 +106,8 @@ void Application::Run() {
 		if (window_->ProcessMessage()) {
 			break;
 		}
+		
+		device_->NewFrame();	// フレームの開始処理
 
 		input_->Update();	// インプットの開始処理
 
@@ -119,13 +119,13 @@ void Application::Run() {
 		ImGui::Text("GPU Time: %.2f ms", gpuTimer_->GetMs());	// GPUタイムをImGuiに表示
 #endif // USE_IMGUI
 
-		cpuTimer_->Begin();	// CPUタイマーの開始
+		if (isInitialized) {
+			cpuTimer_->Begin();	// CPUタイマーの開始
+		}
 
 		sceneManager_->Update(deltaTime);	// 更新処理
 
 		ImGuiManager::End();	// ImGuiの終了処理
-
-		device_->NewFrame();	// 描画開始処理
 
 		gpuTimer_->Begin();	// GPUタイマーの開始
 
@@ -137,6 +137,11 @@ void Application::Run() {
 		sceneManager_->EndFrame();	// フレームの終了処理
 
 		cpuTimer_->End();	// CPUタイマーの終了
+
+		if (!isInitialized) {
+			Logger::Log(logStream_, "Application Initialization Time: " + std::to_string(cpuTimer_->GetMs()) + " ms\n");
+			isInitialized = true;	// 初期化フラグを立てる
+		}
 
 		ImGuiManager::Draw(device_->GetCommandList());	// ImGuiの描画
 

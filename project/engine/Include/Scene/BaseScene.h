@@ -18,6 +18,7 @@ class FootprintManager;
 class DebugRenderer;
 class PrimitiveGenerator;
 class TreeGenerator;
+class TreeEntityManager;
 class Registry;
 class ComponentDrawerRegistry;
 class HierarchyWindow;
@@ -127,6 +128,10 @@ protected:
 	/// @return 木の生成器
 	TreeGenerator *GetTreeGenerator() const { return treeGenerator_.get(); }
 
+	/// @brief 木のエンティティマネージャーを取得する
+	/// @return 木のエンティティマネージャー
+	TreeEntityManager *GetTreeEntityManager() const { return treeEntityManager_.get(); }
+
 	/// @brief デバッグカメラがアクティブかどうかを取得する
 	/// @return デバッグカメラがアクティブな場合はtrueを返す
 	bool IsDebugCameraActive() const { return isDebugCameraActive_; }
@@ -150,6 +155,7 @@ private:
 	std::unique_ptr<DebugRenderer> debugRenderer_ = nullptr;							// デバッグレンダラー
 	std::unique_ptr<PrimitiveGenerator> primitiveGenerator_ = nullptr;					// プリミティブジェネレーター
 	std::unique_ptr<TreeGenerator> treeGenerator_ = nullptr;							// 木の生成器
+	std::unique_ptr<TreeEntityManager> treeEntityManager_ = nullptr;					// 木のエンティティマネージャー
 	std::unique_ptr<Registry> registry_ = nullptr;										// レジストリ
 	std::unique_ptr<ComponentDrawerRegistry> componentDrawerRegistry_ = nullptr;		// コンポーネント描画関数レジストリ
 	std::unique_ptr<HierarchyWindow> hierarchyWindow_ = nullptr;						// 階層ウィンドウ

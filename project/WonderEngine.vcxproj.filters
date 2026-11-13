@@ -83,6 +83,7 @@
     <ClCompile Include="game\Source\Model\GroundFactory.cpp" />
     <ClCompile Include="game\Source\System\CameraController.cpp" />
     <ClCompile Include="engine\Source\System\PoissonDiskSampler.cpp" />
+    <ClCompile Include="engine\Source\System\TreeEntityManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -178,6 +179,7 @@
     <ClInclude Include="engine\Include\System\PoissonDiskSampler.h" />
     <ClInclude Include="game\Include\Model\Player.h" />
     <ClInclude Include="engine\Include\Math\Interpolation.h" />
+    <ClInclude Include="engine\Include\System\TreeEntityManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

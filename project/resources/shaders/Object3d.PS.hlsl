@@ -122,10 +122,13 @@ PixelShaderOutput main(VertexShaderOutput input)
             output.color.rgb += ApplyLightCommon(direction, input, textureColor) * light.color.rgb * light.intensity * attenuation * falloff;
         }
         
-        float3 cameraToPosition = normalize(input.worldPosition - gCamera.worldPosition);
-        float3 reflectedVector = reflect(cameraToPosition, normalize(input.normal));
-        float4 environmentColor = gEnvironmentMap.Sample(gSampler, reflectedVector);
-        output.color.rgb += environmentColor.rgb * gMaterial[instanceIndex].environmentCoefficient;
+        if (gMaterial[instanceIndex].environmentCoefficient > 0.0f)
+        {
+            float3 cameraToPosition = normalize(input.worldPosition - gCamera.worldPosition);
+            float3 reflectedVector = reflect(cameraToPosition, normalize(input.normal));
+            float4 environmentColor = gEnvironmentMap.Sample(gSampler, reflectedVector);
+            output.color.rgb += environmentColor.rgb * gMaterial[instanceIndex].environmentCoefficient;
+        }
     }
     else
     {

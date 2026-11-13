@@ -23,12 +23,14 @@ void SceneViewWindow::Draw() {
 		return;
 	}
 
-	DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device_->GetGpuCbvSrvUavDescriptorHeap();
 	if (ImGui::Begin("SceneView", &isOpen_)) {
+		// シーンビューのアスペクト比を取得する
 		float aspectRatio = 16.0f / 9.0f;
 		registry_->ForEach<Camera, RenderingCamera>([&](uint32_t entity, Camera *camera, RenderingCamera *renderingCamera) {
 			aspectRatio = camera->aspectRatio;
 			}, exclude<Disabled>());
+
+		// ImGuiのウィンドウの利用可能な領域を取得して、アスペクト比を維持しつつ描画するサイズを計算する
 		ImVec2 avail = ImGui::GetContentRegionAvail();
 		float width = avail.x;
 		float height = width / aspectRatio;
@@ -36,6 +38,9 @@ void SceneViewWindow::Draw() {
 			height = avail.y;
 			width = height * aspectRatio;
 		}
+
+		// ImGuiのウィンドウにシーン画面を描画する
+		DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device_->GetGpuCbvSrvUavDescriptorHeap();
 		D3D12_GPU_DESCRIPTOR_HANDLE gpuSceneHandle = gpuCbvSrvUavDescriptorHeap->GetGPUDescriptorHandle(world_->GetSceneRenderTextureSRVHandle());
 		ImGui::Image(static_cast<ImTextureID>(gpuSceneHandle.ptr), ImVec2(width, height));
 		ImVec2 pos = ImGui::GetItemRectMin();

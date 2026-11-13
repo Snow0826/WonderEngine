@@ -10,6 +10,7 @@
 #include "CameraController.h"
 #include "Primitive.h"
 #include "TreeSpeciesDatabase.h"
+#include "TreeEntityManager.h"
 #include "PoissonDiskSampler.h"
 #include "DebugCamera.h"
 #include "DirectionalLight.h"
@@ -30,13 +31,14 @@ void SampleScene::OnInitialize() {
 	InstanceAllocator *instanceAllocator = GetInstanceAllocator();
 	FootprintManager *footprintManager = GetFootprintManager();
 	TreeGenerator *treeGenerator = GetTreeGenerator();
+	TreeEntityManager *treeEntityManager = GetTreeEntityManager();
 	MeshManager *meshManager = sceneManager->GetMeshManager();
 	TextureManager *textureManager = sceneManager->GetTextureManager();
 	ParticleManager *particleManager = sceneManager->GetParticleManager();
 	std::ofstream *logStream = sceneManager->GetLogStream();
 	Input *input = sceneManager->GetInput();
 	PoissonDiskSampler sampler;
-	std::vector<Vector2> samples = sampler.Generate(1024.0f, 1024.0f, 16.0f);
+	std::vector<Vector2> samples = sampler.Generate(512.0f, 512.0f, 32.0f);
 
 	// ジェネレーターの初期化
 	SkyboxGenerator skyboxGenerator{ meshManager, textureManager };
@@ -49,18 +51,21 @@ void SampleScene::OnInitialize() {
 
 	// 森の作成
 	CPUTimer treeTimer;
-	CPUTimer timer;
 	treeTimer.Begin();
-	for (const Vector2& sample : samples) {
-		timer.Begin();
-		TreeConfig treeConfig = MakeTreeConfig(TreeSpecies::Cedar, { sample.x - 512.0f, 0.0f, sample.y - 512.0f });
-		treeGenerator->Generate(treeConfig);
-		timer.End();
-		Logger::Log(*logStream, "Tree generation time: " + std::to_string(timer.GetMs()) + " ms\n");
-	}
+	TreeConfig treeConfig = MakeTreeConfig(TreeSpecies::Cedar);
+	treeConfig.killRadius = 0.84f;
+	Primitive treePrimitive = treeGenerator->Generate(treeConfig);
 	treeTimer.End();
-	Logger::Log(*logStream, "Total tree generation time: " + std::to_string(treeTimer.GetMs()) + " ms\n");
+	Logger::Log(*logStream, "Tree generation time: " + std::to_string(treeTimer.GetMs()) + " ms\n");
 
+	CPUTimer treeEntityTimer;
+	treeEntityTimer.Begin();
+	for (const Vector2& sample : samples) {
+		treeEntityManager->CreateEntity(treePrimitive, { sample.x - 256.0f, 0.0f, sample.y - 256.0f });
+	}
+	treeEntityTimer.End();
+	Logger::Log(*logStream, "Tree entity generation time: " + std::to_string(treeEntityTimer.GetMs()) + " ms\n");
+	Logger::Log(*logStream, "TreeCount: " + std::to_string(samples.size()) + "\n");
 
 	// プレイヤーの初期化
 	player_ = std::make_unique<Player>(registry, instanceAllocator, footprintManager);
@@ -78,7 +83,7 @@ void SampleScene::OnInitialize() {
 	// 木の設定エンティティの追加
 	uint32_t entity = registry->GenerateEntity();
 	registry->AddComponent(entity, Name{ .value = "TreeConfig" });
-	registry->AddComponent(entity, MakeTreeConfig(TreeSpecies::Willow, { 0.0f, 0.0f, 0.0f }));
+	registry->AddComponent(entity, MakeTreeConfig(TreeSpecies::Willow));
 }
 
 void SampleScene::OnUpdate(float deltaTime) {

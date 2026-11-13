@@ -245,6 +245,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\Component\SoftBody.cpp" />
     <ClCompile Include="game\Source\Model\Player.cpp" />
     <ClCompile Include="engine\Source\System\PoissonDiskSampler.cpp" />
+    <ClCompile Include="engine\Source\System\TreeEntityManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Component\Primitive.h" />
@@ -340,6 +341,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="game\Include\Model\GroundFactory.h" />
     <ClInclude Include="game\Include\System\CameraController.h" />
     <ClInclude Include="engine\Include\System\PoissonDiskSampler.h" />
+    <ClInclude Include="engine\Include\System\TreeEntityManager.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="externals\DirectXTex\DirectXTex_Desktop_2022_Win10.vcxproj">

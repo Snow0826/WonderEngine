@@ -1,12 +1,9 @@
 #define NOMINMAX
 #include "TreeGenerator.h"
-#include "TreeSpeciesDatabase.h"
+#include "TreeEntityManager.h"
 #include "EntityComponentSystem.h"
-#include "World.h"
-#include "InstanceAllocator.h"
 #include "Primitive.h"
-#include "Transform.h"
-#include "Material.h"
+#include "TreeSpeciesDatabase.h"
 #include "Interpolation.h"
 #include "Random.h"
 #include "Logger.h"
@@ -15,8 +12,7 @@
 #include <imgui.h>
 #endif // USE_IMGUI
 
-uint32_t TreeGenerator::Generate(const TreeConfig &tree) {
-	currentCrown_ = tree.crown;
+Primitive TreeGenerator::Generate(const TreeConfig &tree) {
 	if (tree.randomSeed == 0) {
 		randomEngine_.seed(std::random_device{}());
 	} else {
@@ -26,16 +22,16 @@ uint32_t TreeGenerator::Generate(const TreeConfig &tree) {
 	branches_.clear();
 	branchGrid_.clear();
 	gridCellSize_ = tree.influenceRadius;
-	GenerateLeaves(tree.crown.center, tree.crown.radius, tree.leafCount);
-	GenerateRootBranch(tree.rootPosition, tree.rootDirection);
-	GenerateTrunk(tree.trunkHeight, tree.branchLength, tree.rootDirection);
+	GenerateLeaves(tree.crown, tree.leafCount);
+	GenerateRootBranch();
+	GenerateTrunk(tree.trunkHeight, tree.branchLength);
 	uint32_t noProgressCount = 0;
 	size_t previousLeafCount = leaves_.size();
 	uint32_t iteration = 0;
 	timer_.Begin();
 	while (!leaves_.empty() && (tree.maxIterations == 0 || iteration < tree.maxIterations) && (tree.maxBranches == 0 || branches_.size() < tree.maxBranches)) {
 		++iteration;
-		FindClosestBranch(tree.influenceRadius, tree.killRadius);
+		FindClosestBranch(tree.influenceRadius, tree.killRadius, tree.crown);
 		GrowBranches(tree.branchLength, tree.maxBranches);
 		RemoveLeaves();
 		if (leaves_.size() == previousLeafCount) {
@@ -56,55 +52,27 @@ uint32_t TreeGenerator::Generate(const TreeConfig &tree) {
 	CalculateRadius(branches_.front().get(), tree);
 	timer_.End();
 	Logger::Log(*logStream_, "Calculate radius time: " + std::to_string(timer_.GetMs()) + " ms\n");
-	treeCounter_++;
 	timer_.Begin();
-	uint32_t entity = registry_->GenerateEntity();
-	registry_->AddComponent(entity, Name{ .value = "Tree " + std::to_string(treeCounter_) });
-	registry_->AddComponent(entity, MeshType::kTree);
-	registry_->AddComponent(entity, BlendMode::kBlendModeNone);
-	registry_->AddComponent(entity, EulerTransform{});
-	registry_->AddComponent(entity, Material{ .environmentCoefficient = 0.0f });
-	registry_->AddComponent(entity, DirtyTransform{});
-	registry_->AddComponent(entity, DirtyRelationshipTransform{});
-	registry_->AddComponent(entity, DirtyMaterial{});
-	registry_->AddComponent(entity, DirtyTextureData{});
-	registry_->AddComponent(entity, DirtyMeshLOD{});
-	registry_->AddComponent(entity, DirtyCullingData{});
-	registry_->AddComponent(entity, instanceAllocator_->Allocate(entity));
-	registry_->AddComponent(entity, primitiveGenerator_->CreateTree("TreeMesh" + std::to_string(treeCounter_), CreateBranchMesh(), 2, 4, 1.0f, "Bark001_1K-JPG_Color.jpg"));
-	registry_->AddComponent(entity, UseCulling{});
 	timer_.End();
 	Logger::Log(*logStream_, "Create branch time: " + std::to_string(timer_.GetMs()) + " ms\n");
-	return entity;
+	return primitiveGenerator_->CreateTree("TreeMesh" + std::to_string(treeMeshCounter_++), CreateBranchMesh(), 2, 4, 1.0f, "Bark001_1K-JPG_Color.jpg");
 }
 
-void TreeGenerator::Delete(uint32_t entity) {
-	if (auto relationship = registry_->GetComponent<Relationship>(entity)) {
-		for (uint32_t child : relationship->children) {
-			Delete(child);
-		}
-	}
-	instanceAllocator_->Free(entity);
-	registry_->RemoveAllComponents(entity);
-	registry_->AddComponent(entity, DirtyMeshLOD{});
-	registry_->AddComponent(entity, DirtyCullingData{});
-}
-
-void TreeGenerator::GenerateLeaves(const Vector3 &crownCenter, const Vector3 &crownRadius, uint32_t leafCount) {
+void TreeGenerator::GenerateLeaves(const TreeCrown &crown, uint32_t leafCount) {
 	timer_.Begin();
 	leaves_.clear();
 	leaves_.reserve(leafCount);
 	for (uint32_t i = 0; i < leafCount; i++) {
 		Leaf leaf;
 		while (true) {
-			Vector3 distance = Random::Generate(randomEngine_, -crownRadius, crownRadius);
-			float x = distance.x / crownRadius.x;
-			float y = distance.y / crownRadius.y;
-			float z = distance.z / crownRadius.z;
+			Vector3 distance = Random::Generate(randomEngine_, -crown.radius, crown.radius);
+			float x = distance.x / crown.radius.x;
+			float y = distance.y / crown.radius.y;
+			float z = distance.z / crown.radius.z;
 			float radial = std::sqrt(x * x + z * z);
 			float envelope = 1.0f;
 			bool signedEnvelope = false;
-			switch (currentCrown_.shape) {
+			switch (crown.shape) {
 				case CrownShape::Sphere:
 				case CrownShape::Ellipsoid:
 					envelope = x * x + y * y + z * z;
@@ -132,12 +100,12 @@ void TreeGenerator::GenerateLeaves(const Vector3 &crownCenter, const Vector3 &cr
 					signedEnvelope = true;
 					break;
 			}
-			if ((signedEnvelope ? envelope <= 0.0f : envelope <= 1.0f) && Random::Generate(randomEngine_, 0.0f, 1.0f) <= 1.0f - currentCrown_.topBias * (1.0f - (y + 0.5f))) {
-				if (Random::Generate(randomEngine_, 0.0f, 1.0f) < currentCrown_.surfaceBias) {
-					Vector3 normal{ distance.x / (crownRadius.x * crownRadius.x), distance.y / (crownRadius.y * crownRadius.y), distance.z / (crownRadius.z * crownRadius.z) };
-					distance += normal.normalized() * (Random::Generate(randomEngine_, 0.0f, 0.1f) * std::min(crownRadius.x, crownRadius.z));
+			if ((signedEnvelope ? envelope <= 0.0f : envelope <= 1.0f) && Random::Generate(randomEngine_, 0.0f, 1.0f) <= 1.0f - crown.topBias * (1.0f - (y + 0.5f))) {
+				if (Random::Generate(randomEngine_, 0.0f, 1.0f) < crown.surfaceBias) {
+					Vector3 normal{ distance.x / (crown.radius.x * crown.radius.x), distance.y / (crown.radius.y * crown.radius.y), distance.z / (crown.radius.z * crown.radius.z) };
+					distance += normal.normalized() * (Random::Generate(randomEngine_, 0.0f, 0.1f) * std::min(crown.radius.x, crown.radius.z));
 				}
-				leaf.position = crownCenter + distance;
+				leaf.position = crown.center + distance;
 				break;
 			}
 		};
@@ -148,27 +116,23 @@ void TreeGenerator::GenerateLeaves(const Vector3 &crownCenter, const Vector3 &cr
 	Logger::Log(*logStream_, "Number of leaves: " + std::to_string(leaves_.size()) + "\n");
 }
 
-void TreeGenerator::GenerateRootBranch(const Vector3 &rootPosition, const Vector3 &rootDirection) {
+void TreeGenerator::GenerateRootBranch() {
 	auto root = std::make_unique<Branch>();
-	root->position = rootPosition;
-	root->direction = rootDirection;
 	AddBranchToGrid(root.get());
 	branches_.emplace_back(std::move(root));
 }
 
-void TreeGenerator::GenerateTrunk(float trunkHeight, float branchLength, const Vector3 &rootDirection) {
+void TreeGenerator::GenerateTrunk(float trunkHeight, float branchLength) {
 	if (trunkHeight <= 0.0f || branchLength <= 0.0f) {
 		return;
 	}
 
-	Vector3 direction = rootDirection.isZero() ? Vector3{ 0.0f, 1.0f, 0.0f } : rootDirection.normalized();
 	Branch *parent = branches_.front().get();
 	uint32_t segmentCount = static_cast<uint32_t>(std::ceil(trunkHeight / branchLength));
 	branches_.reserve(branches_.size() + segmentCount);
 	for (uint32_t i = 0; i < segmentCount; ++i) {
 		auto trunkSegment = std::make_unique<Branch>();
-		trunkSegment->position = parent->position + direction * branchLength;
-		trunkSegment->direction = direction;
+		trunkSegment->position = parent->position + trunkSegment->direction * branchLength;
 		trunkSegment->parent = parent;
 		trunkSegment->generation = parent->generation + 1;
 		parent->children.emplace_back(trunkSegment.get());
@@ -178,7 +142,7 @@ void TreeGenerator::GenerateTrunk(float trunkHeight, float branchLength, const V
 	}
 }
 
-void TreeGenerator::FindClosestBranch(float influenceRadius, float killRadius) {
+void TreeGenerator::FindClosestBranch(float influenceRadius, float killRadius, const TreeCrown &crown) {
 	for (auto &branch : branches_) {
 		branch->growDirection = { 0.0f, 0.0f, 0.0f };
 		branch->growCount = 0;
@@ -204,8 +168,8 @@ void TreeGenerator::FindClosestBranch(float influenceRadius, float killRadius) {
 			continue;
 		}
 
-		Vector3 radial = closestBranch->position - Vector3{ currentCrown_.center.x, closestBranch->position.y, currentCrown_.center.z };
-		Vector3 biasedDirection = difference.normalized() + Vector3{ 0.0f, currentCrown_.upwardBias - currentCrown_.downwardBias, 0.0f } + radial.normalized() * currentCrown_.outwardBias;
+		Vector3 radial = closestBranch->position - Vector3{ crown.center.x, closestBranch->position.y, crown.center.z };
+		Vector3 biasedDirection = difference.normalized() + Vector3{ 0.0f, crown.upwardBias - crown.downwardBias, 0.0f } + radial.normalized() * crown.outwardBias;
 		closestBranch->growDirection += biasedDirection.normalized();
 		closestBranch->growCount++;
 	}
@@ -382,8 +346,7 @@ void TreeConfigInspector::Draw([[maybe_unused]] uint32_t entity) {
 				treeConfig->species = static_cast<TreeSpecies>(treeSpeciesIndex);
 				MakeTreeConfig(*treeConfig);
 			}
-			ImGui::DragFloat3("RootPosition", &treeConfig->rootPosition.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
-			ImGui::DragFloat3("RootDirection", &treeConfig->rootDirection.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
+
 			if (ImGui::TreeNode("Crown")) {
 				ImGui::DragFloat3("Center", &treeConfig->crown.center.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
 				ImGui::DragFloat3("Radius", &treeConfig->crown.radius.x, 0.01f, std::numeric_limits<float>::lowest(), std::numeric_limits<float>::max());
@@ -398,6 +361,7 @@ void TreeConfigInspector::Draw([[maybe_unused]] uint32_t entity) {
 				ImGui::DragFloat("DownwardBias", &treeConfig->crown.downwardBias, 0.01f, 0.0f, 1.0f);
 				ImGui::TreePop();
 			}
+
 			constexpr uint32_t minValue = 0;
 			constexpr uint32_t maxValue = std::numeric_limits<uint32_t>::max();
 			ImGui::DragScalar("LeafCount", ImGuiDataType_U32, &treeConfig->leafCount, 1, &minValue, &maxValue);
@@ -413,16 +377,15 @@ void TreeConfigInspector::Draw([[maybe_unused]] uint32_t entity) {
 			ImGui::DragScalar("RandomSeed", ImGuiDataType_U32, &treeConfig->randomSeed, 1, &minValue, &maxValue);
 			ImGui::DragScalar("MaxIterations", ImGuiDataType_U32, &treeConfig->maxIterations, 1, &minValue, &maxValue);
 			ImGui::DragScalar("MaxBranches", ImGuiDataType_U32, &treeConfig->maxBranches, 1, &minValue, &maxValue);
-			treeConfig->rootDirection = treeConfig->rootDirection.normalized();
 
 			if (ImGui::Button("Generate")) {
-				uint32_t treeEntity = treeGenerator_->Generate(*treeConfig);
+				Primitive treePrimitive = treeGenerator_->Generate(*treeConfig);
+				uint32_t treeEntity = treeEntityManager_->CreateEntity(treePrimitive, { 0.0f, 0.0f, 0.0f });
 				treeEntities_.emplace_back(treeEntity);
 			}
 
 			if (ImGui::Button("Delete") && !treeEntities_.empty()) {
-				treeGenerator_->Delete(treeEntities_.back());
-				treeEntities_.pop_back();
+				treeEntityManager_->DestroyEntity(treeEntities_.back());
 			}
 		}
 		ImGui::TreePop();

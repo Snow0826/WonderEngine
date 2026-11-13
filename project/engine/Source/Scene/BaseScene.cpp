@@ -29,6 +29,7 @@
 #include "RigidBody.h"
 #include "SoftBody.h"
 #include "TreeGenerator.h"
+#include "TreeEntityManager.h"
 #include "Footprint.h"
 #include "CollisionSystem.h"
 #include "AABBRenderer.h"
@@ -93,7 +94,10 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	primitiveGenerator_ = std::make_unique<PrimitiveGenerator>(meshManager, textureManager);
 
 	// 木の生成器の生成
-	treeGenerator_ = std::make_unique<TreeGenerator>(registry_.get(), primitiveGenerator_.get(), instanceAllocator_.get(), logStream);
+	treeGenerator_ = std::make_unique<TreeGenerator>(primitiveGenerator_.get(), logStream);
+
+	// 木のエンティティマネージャーの生成
+	treeEntityManager_ = std::make_unique<TreeEntityManager>(registry_.get(), instanceAllocator_.get());
 
 	// システムの生成
 	transformSystem_ = std::make_unique<TransformSystem>(registry_.get());
@@ -126,7 +130,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	spotLightInspector_ = std::make_unique<SpotLightInspector>(registry_.get());
 	rigidBodyInspector_ = std::make_unique<RigidBodyInspector>(registry_.get());
 	softBodyInspector_ = std::make_unique<SoftBodyInspector>(registry_.get());
-	treeConfigInspector_ = std::make_unique<TreeConfigInspector>(registry_.get(), treeGenerator_.get());
+	treeConfigInspector_ = std::make_unique<TreeConfigInspector>(registry_.get(), treeGenerator_.get(), treeEntityManager_.get());
 	footprintInspector_ = std::make_unique<FootprintInspector>(registry_.get());
 	aabbInspector_ = std::make_unique<AABBInspector>(registry_.get());
 	sphereInspector_ = std::make_unique<SphereInspector>(registry_.get());

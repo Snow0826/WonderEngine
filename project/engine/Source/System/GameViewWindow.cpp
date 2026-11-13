@@ -14,12 +14,14 @@ void GameViewWindow::Draw() {
 		return;
 	}
 
-	DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device_->GetGpuCbvSrvUavDescriptorHeap();
 	if (ImGui::Begin("GameView", &isOpen_)) {
+		// ゲームビューのアスペクト比を取得する
 		float aspectRatio = 16.0f / 9.0f;
 		registry_->ForEach<Camera, RenderingCamera>([&](uint32_t entity, Camera *camera, RenderingCamera *renderingCamera) {
 			aspectRatio = camera->aspectRatio;
 			}, exclude<Disabled>());
+
+		// ImGuiのウィンドウの利用可能な領域を取得して、アスペクト比を維持しつつ描画するサイズを計算する
 		ImVec2 avail = ImGui::GetContentRegionAvail();
 		float width = avail.x;
 		float height = width / aspectRatio;
@@ -27,6 +29,9 @@ void GameViewWindow::Draw() {
 			height = avail.y;
 			width = height * aspectRatio;
 		}
+
+		// ImGuiのウィンドウにゲーム画面を描画する
+		DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device_->GetGpuCbvSrvUavDescriptorHeap();
 		D3D12_GPU_DESCRIPTOR_HANDLE gpuGameHandle = gpuCbvSrvUavDescriptorHeap->GetGPUDescriptorHandle(world_->GetPostEffectRenderTextureSRVHandle());
 		ImGui::Image(static_cast<ImTextureID>(gpuGameHandle.ptr), ImVec2(width, height));
 	}

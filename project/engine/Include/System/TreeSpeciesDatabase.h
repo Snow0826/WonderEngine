@@ -1,5 +1,5 @@
 #pragma once
-#include "TreeGenerator.h"
+#include <TreeGenerator.h>
 
 /// @brief 樹種の設定を生成する 
 /// @param config 生成する木の設定
@@ -7,6 +7,5 @@ void MakeTreeConfig(TreeConfig &config);
 
 /// @brief 指定された樹種の設定を生成する
 /// @param species 樹種
-/// @param rootPosition 根の位置
 /// @return 生成された木の設定
-TreeConfig MakeTreeConfig(TreeSpecies species, const Vector3 &rootPosition);
+TreeConfig MakeTreeConfig(TreeSpecies species);

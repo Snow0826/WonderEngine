@@ -240,60 +240,60 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	softBodyRootSignature_->SetName(L"SoftBodyRootSignature");
 
 	// Fullscreen用ルートシグネチャの作成
-	fullscreenRootSignature_ = RootSignature()
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kNone)] = RootSignature()
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 0:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create FullscreenRootSignature\n");
-	fullscreenRootSignature_->SetName(L"FullscreenRootSignature");
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kNone)]->SetName(L"FullscreenRootSignature");
 
 	// Grayscale用ルートシグネチャの作成
-	grayscaleRootSignature_ = RootSignature()
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kGrayscale)] = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:Color
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create GrayscaleRootSignature\n");
-	grayscaleRootSignature_->SetName(L"GrayscaleRootSignature");
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kGrayscale)]->SetName(L"GrayscaleRootSignature");
 
 	// Vignette用ルートシグネチャの作成
-	vignetteRootSignature_ = RootSignature()
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kVignette)] = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:Vignette
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create VignetteRootSignature\n");
-	vignetteRootSignature_->SetName(L"VignetteRootSignature");
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kVignette)]->SetName(L"VignetteRootSignature");
 
 	// BoxFilter用ルートシグネチャの作成
-	boxFilterRootSignature_ = RootSignature()
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kBoxFilter)] = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:FilterData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create BoxFilterRootSignature\n");
-	boxFilterRootSignature_->SetName(L"BoxFilterRootSignature");
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kBoxFilter)]->SetName(L"BoxFilterRootSignature");
 
 	// GaussianFilter用ルートシグネチャの作成
-	gaussianFilterRootSignature_ = RootSignature()
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kGaussianFilter)] = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:FilterData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create GaussianFilterRootSignature\n");
-	gaussianFilterRootSignature_->SetName(L"GaussianFilterRootSignature");
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kGaussianFilter)]->SetName(L"GaussianFilterRootSignature");
 
 	// LuminanceBasedOutline用ルートシグネチャの作成
-	luminanceBasedOutlineRootSignature_ = RootSignature()
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kLuminanceBasedOutline)] = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:FilterData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create LuminanceBasedOutlineRootSignature\n");
-	luminanceBasedOutlineRootSignature_->SetName(L"LuminanceBasedOutlineRootSignature");
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kLuminanceBasedOutline)]->SetName(L"LuminanceBasedOutlineRootSignature");
 
 	// DepthBasedOutline用ルートシグネチャの作成
-	depthBasedOutlineRootSignature_ = RootSignature()
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kDepthBasedOutline)] = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:FilterData
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 1)												// 1:MaterialData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 2:Texture
@@ -302,35 +302,35 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 1, D3D12_SHADER_VISIBILITY_PIXEL)	// SamplerPointを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create DepthBasedOutlineRootSignature\n");
-	depthBasedOutlineRootSignature_->SetName(L"DepthBasedOutlineRootSignature");
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kDepthBasedOutline)]->SetName(L"DepthBasedOutlineRootSignature");
 
 	// RadialBlur用ルートシグネチャの作成
-	radialBlurRootSignature_ = RootSignature()
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kRadialBlur)] = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:BlurData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create RadialBlurRootSignature\n");
-	radialBlurRootSignature_->SetName(L"RadialBlurRootSignature");
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kRadialBlur)]->SetName(L"RadialBlurRootSignature");
 
 	// Dissolve用ルートシグネチャの作成
-	dissolveRootSignature_ = RootSignature()
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kDissolve)] = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:DissolveData
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 1)	// 2:MaskTexture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create DissolveRootSignature\n");
-	dissolveRootSignature_->SetName(L"DissolveRootSignature");
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kDissolve)]->SetName(L"DissolveRootSignature");
 
 	// Noise用ルートシグネチャの作成
-	noiseRootSignature_ = RootSignature()
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kNoise)] = RootSignature()
 		.AddCBuffer(D3D12_SHADER_VISIBILITY_PIXEL, 0)												// 0:PerFrame
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_PIXEL, 0)	// 1:Texture
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_LINEAR, D3D12_TEXTURE_ADDRESS_MODE_WRAP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_PIXEL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create NoiseRootSignature\n");
-	noiseRootSignature_->SetName(L"NoiseRootSignature");
+	postEffectRootSignature_[static_cast<uint32_t>(PostEffect::kNoise)]->SetName(L"NoiseRootSignature");
 
 	// Raymarching用ルートシグネチャの作成
 	raymarchingRootSignature_ = RootSignature()

@@ -1,8 +1,10 @@
 #pragma once
 #include "DescriptorHeap.h"
+#include "PostEffect.h"
 #include <dxgi1_6.h>
 #include <fstream>
 #include <vector>
+#include <array>
 #include <chrono>
 
 class Window;
@@ -86,6 +88,11 @@ public:
 	/// @return デバッグカメラ用深度ステンシルテクスチャDSVハンドル
 	uint32_t GetDebugCameraDepthStencilTextureDSVHandle() const { return debugCameraDepthStencilTextureDSVHandle_; }
 
+	/// @brief ポストエフェクト用ルートシグネチャを取得
+	/// @param postEffect ポストエフェクト
+	/// @return ポストエフェクト用ルートシグネチャ
+	ID3D12RootSignature *GetPostEffectRootSignature(PostEffect postEffect) const { return postEffectRootSignature_[static_cast<uint32_t>(postEffect)].Get(); }
+
 	/// @brief Object3d用ルートシグネチャを取得
 	/// @return Object3d用ルートシグネチャ
 	ID3D12RootSignature *GetObject3dRootSignature() const { return object3dRootSignature_.Get(); }
@@ -113,46 +120,6 @@ public:
 	/// @brief SoftBody用ルートシグネチャを取得
 	/// @return SoftBody用ルートシグネチャ
 	ID3D12RootSignature *GetSoftBodyRootSignature() const { return softBodyRootSignature_.Get(); }
-
-	/// @brief Fullscreen用ルートシグネチャを取得
-	/// @return Fullscreen用ルートシグネチャ
-	ID3D12RootSignature *GetFullscreenRootSignature() const { return fullscreenRootSignature_.Get(); }
-
-	/// @brief Grayscale用ルートシグネチャを取得
-	/// @return Grayscale用ルートシグネチャ
-	ID3D12RootSignature *GetGrayscaleRootSignature() const { return grayscaleRootSignature_.Get(); }
-
-	/// @brief Vignette用ルートシグネチャを取得
-	/// @return Vignette用ルートシグネチャ
-	ID3D12RootSignature *GetVignetteRootSignature() const { return vignetteRootSignature_.Get(); }
-
-	/// @brief BoxFilter用ルートシグネチャを取得
-	/// @return BoxFilter用ルートシグネチャ
-	ID3D12RootSignature *GetBoxFilterRootSignature() const { return boxFilterRootSignature_.Get(); }
-
-	/// @brief GaussianFilter用ルートシグネチャを取得
-	/// @return GaussianFilter用ルートシグネチャ
-	ID3D12RootSignature *GetGaussianFilterRootSignature() const { return gaussianFilterRootSignature_.Get(); }
-
-	/// @brief LuminanceBasedOutline用ルートシグネチャを取得
-	/// @return LuminanceBasedOutline用ルートシグネチャ
-	ID3D12RootSignature *GetLuminanceBasedOutlineRootSignature() const { return luminanceBasedOutlineRootSignature_.Get(); }
-
-	/// @brief DepthBasedOutline用ルートシグネチャを取得
-	/// @return DepthBasedOutline用ルートシグネチャ
-	ID3D12RootSignature *GetDepthBasedOutlineRootSignature() const { return depthBasedOutlineRootSignature_.Get(); }
-
-	/// @brief RadialBlur用ルートシグネチャを取得
-	/// @return RadialBlur用ルートシグネチャ
-	ID3D12RootSignature *GetRadialBlurRootSignature() const { return radialBlurRootSignature_.Get(); }
-
-	/// @brief Dissolve用ルートシグネチャを取得
-	/// @return Dissolve用ルートシグネチャ
-	ID3D12RootSignature *GetDissolveRootSignature() const { return dissolveRootSignature_.Get(); }
-
-	/// @brief Noise用ルートシグネチャを取得
-	/// @return Noise用ルートシグネチャ
-	ID3D12RootSignature *GetNoiseRootSignature() const { return noiseRootSignature_.Get(); }
 
 	/// @brief Raymarching用ルートシグネチャを取得
 	/// @return Raymarching用ルートシグネチャ
@@ -215,6 +182,7 @@ public:
 	ID3D12RootSignature *GetFootprintMapRootSignature() const { return footprintMapRootSignature_.Get(); }
 
 private:
+	using PostEffectRootSignature = std::array<Microsoft::WRL::ComPtr<ID3D12RootSignature>, static_cast<uint32_t>(PostEffect::kCountOfPostEffect)>;
 	std::chrono::steady_clock::time_point reference_;											// 基準時間(FPS固定用)
 	Microsoft::WRL::ComPtr<IDXGIFactory7> dxgiFactory_ = nullptr;								// DXGIファクトリ
 	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter_ = nullptr;									// アダプタ
@@ -238,6 +206,7 @@ private:
 	std::unique_ptr<Resource> previousMainCameraDepthStencilTexture_ = nullptr;					// 前フレームのメインカメラ用深度ステンシルテクスチャ
 	std::unique_ptr<Resource> mainCameraDepthStencilTexture_ = nullptr;							// メインカメラ用深度ステンシルテクスチャ
 	std::unique_ptr<Resource> debugCameraDepthStencilTexture_ = nullptr;						// デバッグカメラ用深度ステンシルテクスチャ
+	PostEffectRootSignature postEffectRootSignature_;											// ポストエフェクト用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> object3dRootSignature_ = nullptr;				// Object3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringObject3dRootSignature_ = nullptr;			// RingObject3d用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> particleRootSignature_ = nullptr;				// Particle用ルートシグネチャ
@@ -245,16 +214,6 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> lineRootSignature_ = nullptr;					// Line用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> skyboxRootSignature_ = nullptr;					// Skybox用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> softBodyRootSignature_ = nullptr;				// SoftBody用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> fullscreenRootSignature_ = nullptr;				// Fullscreen用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> grayscaleRootSignature_ = nullptr;				// Grayscale用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> vignetteRootSignature_ = nullptr;				// Vignette用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> boxFilterRootSignature_ = nullptr;				// BoxFilter用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> gaussianFilterRootSignature_ = nullptr;			// GaussianFilter用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> luminanceBasedOutlineRootSignature_ = nullptr;	// LuminanceBasedOutline用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthBasedOutlineRootSignature_ = nullptr;		// DepthBasedOutline用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> radialBlurRootSignature_ = nullptr;				// RadialBlur用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> dissolveRootSignature_ = nullptr;				// Dissolve用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> noiseRootSignature_ = nullptr;					// Noise用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> raymarchingRootSignature_ = nullptr;			// Raymarching用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> skinningRootSignature_ = nullptr;				// スキニング用ルートシグネチャ
 	Microsoft::WRL::ComPtr<ID3D12RootSignature> initializeParticleRootSignature_ = nullptr;		// パーティクル初期化用ルートシグネチャ

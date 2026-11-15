@@ -1,6 +1,18 @@
 #define NOMINMAX
 #include "Renderer.h"
 #include "DebugRenderer.h"
+#include "FullScreenEffect.h"
+#include "GrayscaleEffect.h"
+#include "VignetteEffect.h"
+#include "BoxFilterEffect.h"
+#include "GaussianFilterEffect.h"
+#include "LuminanceBasedOutlineEffect.h"
+#include "DepthBasedOutlineEffect.h"
+#include "RadialBlurEffect.h"
+#include "DissolveEffect.h"
+#include "NoiseEffect.h"
+#include "World.h"
+#include "Device.h"
 #include "Resource.h"
 #include "PipelineState.h"
 #include "Texture.h"
@@ -15,8 +27,6 @@
 #include "FootprintMap.h"
 #include "EntityComponentSystem.h"
 #include "SelectionContext.h"
-#include "Device.h"
-#include "World.h"
 #include "ConstantBuffer.h"
 #include "Footprint.h"
 #include "ImGuiManager.h"
@@ -56,6 +66,20 @@ namespace {
 		"Screen"
 	};
 
+	// ポストエフェクト名リスト
+	std::array<std::string, static_cast<uint32_t>(PostEffect::kCountOfPostEffect)> postEffectNames = {
+		"Fullscreen",
+		"Grayscale",
+		"Vignette",
+		"BoxFilter",
+		"GaussianFilter",
+		"LuminanceBasedOutline",
+		"DepthBasedOutline",
+		"RadialBlur",
+		"Dissolve",
+		"Noise"
+	};
+
 	constexpr uint32_t kMainCameraIndex = 1;	// メインカメラのインデックス
 	constexpr uint32_t kDebugCameraIndex = 2;	// デバッグカメラのインデックス
 }
@@ -71,16 +95,6 @@ Renderer::Renderer(Device *device)
 	, ringParticleRootSignature_(device->GetRingParticleRootSignature())
 	, lineRootSignature_(device->GetLineRootSignature())
 	, skyboxRootSignature_(device->GetSkyboxRootSignature())
-	, fullscreenRootSignature_(device->GetFullscreenRootSignature())
-	, grayscaleRootSignature_(device->GetGrayscaleRootSignature())
-	, vignetteRootSignature_(device->GetVignetteRootSignature())
-	, boxFilterRootSignature_(device->GetBoxFilterRootSignature())
-	, gaussianFilterRootSignature_(device->GetGaussianFilterRootSignature())
-	, luminanceBasedOutlineRootSignature_(device->GetLuminanceBasedOutlineRootSignature())
-	, depthBasedOutlineRootSignature_(device->GetDepthBasedOutlineRootSignature())
-	, radialBlurRootSignature_(device->GetRadialBlurRootSignature())
-	, dissolveRootSignature_(device->GetDissolveRootSignature())
-	, noiseRootSignature_(device->GetNoiseRootSignature())
 	, raymarchingRootSignature_(device->GetRaymarchingRootSignature())
 	, softBodyRootSignature_(device->GetSoftBodyRootSignature())
 	, skinningRootSignature_(device->GetSkinningRootSignature())
@@ -98,6 +112,8 @@ Renderer::Renderer(Device *device)
 	, footprintRootSignature_(device->GetFootprintRootSignature())
 	, footprintMapRootSignature_(device->GetFootprintMapRootSignature()) {
 }
+
+Renderer::~Renderer() = default;
 
 void Renderer::Initialize(std::ofstream &logStream) {
 	std::array<D3D12_BLEND_DESC, static_cast<uint32_t>(BlendMode::kCountOfBlendMode)> blendDescList{};
@@ -235,44 +251,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	// Fullscreenのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> fullscreenVSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Fullscreen.VS.hlsl", L"vs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(fullscreenVSBlob);
-	Microsoft::WRL::ComPtr<IDxcBlob> fullscreenPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Fullscreen.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(fullscreenPSBlob);
-
-	// Grayscaleのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> grayscalePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Grayscale.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(grayscalePSBlob);
-
-	// Vignetteのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> vignettePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Vignette.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(vignettePSBlob);
-
-	// BoxFilterのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> boxFilterPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/BoxFilter.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(boxFilterPSBlob);
-
-	// GaussianFilterのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> gaussianFilterPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/GaussianFilter.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(gaussianFilterPSBlob);
-
-	// LuminanceBasedOutlineのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> luminanceBasedOutlinePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/LuminanceBasedOutline.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(luminanceBasedOutlinePSBlob);
-
-	// DepthBasedOutlineのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> depthBasedOutlinePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/DepthBasedOutline.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(depthBasedOutlinePSBlob);
-
-	// RadialBlurのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> radialBlurPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/RadialBlur.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(radialBlurPSBlob);
-
-	// Dissolveのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> dissolvePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Dissolve.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(dissolvePSBlob);
-
-	// Noiseのシェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> noisePSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Noise.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(noisePSBlob);
 
 	// Raymarchingのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> raymarchingPSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/Raymarching.PS.hlsl", L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -334,98 +312,82 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> footprintMapCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/FootprintMap.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(footprintMapCSBlob);
 
+	std::array<Microsoft::WRL::ComPtr<IDxcBlob>, static_cast<uint32_t>(PostEffect::kCountOfPostEffect)> postEffectPSBlob;
+	for (size_t i = 0; i < static_cast<size_t>(PostEffect::kCountOfPostEffect); i++) {
+		// ポストエフェクトのシェーダーのコンパイル
+		const std::string filePath = "resources/shaders/" + postEffectNames[i] + ".PS.hlsl";
+		postEffectPSBlob[i] = PipelineState::CompileShader(logStream, ConvertString(filePath), L"ps_6_0", dxcUtils, dxcCompiler, includeHandler);
+		assert(postEffectPSBlob[i]);
+
+		// ポストエフェクト用ルートシグネチャの設定
+		postEffectRootSignature_[i] = device_->GetPostEffectRootSignature(static_cast<PostEffect>(i));
+
+		// ポストエフェクト用パイプラインステートの生成
+		postEffectPipelineState_[i] = PipelineState()
+			.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)											// RTVのフォーマット
+			.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])					// BlendState
+			.SetRasterizer(noCullingRasterizerDesc)															// RasterizerState
+			.SetDepthState({ .DepthEnable = false })														// DepthStencilState
+			.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())		// 頂点シェーダー
+			.SetPixelShader(postEffectPSBlob[i]->GetBufferPointer(), postEffectPSBlob[i]->GetBufferSize())	// ピクセルシェーダー
+			.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)								// プリミティブトポロジー
+			.Create(device_->GetDevice(), postEffectRootSignature_[i]);
+		Logger::Log(logStream, "Create " + postEffectNames[i] + "PipelineState\n");
+		postEffectPipelineState_[i]->SetName(ConvertString(postEffectNames[i] + "PipelineState").c_str());
+	}
+
+	// メッシュ描画設定の設定
+	SetMeshRenderConfig(MeshType::kModel, { .rasterizerDesc = backCullingRasterizerDesc, .rootSignature = object3dRootSignature_ });
+	SetMeshRenderConfig(MeshType::kPlane, { .rasterizerDesc = backCullingRasterizerDesc, .rootSignature = object3dRootSignature_ });
+	SetMeshRenderConfig(MeshType::kBox, { .rasterizerDesc = backCullingRasterizerDesc, .rootSignature = object3dRootSignature_ });
+	SetMeshRenderConfig(MeshType::kRing, { .rasterizerDesc = backCullingRasterizerDesc, .rootSignature = ringObject3dRootSignature_ });
+	SetMeshRenderConfig(MeshType::kCylinder, { .rasterizerDesc = noCullingRasterizerDesc, .rootSignature = object3dRootSignature_ });
+	SetMeshRenderConfig(MeshType::kTree, { .rasterizerDesc = noCullingRasterizerDesc, .rootSignature = object3dRootSignature_ });
+
 	// Mesh用パイプラインステートの生成
 	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
 		for (size_t j = 0; j < static_cast<size_t>(BlendMode::kCountOfBlendMode); j++) {
-			if (static_cast<MeshType>(i) == MeshType::kRing) {
-				meshPipelineState_[i][j] = PipelineState()
-					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
-					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
-					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-					.SetBlendState(blendDescList[j])															// BlendState
-					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
-					.SetDepthState(writeLessEqualDepthStencilDesc)												// DepthStencilState
-					.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
-					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
-					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-					.Create(device_->GetDevice(), ringObject3dRootSignature_);
-			} else if (static_cast<MeshType>(i) == MeshType::kCylinder || static_cast<MeshType>(i) == MeshType::kTree) {
-				meshPipelineState_[i][j] = PipelineState()
-					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
-					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
-					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-					.SetBlendState(blendDescList[j])															// BlendState
-					.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
-					.SetDepthState(writeLessEqualDepthStencilDesc)												// DepthStencilState
-					.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
-					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
-					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-					.Create(device_->GetDevice(), object3dRootSignature_);
-			} else {
-				meshPipelineState_[i][j] = PipelineState()
-					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
-					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
-					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-					.SetBlendState(blendDescList[j])															// BlendState
-					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
-					.SetDepthState(writeLessEqualDepthStencilDesc)												// DepthStencilState
-					.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
-					.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
-					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-					.Create(device_->GetDevice(), object3dRootSignature_);
-			}
+			meshPipelineState_[i][j] = PipelineState()
+				.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+				.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
+				.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+				.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+				.SetBlendState(blendDescList[j])															// BlendState
+				.SetRasterizer(meshRenderConfig_[i].rasterizerDesc)											// RasterizerState
+				.SetDepthState(writeLessEqualDepthStencilDesc)												// DepthStencilState
+				.SetVertexShader(object3dVSBlob->GetBufferPointer(), object3dVSBlob->GetBufferSize())		// 頂点シェーダー
+				.SetPixelShader(object3dPSBlob->GetBufferPointer(), object3dPSBlob->GetBufferSize())		// ピクセルシェーダー
+				.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+				.Create(device_->GetDevice(), meshRenderConfig_[i].rootSignature);
 			const std::string logMessage = "Create MeshPipelineState : " + blendModeNames[j] + " " + meshTypeNames[i] + "\n";
 			Logger::Log(logStream, logMessage);
 			meshPipelineState_[i][j]->SetName(ConvertString(blendModeNames[j] + "Blend" + meshTypeNames[i] + "PipelineState").c_str());
 		}
 	}
 
+	// メッシュパーティクル描画設定の設定
+	SetMeshParticleRenderConfig(MeshType::kModel, { .rasterizerDesc = backCullingRasterizerDesc, .rootSignature = particleRootSignature_ });
+	SetMeshParticleRenderConfig(MeshType::kPlane, { .rasterizerDesc = backCullingRasterizerDesc, .rootSignature = particleRootSignature_ });
+	SetMeshParticleRenderConfig(MeshType::kBox, { .rasterizerDesc = backCullingRasterizerDesc, .rootSignature = particleRootSignature_ });
+	SetMeshParticleRenderConfig(MeshType::kRing, { .rasterizerDesc = backCullingRasterizerDesc, .rootSignature = ringParticleRootSignature_ });
+	SetMeshParticleRenderConfig(MeshType::kCylinder, { .rasterizerDesc = noCullingRasterizerDesc, .rootSignature = particleRootSignature_ });
+	SetMeshParticleRenderConfig(MeshType::kTree, { .rasterizerDesc = noCullingRasterizerDesc, .rootSignature = particleRootSignature_ });
+
 	// MeshParticle用パイプラインステートの生成
 	for (size_t i = 0; i < static_cast<size_t>(MeshType::kCountOfMeshType); i++) {
 		for (size_t j = 0; j < static_cast<size_t>(BlendMode::kCountOfBlendMode); j++) {
-			if (static_cast<MeshType>(i) == MeshType::kRing) {
-				meshParticlePipelineState_[i][j] = PipelineState()
-					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
-					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
-					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-					.SetBlendState(blendDescList[j])															// BlendState
-					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
-					.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
-					.SetVertexShader(particleVSBlob->GetBufferPointer(), particleVSBlob->GetBufferSize())		// 頂点シェーダー
-					.SetPixelShader(particlePSBlob->GetBufferPointer(), particlePSBlob->GetBufferSize())		// ピクセルシェーダー
-					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-					.Create(device_->GetDevice(), ringParticleRootSignature_);
-			} else if (static_cast<MeshType>(i) == MeshType::kCylinder) {
-				meshParticlePipelineState_[i][j] = PipelineState()
-					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
-					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
-					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-					.SetBlendState(blendDescList[j])															// BlendState
-					.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
-					.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
-					.SetVertexShader(particleVSBlob->GetBufferPointer(), particleVSBlob->GetBufferSize())		// 頂点シェーダー
-					.SetPixelShader(particlePSBlob->GetBufferPointer(), particlePSBlob->GetBufferSize())		// ピクセルシェーダー
-					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-					.Create(device_->GetDevice(), particleRootSignature_);
-			} else {
-				meshParticlePipelineState_[i][j] = PipelineState()
-					.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
-					.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
-					.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
-					.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-					.SetBlendState(blendDescList[j])															// BlendState
-					.SetRasterizer(backCullingRasterizerDesc)													// RasterizerState
-					.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
-					.SetVertexShader(particleVSBlob->GetBufferPointer(), particleVSBlob->GetBufferSize())		// 頂点シェーダー
-					.SetPixelShader(particlePSBlob->GetBufferPointer(), particlePSBlob->GetBufferSize())		// ピクセルシェーダー
-					.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-					.Create(device_->GetDevice(), particleRootSignature_);
-			}
+			meshParticlePipelineState_[i][j] = PipelineState()
+				.AddInput("POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)	// 頂点座標
+				.AddInput("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)			// テクスチャ座標
+				.AddInput("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT)		// 法線ベクトル
+				.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
+				.SetBlendState(blendDescList[j])															// BlendState
+				.SetRasterizer(meshParticleRenderConfig_[i].rasterizerDesc)									// RasterizerState
+				.SetDepthState(noWriteLessEqualDepthStencilDesc)											// DepthStencilState
+				.SetVertexShader(particleVSBlob->GetBufferPointer(), particleVSBlob->GetBufferSize())		// 頂点シェーダー
+				.SetPixelShader(particlePSBlob->GetBufferPointer(), particlePSBlob->GetBufferSize())		// ピクセルシェーダー
+				.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
+				.Create(device_->GetDevice(), meshParticleRenderConfig_[i].rootSignature);
 			const std::string logMessage = "Create ParticlePipelineState : " + blendModeNames[j] + " " + meshTypeNames[i] + "\n";
 			Logger::Log(logStream, logMessage);
 			meshParticlePipelineState_[i][j]->SetName(ConvertString(blendModeNames[j] + "Blend" + meshTypeNames[i] + "ParticlePipelineState").c_str());
@@ -491,136 +453,6 @@ void Renderer::Initialize(std::ofstream &logStream) {
 		.Create(device_->GetDevice(), softBodyRootSignature_);
 	Logger::Log(logStream, "Create SoftBodyPipelineState\n");
 	softBodyPipelineState_->SetName(L"SoftBodyPipelineState");
-
-	// Fullscreen用パイプラインステートの生成
-	fullscreenPipelineState_ = PipelineState()
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
-		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
-		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
-		.SetPixelShader(fullscreenPSBlob->GetBufferPointer(), fullscreenPSBlob->GetBufferSize())	// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-		.Create(device_->GetDevice(), fullscreenRootSignature_);
-	Logger::Log(logStream, "Create FullscreenPipelineState\n");
-	fullscreenPipelineState_->SetName(L"FullscreenPipelineState");
-
-	// Grayscale用パイプラインステートの生成
-	grayscalePipelineState_ = PipelineState()
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
-		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
-		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
-		.SetPixelShader(grayscalePSBlob->GetBufferPointer(), grayscalePSBlob->GetBufferSize())		// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-		.Create(device_->GetDevice(), grayscaleRootSignature_);
-	Logger::Log(logStream, "Create GrayscalePipelineState\n");
-	grayscalePipelineState_->SetName(L"GrayscalePipelineState");
-
-	// Vignette用パイプラインステートの生成
-	vignettePipelineState_ = PipelineState()
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
-		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
-		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
-		.SetPixelShader(vignettePSBlob->GetBufferPointer(), vignettePSBlob->GetBufferSize())		// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-		.Create(device_->GetDevice(), vignetteRootSignature_);
-	Logger::Log(logStream, "Create VignettePipelineState\n");
-	vignettePipelineState_->SetName(L"VignettePipelineState");
-
-	// BoxFilter用パイプラインステートの生成
-	boxFilterPipelineState_ = PipelineState()
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
-		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
-		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
-		.SetPixelShader(boxFilterPSBlob->GetBufferPointer(), boxFilterPSBlob->GetBufferSize())		// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-		.Create(device_->GetDevice(), boxFilterRootSignature_);
-	Logger::Log(logStream, "Create BoxFilterPipelineState\n");
-	boxFilterPipelineState_->SetName(L"BoxFilterPipelineState");
-
-	// GaussianFilter用パイプラインステートの生成
-	gaussianFilterPipelineState_ = PipelineState()
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)												// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])						// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)																// RasterizerState
-		.SetDepthState({ .DepthEnable = false })															// DepthStencilState
-		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())			// 頂点シェーダー
-		.SetPixelShader(gaussianFilterPSBlob->GetBufferPointer(), gaussianFilterPSBlob->GetBufferSize())	// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)									// プリミティブトポロジー
-		.Create(device_->GetDevice(), gaussianFilterRootSignature_);
-	Logger::Log(logStream, "Create GaussianFilterPipelineState\n");
-	gaussianFilterPipelineState_->SetName(L"GaussianFilterPipelineState");
-
-	// LuminanceBasedOutline用パイプラインステートの生成
-	luminanceBasedOutlinePipelineState_ = PipelineState()
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)															// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])									// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)																			// RasterizerState
-		.SetDepthState({ .DepthEnable = false })																		// DepthStencilState
-		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())						// 頂点シェーダー
-		.SetPixelShader(luminanceBasedOutlinePSBlob->GetBufferPointer(), luminanceBasedOutlinePSBlob->GetBufferSize())	// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)												// プリミティブトポロジー
-		.Create(device_->GetDevice(), luminanceBasedOutlineRootSignature_);
-	Logger::Log(logStream, "Create LuminanceBasedOutlinePipelineState\n");
-	luminanceBasedOutlinePipelineState_->SetName(L"LuminanceBasedOutlinePipelineState");
-
-	// DepthBasedOutline用パイプラインステートの生成
-	depthBasedOutlinePipelineState_ = PipelineState()
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)													// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])							// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)																	// RasterizerState
-		.SetDepthState({ .DepthEnable = false })																// DepthStencilState
-		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())				// 頂点シェーダー
-		.SetPixelShader(depthBasedOutlinePSBlob->GetBufferPointer(), depthBasedOutlinePSBlob->GetBufferSize())	// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)										// プリミティブトポロジー
-		.Create(device_->GetDevice(), depthBasedOutlineRootSignature_);
-	Logger::Log(logStream, "Create DepthBasedOutlinePipelineState\n");
-	depthBasedOutlinePipelineState_->SetName(L"DepthBasedOutlinePipelineState");
-
-	// RadialBlur用パイプラインステートの生成
-	radialBlurPipelineState_ = PipelineState()
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
-		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
-		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
-		.SetPixelShader(radialBlurPSBlob->GetBufferPointer(), radialBlurPSBlob->GetBufferSize())	// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-		.Create(device_->GetDevice(), radialBlurRootSignature_);
-	Logger::Log(logStream, "Create RadialBlurPipelineState\n");
-	radialBlurPipelineState_->SetName(L"RadialBlurPipelineState");
-
-	// Dissolve用パイプラインステートの生成
-	dissolvePipelineState_ = PipelineState()
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
-		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
-		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
-		.SetPixelShader(dissolvePSBlob->GetBufferPointer(), dissolvePSBlob->GetBufferSize())		// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-		.Create(device_->GetDevice(), dissolveRootSignature_);
-	Logger::Log(logStream, "Create DissolvePipelineState\n");
-	dissolvePipelineState_->SetName(L"DissolvePipelineState");
-
-	// Noise用パイプラインステートの生成
-	noisePipelineState_ = PipelineState()
-		.AddRenderTargetFormat(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB)										// RTVのフォーマット
-		.SetBlendState(blendDescList[static_cast<uint32_t>(BlendMode::kBlendModeNone)])				// BlendState
-		.SetRasterizer(noCullingRasterizerDesc)														// RasterizerState
-		.SetDepthState({ .DepthEnable = false })													// DepthStencilState
-		.SetVertexShader(fullscreenVSBlob->GetBufferPointer(), fullscreenVSBlob->GetBufferSize())	// 頂点シェーダー
-		.SetPixelShader(noisePSBlob->GetBufferPointer(), noisePSBlob->GetBufferSize())				// ピクセルシェーダー
-		.SetPrimitiveTopologyType(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)							// プリミティブトポロジー
-		.Create(device_->GetDevice(), noiseRootSignature_);
-	Logger::Log(logStream, "Create NoisePipelineState\n");
-	noisePipelineState_->SetName(L"NoisePipelineState");
 
 	// Raymarching用パイプラインステートの生成
 	raymarchingPipelineState_ = PipelineState()
@@ -1505,80 +1337,52 @@ void Renderer::Raymarching() {
 }
 
 void Renderer::CopyImage() {
-	world_->GetGameRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	device_->GetMainCameraDepthStencilTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	commandList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	switch (world_->GetPostEffect()) {
-		case PostEffect::kNone:
-			commandList_->SetGraphicsRootSignature(fullscreenRootSignature_);
-			commandList_->SetPipelineState(fullscreenPipelineState_.Get());
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(0, world_->GetGameRenderTextureSRVHandle());
-			break;
-		case PostEffect::kGrayscale:
-			commandList_->SetGraphicsRootSignature(grayscaleRootSignature_);
-			commandList_->SetPipelineState(grayscalePipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kGrayscaleColor)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
-			break;
-		case PostEffect::kVignette:
-			commandList_->SetGraphicsRootSignature(vignetteRootSignature_);
-			commandList_->SetPipelineState(vignettePipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kVignetteParam)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
-			break;
-		case PostEffect::kBoxFilter:
-			commandList_->SetGraphicsRootSignature(boxFilterRootSignature_);
-			commandList_->SetPipelineState(boxFilterPipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kBoxFilterParam)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
-			break;
-		case PostEffect::kGaussianFilter:
-			commandList_->SetGraphicsRootSignature(gaussianFilterRootSignature_);
-			commandList_->SetPipelineState(gaussianFilterPipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kGaussianFilterParam)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
-			break;
-		case PostEffect::kLuminanceBasedOutline:
-			commandList_->SetGraphicsRootSignature(luminanceBasedOutlineRootSignature_);
-			commandList_->SetPipelineState(luminanceBasedOutlinePipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kPrewittFilterParam)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
-			break;
-		case PostEffect::kDepthBasedOutline:
-			commandList_->SetGraphicsRootSignature(depthBasedOutlineRootSignature_);
-			commandList_->SetPipelineState(depthBasedOutlinePipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kPrewittFilterParam)->BindToGraphics(0, 1);
-			world_->GetConstantBuffer(ConstantBufferType::kDepthMaterial)->BindToGraphics(1, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, world_->GetGameRenderTextureSRVHandle());
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(3, world_->GetMainCameraDepthStencilTextureSRVHandle());
-			break;
-		case PostEffect::kRadialBlur:
-			commandList_->SetGraphicsRootSignature(radialBlurRootSignature_);
-			commandList_->SetPipelineState(radialBlurPipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kRadialBlurParam)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
-			break;
-		case PostEffect::kDissolve:
-			commandList_->SetGraphicsRootSignature(dissolveRootSignature_);
-			commandList_->SetPipelineState(dissolvePipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kDissolveParam)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(2, textureManager_->GetTextureReadHandle("noise0.png"));
-			break;
-		case PostEffect::kNoise:
-			commandList_->SetGraphicsRootSignature(noiseRootSignature_);
-			commandList_->SetPipelineState(noisePipelineState_.Get());
-			world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToGraphics(0, 0);
-			gpuCbvSrvUavDescriptorHeap_->BindToGraphics(1, world_->GetGameRenderTextureSRVHandle());
-			break;
-		case PostEffect::kCountOfPostEffect:
-			break;
-		default:
-			break;
+	const PostEffect postEffect = world_->GetPostEffect();
+	if (postEffect != currentPostEffect_) {
+		ID3D12RootSignature *rootSignature = postEffectRootSignature_[static_cast<uint32_t>(postEffect)];
+		ID3D12PipelineState *pipelineState = postEffectPipelineState_[static_cast<uint32_t>(postEffect)].Get();
+		switch (postEffect) {
+			case PostEffect::kNone:
+				postEffectRenderer_ = std::make_unique<FullScreenEffect>(device_, world_, rootSignature, pipelineState);
+				break;
+			case PostEffect::kGrayscale:
+				postEffectRenderer_ = std::make_unique<GrayscaleEffect>(device_, world_, rootSignature, pipelineState);
+				break;
+			case PostEffect::kVignette:
+				postEffectRenderer_ = std::make_unique<VignetteEffect>(device_, world_, rootSignature, pipelineState);
+				break;
+			case PostEffect::kBoxFilter:
+				postEffectRenderer_ = std::make_unique<BoxFilterEffect>(device_, world_, rootSignature, pipelineState);
+				break;
+			case PostEffect::kGaussianFilter:
+				postEffectRenderer_ = std::make_unique<GaussianFilterEffect>(device_, world_, rootSignature, pipelineState);
+				break;
+			case PostEffect::kLuminanceBasedOutline:
+				postEffectRenderer_ = std::make_unique<LuminanceBasedOutlineEffect>(device_, world_, rootSignature, pipelineState);
+				break;
+			case PostEffect::kDepthBasedOutline:
+				postEffectRenderer_ = std::make_unique<DepthBasedOutlineEffect>(device_, world_, rootSignature, pipelineState);
+				break;
+			case PostEffect::kRadialBlur:
+				postEffectRenderer_ = std::make_unique<RadialBlurEffect>(device_, world_, rootSignature, pipelineState);
+				break;
+			case PostEffect::kDissolve:
+				postEffectRenderer_ = std::make_unique<DissolveEffect>(device_, world_, textureManager_, rootSignature, pipelineState);
+				break;
+			case PostEffect::kNoise:
+				postEffectRenderer_ = std::make_unique<NoiseEffect>(device_, world_, rootSignature, pipelineState);
+				break;
+			case PostEffect::kCountOfPostEffect:
+				break;
+			default:
+				break;
+		}
+		currentPostEffect_ = postEffect;
 	}
-	commandList_->DrawInstanced(3, 1, 0, 0);
-	device_->GetMainCameraDepthStencilTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_DEPTH_WRITE);
-	world_->GetGameRenderTexture()->TransitionBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	if (postEffectRenderer_) {
+		postEffectRenderer_->Render();
+	}
 }
 
 void Renderer::DrawLine(uint32_t cameraBufferLocationIndex) {

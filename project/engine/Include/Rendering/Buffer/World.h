@@ -1,6 +1,7 @@
 #pragma once
 #include "MeshType.h"
 #include "BlendMode.h"
+#include "PostEffect.h"
 #include "Vector2.h"
 #include "Vector4.h"
 #include "Camera.h"
@@ -269,21 +270,6 @@ enum class StructuredBufferType {
 	kMeshLOD,						// メッシュLOD
 	kFootprint,						// フットプリント
 	kCountOfStructuredBufferType	// 構造化バッファの種類の数
-};
-
-/// @brief ポストエフェクト
-enum class PostEffect {
-	kNone,					// なし
-	kGrayscale,				// グレースケール
-	kVignette,				// ビネット
-	kBoxFilter,				// ボックスフィルター
-	kGaussianFilter,		// ガウシアンフィルター
-	kLuminanceBasedOutline,	// 輝度ベースの輪郭抽出
-	kDepthBasedOutline,		// 深度ベースの輪郭抽出
-	kRadialBlur,			// ラジアルブラー
-	kDissolve,				// ディゾルブ
-	kNoise,					// ノイズ
-	kCountOfPostEffect		// ポストエフェクトの数
 };
 
 class Device;

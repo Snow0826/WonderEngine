@@ -1,6 +1,7 @@
 #pragma once
 #include "MeshType.h"
 #include "BlendMode.h"
+#include "PostEffect.h"
 #include <wrl/client.h>
 #include <d3d12.h>
 #include <fstream>
@@ -18,6 +19,7 @@ class ModelManager;
 class SkinClusterManager;
 class ParticleManager;
 class FootprintManager;
+class PostEffectRenderer;
 
 /// @brief レンダラー
 class Renderer final {
@@ -25,6 +27,9 @@ public:
 	/// @brief コンストラクタ
 	/// @param device デバイス
 	Renderer(Device *device);
+
+	/// @brief デストラクタ
+	~Renderer();
 
 	/// @brief 初期化
 	/// @param logStream ログストリーム
@@ -71,7 +76,7 @@ public:
 	/// @brief フットプリントマネージャーをセットする
 	/// @param footprintManager フットプリントマネージャー
 	void SetFootprintManager(FootprintManager *footprintManager);
-	
+
 	/// @brief ゲーム終了フラグをセットする
 	void SetGameFinished() { isGameFinished_ = true; }
 
@@ -84,9 +89,18 @@ public:
 	void SetGameViewVisible(bool visible) { isGameViewVisible_ = visible; }
 
 private:
+	/// @brief 描画設定
+	struct RenderConfig final {
+		D3D12_RASTERIZER_DESC rasterizerDesc;	// ラスタライザーステート
+		ID3D12RootSignature *rootSignature;		// ルートシグネチャ
+	};
+
+	using PostEffectRootSignature = std::array<ID3D12RootSignature*, static_cast<uint32_t>(PostEffect::kCountOfPostEffect)>;
 	using BlendPipelineState = std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>, static_cast<uint32_t>(BlendMode::kCountOfBlendMode)>;
 	using MeshPipelineState = std::array<BlendPipelineState, static_cast<uint32_t>(MeshType::kCountOfMeshType)>;
+	using PostEffectPipelineState = std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>, static_cast<uint32_t>(PostEffect::kCountOfPostEffect)>;
 	using MeshCommandSignature = std::array<Microsoft::WRL::ComPtr<ID3D12CommandSignature>, static_cast<uint32_t>(MeshType::kCountOfMeshType)>;
+	using MeshRenderConfig = std::array<RenderConfig, static_cast<uint32_t>(MeshType::kCountOfMeshType)>;
 	Device *device_ = nullptr;																	// デバイス
 	DescriptorHeap *gpuCbvSrvUavDescriptorHeap_ = nullptr;										// GPU用のCBV,SRV,UAVのディスクリプタヒープ
 	DescriptorHeap *cpuCbvSrvUavDescriptorHeap_ = nullptr;										// CPU用のCBV,SRV,UAVのディスクリプタヒープ
@@ -100,6 +114,7 @@ private:
 	SkinClusterManager *skinClusterManager_ = nullptr;											// スキンクラスターマネージャー
 	ParticleManager *particleManager_ = nullptr;												// パーティクルマネージャー
 	FootprintManager *footprintManager_ = nullptr;												// フットプリントマネージャー
+	PostEffectRootSignature postEffectRootSignature_;											// ポストエフェクト用ルートシグネチャ
 	ID3D12RootSignature *object3dRootSignature_ = nullptr;										// Object3d用ルートシグネチャ
 	ID3D12RootSignature *ringObject3dRootSignature_ = nullptr;									// RingObject3d用ルートシグネチャ
 	ID3D12RootSignature *particleRootSignature_ = nullptr;										// Particle用ルートシグネチャ
@@ -107,16 +122,6 @@ private:
 	ID3D12RootSignature *lineRootSignature_ = nullptr;											// Line用ルートシグネチャ
 	ID3D12RootSignature *skyboxRootSignature_ = nullptr;										// Skybox用ルートシグネチャ
 	ID3D12RootSignature *softBodyRootSignature_ = nullptr;										// SoftBody用ルートシグネチャ
-	ID3D12RootSignature *fullscreenRootSignature_ = nullptr;									// Fullscreen用ルートシグネチャ
-	ID3D12RootSignature *grayscaleRootSignature_ = nullptr;										// Grayscale用ルートシグネチャ
-	ID3D12RootSignature *vignetteRootSignature_ = nullptr;										// Vignette用ルートシグネチャ
-	ID3D12RootSignature *boxFilterRootSignature_ = nullptr;										// BoxFilter用ルートシグネチャ
-	ID3D12RootSignature *gaussianFilterRootSignature_ = nullptr;								// GaussianFilter用ルートシグネチャ
-	ID3D12RootSignature *luminanceBasedOutlineRootSignature_ = nullptr;							// LuminanceBasedOutline用ルートシグネチャ
-	ID3D12RootSignature *depthBasedOutlineRootSignature_ = nullptr;								// DepthBasedOutline用ルートシグネチャ
-	ID3D12RootSignature *radialBlurRootSignature_ = nullptr;									// RadialBlur用ルートシグネチャ
-	ID3D12RootSignature *dissolveRootSignature_ = nullptr;										// Dissolve用ルートシグネチャ
-	ID3D12RootSignature *noiseRootSignature_ = nullptr;											// Noise用ルートシグネチャ
 	ID3D12RootSignature *raymarchingRootSignature_ = nullptr;									// Raymarching用ルートシグネチャ
 	ID3D12RootSignature *skinningRootSignature_ = nullptr;										// スキニング用ルートシグネチャ
 	ID3D12RootSignature *initializeParticleRootSignature_ = nullptr;							// パーティクル初期化用ルートシグネチャ
@@ -135,19 +140,10 @@ private:
 	MeshPipelineState meshPipelineState_;														// Mesh用パイプラインステート
 	MeshPipelineState meshParticlePipelineState_;												// MeshParticle用パイプラインステート
 	BlendPipelineState spritePipelineState_;													// Sprite用パイプラインステート
+	PostEffectPipelineState postEffectPipelineState_;											// ポストエフェクト用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> linePipelineState_ = nullptr;					// Line用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> skyboxPipelineState_ = nullptr;					// Skybox用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> softBodyPipelineState_ = nullptr;				// SoftBody用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> fullscreenPipelineState_ = nullptr;				// Fullscreen用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> grayscalePipelineState_ = nullptr;				// Grayscale用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> vignettePipelineState_ = nullptr;				// Vignette用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> boxFilterPipelineState_ = nullptr;				// BoxFilter用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> gaussianFilterPipelineState_ = nullptr;			// GaussianFilter用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> luminanceBasedOutlinePipelineState_ = nullptr;	// LuminanceBasedOutline用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthBasedOutlinePipelineState_ = nullptr;		// DepthBasedOutline用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> radialBlurPipelineState_ = nullptr;				// RadialBlur用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> dissolvePipelineState_ = nullptr;				// Dissolve用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> noisePipelineState_ = nullptr;					// Noise用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> raymarchingPipelineState_ = nullptr;			// Raymarching用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> skinningPipelineState_ = nullptr;				// スキニング用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> initializeParticlePipelineState_ = nullptr;		// パーティクル初期化用パイプラインステート
@@ -164,6 +160,10 @@ private:
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintPipelineState_ = nullptr;				// フットプリント用パイプラインステート
 	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintMapPipelineState_ = nullptr;			// フットプリントマップ用パイプラインステート
 	MeshCommandSignature meshCommandSignature_;													// メッシュコマンドシグネチャ
+	MeshRenderConfig meshRenderConfig_;															// メッシュ描画設定
+	MeshRenderConfig meshParticleRenderConfig_;													// メッシュパーティクル描画設定
+	std::unique_ptr<PostEffectRenderer> postEffectRenderer_ = nullptr;							// ポストエフェクトレンダラー
+	PostEffect currentPostEffect_ = PostEffect::kCountOfPostEffect;								// 現在のポストエフェクト
 	bool isSceneViewVisible_ = true;															// シーンビューの表示フラグ
 	bool isGameViewVisible_ = true;																// ゲームビューの表示フラグ
 	bool isGameFinished_ = false;																// ゲーム終了フラグ
@@ -253,4 +253,14 @@ private:
 
 	/// @brief ラインの描画
 	void DrawLine(uint32_t cameraBufferLocationIndex);
+
+	/// @brief メッシュ描画設定の設定
+	/// @param meshType メッシュの種類
+	/// @param config 描画設定
+	void SetMeshRenderConfig(MeshType meshType, const RenderConfig &config) { meshRenderConfig_[static_cast<uint32_t>(meshType)] = config; }
+
+	/// @brief メッシュパーティクル描画設定の設定
+	/// @param meshType メッシュの種類
+	/// @param config 描画設定
+	void SetMeshParticleRenderConfig(MeshType meshType, const RenderConfig &config) { meshParticleRenderConfig_[static_cast<uint32_t>(meshType)] = config; }
 };

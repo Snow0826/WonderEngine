@@ -84,6 +84,17 @@
     <ClCompile Include="game\Source\System\CameraController.cpp" />
     <ClCompile Include="engine\Source\System\PoissonDiskSampler.cpp" />
     <ClCompile Include="engine\Source\System\TreeEntityManager.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PostEffectRenderer\PostEffectRenderer.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PostEffectRenderer\FullScreenEffect.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PostEffectRenderer\GrayscaleEffect.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PostEffectRenderer\VignetteEffect.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PostEffectRenderer\BoxFilterEffect.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PostEffectRenderer\GaussianFilterEffect.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PostEffectRenderer\LuminanceBasedOutlineEffect.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PostEffectRenderer\DepthBasedOutlineEffect.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PostEffectRenderer\RadialBlurEffect.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PostEffectRenderer\DissolveEffect.cpp" />
+    <ClCompile Include="engine\Source\Rendering\PostEffectRenderer\NoiseEffect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
@@ -180,6 +191,18 @@
     <ClInclude Include="game\Include\Model\Player.h" />
     <ClInclude Include="engine\Include\Math\Interpolation.h" />
     <ClInclude Include="engine\Include\System\TreeEntityManager.h" />
+    <ClInclude Include="engine\Include\Rendering\PostEffectRenderer\PostEffectRenderer.h" />
+    <ClInclude Include="engine\Include\Component\PostEffect.h" />
+    <ClInclude Include="engine\Include\Rendering\PostEffectRenderer\FullScreenEffect.h" />
+    <ClInclude Include="engine\Include\Rendering\PostEffectRenderer\GrayscaleEffect.h" />
+    <ClInclude Include="engine\Include\Rendering\PostEffectRenderer\VignetteEffect.h" />
+    <ClInclude Include="engine\Include\Rendering\PostEffectRenderer\BoxFilterEffect.h" />
+    <ClInclude Include="engine\Include\Rendering\PostEffectRenderer\GaussianFilterEffect.h" />
+    <ClInclude Include="engine\Include\Rendering\PostEffectRenderer\LuminanceBasedOutlineEffect.h" />
+    <ClInclude Include="engine\Include\Rendering\PostEffectRenderer\DepthBasedOutlineEffect.h" />
+    <ClInclude Include="engine\Include\Rendering\PostEffectRenderer\RadialBlurEffect.h" />
+    <ClInclude Include="engine\Include\Rendering\PostEffectRenderer\DissolveEffect.h" />
+    <ClInclude Include="engine\Include\Rendering\PostEffectRenderer\NoiseEffect.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -38,7 +38,7 @@ void SampleScene::OnInitialize() {
 	std::ofstream *logStream = sceneManager->GetLogStream();
 	Input *input = sceneManager->GetInput();
 	PoissonDiskSampler sampler;
-	std::vector<Vector2> samples = sampler.Generate(512.0f, 512.0f, 32.0f);
+	std::vector<Vector2> samples = sampler.Generate(512.0f, 512.0f, 16.0f);
 
 	// ジェネレーターの初期化
 	SkyboxGenerator skyboxGenerator{ meshManager, textureManager };

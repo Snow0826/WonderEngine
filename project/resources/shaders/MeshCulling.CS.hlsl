@@ -10,6 +10,7 @@ struct Object
     float4x4 world; // World matrix for the object
     uint meshType; // Mesh type for the object (0: Model, 1: Plane, 2: Box, 3: Ring, 4: Cylinder)
     uint blendMode; // Blend mode for the object (0: None, 1: Normal, 2: Additive, 3: Subtractive, 4: Multiplicative, 5: Screen)
+    uint aabbIndex; // Index into the boxes buffer for this object's AABB
 };
 
 struct Mesh
@@ -76,8 +77,8 @@ void main(uint3 DTid : SV_DispatchThreadID)
     meshLODStates[DTid.x].visible = 0; // Initialize visibility to false
     meshLODStates[DTid.x].instanceIndex = 0; // Initialize instance index to 0
     Mesh mesh = meshes[DTid.x]; // Get culling data for this thread
-    AABB box = boxes[DTid.x]; // Get bounding box for this mesh
     Object object = objects[mesh.objectIndex]; // Get object data for this mesh
+    AABB box = boxes[object.aabbIndex]; // Get bounding box for this mesh
     float3 center = (box.min.xyz + box.max.xyz) * 0.5f;
     float3 extent = (box.max.xyz - box.min.xyz) * 0.5f;
     center = mul(float4(center, 1.0f), object.world).xyz; // Transform center to world space

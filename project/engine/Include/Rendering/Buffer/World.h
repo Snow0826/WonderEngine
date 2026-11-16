@@ -51,6 +51,7 @@ struct CullingObjectData final {
 	Matrix4x4 worldMatrix;	// ワールド行列
 	MeshType meshType;		// メッシュタイプ
 	BlendMode blendMode;	// ブレンドモード
+	uint32_t aabbIndex = 0;	// AABBインデックス
 };
 
 /// @brief AABB(GPU)
@@ -320,10 +321,6 @@ public:
 	/// @param size データの大きさ
 	void CopyLineData(const Rendering::Line *data, size_t size);
 
-	/// @brief 最大AABB数を取得
-	/// @return 最大AABB数
-	constexpr uint32_t GetMaxAABB() const { return kMaxAABB; }
-
 	/// @brief キューあたりの最大コマンド数を取得
 	/// @return キューあたりの最大コマンド数
 	constexpr uint32_t GetMaxCommandPerQueue() const { return kMaxCommandPerQueue; }
@@ -535,7 +532,7 @@ private:
 	static inline constexpr uint32_t kMaxSdBoxData = 1024;				// 最大ボックスSDF数
 	static inline constexpr uint32_t kMaxObject = 100000;				// 最大オブジェクト数
 	static inline constexpr uint32_t kMaxAABB = 100000;					// 最大AABB数
-	static inline constexpr uint32_t kMaxVertices = 100000000;			// 最大頂点数
+	static inline constexpr uint32_t kMaxVertices = 1000000;			// 最大頂点数
 	static inline constexpr uint32_t kMaxFootprint = 64;				// 最大フットプリント数
 	static inline constexpr uint32_t kMaxCommandPerQueue = 1024;		// コマンドキューあたりの最大コマンド数
 	Registry *registry_ = nullptr;										// レジストリ

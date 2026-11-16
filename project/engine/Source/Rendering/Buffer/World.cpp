@@ -955,14 +955,21 @@ void World::TransferCullingData() {
 
 	uint32_t cullingMeshDataOffset = 0;
 	uint32_t vertexOffset = 0;
+	std::unordered_map<std::string, uint32_t> meshLODOffsets;
 	registry_->ForEach<Model, MeshType, BlendMode, InstanceHandle, DirtyCullingData>([&](uint32_t entity, Model *model, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyCullingData *dirtyCullingData) {
 		MeshInfoForAABB *meshInfoForAABB = &meshInfoForAABB_[meshInfoForAABBCounter_];
 		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
 		for (const MeshData &mesh : modelAsset->modelData.meshes) {
 			for (const MeshLODData &lod : mesh.lods) {
+				auto it = meshLODOffsets.find(lod.meshName);
+				if (it != meshLODOffsets.end()) {
+					continue;
+				}
+
+				meshLODOffsets.emplace(lod.meshName, cullingMeshDataOffset);
 				meshInfoForAABB->vertexOffset = vertexOffset;
 				meshInfoForAABB->vertexCount = static_cast<uint32_t>(meshManager_->GetVertexCount(lod.meshName));
-				meshInfoForAABB->aabbIndex = cullingMeshDataOffset;
+				meshInfoForAABB->aabbIndex = meshInfoForAABBCounter_++;
 				vertexOffset += meshInfoForAABB->vertexCount;
 				VertexData *vertexData = meshManager_->GetVertexData(lod.meshName);
 				for (uint32_t i = 0; i < meshInfoForAABB->vertexCount; i++) {
@@ -974,28 +981,34 @@ void World::TransferCullingData() {
 			cullingMeshData_[cullingMeshDataOffset].lodCount = static_cast<uint32_t>(mesh.lods.size());
 			cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
 			cullingMeshDataOffset++;
-		}
 
-		meshInfoForAABBCounter_++;
+			cullingObjectData_[instanceHandle->value].aabbIndex = meshInfoForAABB_[meshInfoForAABBCounter_ - 1].aabbIndex;
+		}
 		}, exclude<Disabled>());
 
+	std::unordered_map<std::string, uint32_t> primitiveOffsets;
 	registry_->ForEach<Primitive, MeshType, BlendMode, InstanceHandle, DirtyCullingData>([&](uint32_t entity, Primitive *primitive, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyCullingData *dirtyCullingData) {
-		MeshInfoForAABB *meshInfoForAABB = &meshInfoForAABB_[meshInfoForAABBCounter_];
-		VertexData *vertexData = meshManager_->GetVertexData(primitive->meshName);
-		size_t vertexCount = meshManager_->GetVertexCount(primitive->meshName);
-		meshInfoForAABB->vertexOffset = vertexOffset;
-		meshInfoForAABB->vertexCount = static_cast<uint32_t>(vertexCount);
-		meshInfoForAABB->aabbIndex = cullingMeshDataOffset;
-		vertexOffset += meshInfoForAABB->vertexCount;
-		for (uint32_t i = 0; i < meshInfoForAABB->vertexCount; i++) {
-			vertexDataForAABB_[meshInfoForAABB->vertexOffset + i].position = vertexData[i].position;
+		auto it = primitiveOffsets.find(primitive->meshName);
+		if (it == primitiveOffsets.end()) {
+			primitiveOffsets.emplace(primitive->meshName, cullingMeshDataOffset);
+			MeshInfoForAABB *meshInfoForAABB = &meshInfoForAABB_[meshInfoForAABBCounter_];
+			VertexData *vertexData = meshManager_->GetVertexData(primitive->meshName);
+			size_t vertexCount = meshManager_->GetVertexCount(primitive->meshName);
+			meshInfoForAABB->vertexOffset = vertexOffset;
+			meshInfoForAABB->vertexCount = static_cast<uint32_t>(vertexCount);
+			meshInfoForAABB->aabbIndex = meshInfoForAABBCounter_++;
+			vertexOffset += meshInfoForAABB->vertexCount;
+			for (uint32_t i = 0; i < meshInfoForAABB->vertexCount; i++) {
+				vertexDataForAABB_[meshInfoForAABB->vertexOffset + i].position = vertexData[i].position;
+			}
 		}
 
 		cullingMeshData_[cullingMeshDataOffset].objectIndex = instanceHandle->value;
 		cullingMeshData_[cullingMeshDataOffset].lodCount = 1;
 		cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
 		cullingMeshDataOffset++;
-		meshInfoForAABBCounter_++;
+
+		cullingObjectData_[instanceHandle->value].aabbIndex = meshInfoForAABB_[meshInfoForAABBCounter_ - 1].aabbIndex;
 		}, exclude<Disabled>());
 
 	registry_->ForEach<MeshType, BlendMode, InstanceHandle, DirtyTransform>([&](uint32_t entity, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyTransform *dirtyTransform) {

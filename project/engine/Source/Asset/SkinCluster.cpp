@@ -12,8 +12,8 @@ uint32_t SkinClusterManager::CreateSkinCluster(const ModelData &modelData) {
 
 	uint32_t skinClusterIndex = static_cast<uint32_t>(skinClusters_.size());
 	DescriptorHeap *gpuCbvSrvUavDescriptorHeap = device_->GetGpuCbvSrvUavDescriptorHeap();
-	VertexData *vertexData = meshManager_->GetVertexData(modelData.meshes.back().lods.back().meshName);
-	size_t vertexCount = meshManager_->GetVertexCount(modelData.meshes.back().lods.back().meshName);
+	VertexData *vertexData = meshManager_->GetVertexData(modelData.meshes.back().meshName);
+	size_t vertexCount = meshManager_->GetVertexCount(modelData.meshes.back().meshName);
 	std::unique_ptr<SkinCluster> skinCluster = std::make_unique<SkinCluster>();
 
 	// Palette用のResourceを確保

@@ -13,16 +13,10 @@ struct Mesh final {
 	std::vector<uint32_t> indices;		// インデックスリスト
 };
 
-/// @brief メッシュLODデータ
-struct MeshLODData final {
-	std::string meshName;	// メッシュ名
-	float error = 0.0f;		// LODエラー
-};
-
 /// @brief メッシュデータ
 struct MeshData final {
-	std::vector<MeshLODData> lods;	// LODデータリスト
-	uint32_t materialIndex = 0;		// マテリアルインデックス
+	std::string meshName;		// メッシュ名
+	uint32_t materialIndex = 0;	// マテリアルインデックス
 };
 
 class VertexBuffer;
@@ -35,7 +29,6 @@ struct MeshBuffer final {
 };
 
 class Device;
-struct MeshLOD;
 struct BranchMesh;
 struct BranchPathPoint;
 

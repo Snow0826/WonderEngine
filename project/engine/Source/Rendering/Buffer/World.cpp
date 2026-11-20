@@ -160,13 +160,13 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 
 	// TextureData用StructuredBufferの作成
 	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kTextureData);
-	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(TextureData) * kMaxAABB);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(TextureData) * kMaxObject);
 	structuredBuffers_[structuredBufferIndex]->SetName("TextureData");
 	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&textureData_));
 	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// TextureData用SRVの作成
-	srvBufferDesc.Buffer.NumElements = kMaxAABB;					// 要素数
+	srvBufferDesc.Buffer.NumElements = kMaxObject;					// 要素数
 	srvBufferDesc.Buffer.StructureByteStride = sizeof(TextureData);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 
@@ -237,12 +237,13 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 
 	// MeshInfoForAABB用StructuredBufferの作成
 	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kMeshInfoForAABB);
-	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(MeshInfoForAABB) * kMaxAABB);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(MeshInfoForAABB) * kMaxMeshes);
 	structuredBuffers_[structuredBufferIndex]->SetName("MeshInfoForAABB");
 	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&meshInfoForAABB_));
 	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// MeshInfoForAABB用SRVの作成
+	srvBufferDesc.Buffer.NumElements = kMaxMeshes;						// 要素数
 	srvBufferDesc.Buffer.StructureByteStride = sizeof(MeshInfoForAABB);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 	Logger::Log(logStream, "MeshInfoForAABB SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
@@ -260,19 +261,6 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 	Logger::Log(logStream, "VertexDataForAABB SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
-	// CullingMeshData用StructuredBufferの作成
-	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kCullingMeshData);
-	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(CullingMeshData) * kMaxAABB);
-	structuredBuffers_[structuredBufferIndex]->SetName("CullingMeshData");
-	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&cullingMeshData_));
-	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-
-	// CullingMeshData用SRVの作成
-	srvBufferDesc.Buffer.NumElements = kMaxAABB;						// 要素数
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(CullingMeshData);	// 構造体のサイズ
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
-	Logger::Log(logStream, "CullingMeshData SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
-
 	// CullingObjectData用StructuredBufferの作成
 	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kCullingObjectData);
 	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(CullingObjectData) * kMaxObject);
@@ -281,21 +269,23 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// CullingObjectData用SRVの作成
-	srvBufferDesc.Buffer.NumElements = kMaxAABB;							// 要素数
+	srvBufferDesc.Buffer.NumElements = kMaxObject;							// 要素数
 	srvBufferDesc.Buffer.StructureByteStride = sizeof(CullingObjectData);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
 	Logger::Log(logStream, "CullingObjectData SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
-	// MeshLOD用StructuredBufferの作成
-	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kMeshLOD);
-	structuredBuffers_[structuredBufferIndex] = Resource::CreateBuffer(device, D3D12_HEAP_TYPE_DEFAULT, sizeof(MeshLOD) * kMaxAABB, D3D12_RESOURCE_STATE_COMMON);
-	structuredBuffers_[structuredBufferIndex]->SetName("MeshLOD");
+	// IndirectCommandMeshData用StructuredBufferの作成
+	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kIndirectCommandMeshData);
+	structuredBuffers_[structuredBufferIndex] = Resource::CreateUploadBuffer(device, sizeof(IndirectCommandMeshData) * kMaxMeshes);
+	structuredBuffers_[structuredBufferIndex]->SetName("IndirectCommandMeshData");
+	structuredBuffers_[structuredBufferIndex]->Map(reinterpret_cast<void **>(&indirectCommandMeshData_));
 	structuredBufferHandles_[structuredBufferIndex] = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
-	// MeshLOD用SRVの作成
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(MeshLOD);	// 構造体のサイズ
+	// IndirectCommandMeshData用SRVの作成
+	srvBufferDesc.Buffer.NumElements = kMaxMeshes;								// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(IndirectCommandMeshData);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(structuredBuffers_[structuredBufferIndex]->GetResource(), srvBufferDesc, structuredBufferHandles_[structuredBufferIndex]);
-	Logger::Log(logStream, "MeshLOD SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
+	Logger::Log(logStream, "IndirectCommandMeshData SRVDescriptorIndex: " + std::to_string(structuredBufferHandles_[structuredBufferIndex]) + "\n");
 
 	// Footprint用StructuredBufferの作成
 	structuredBufferIndex = static_cast<size_t>(StructuredBufferType::kFootprint);
@@ -443,13 +433,13 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 #pragma endregion
 
 	// AABB用RWStructuredBufferの作成
-	aabbBuffer_ = Resource::CreateRWBuffer(device, sizeof(AABBForGPU) * kMaxAABB);
+	aabbBuffer_ = Resource::CreateRWBuffer(device, sizeof(AABBForGPU) * kMaxMeshes);
 	aabbBuffer_->SetName("AABBBuffer");
 	aabbSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 	aabbUAVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// AABB用SRVの作成
-	srvBufferDesc.Buffer.NumElements = kMaxAABB;					// 要素数
+	srvBufferDesc.Buffer.NumElements = kMaxMeshes;					// 要素数
 	srvBufferDesc.Buffer.StructureByteStride = sizeof(AABBForGPU);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(aabbBuffer_->GetResource(), srvBufferDesc, aabbSRVHandle_);
 	Logger::Log(logStream, "AABB SRVDescriptorIndex: " + std::to_string(aabbSRVHandle_) + "\n");
@@ -459,64 +449,63 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 	uavBufferDesc.Format = DXGI_FORMAT_UNKNOWN;						// バッファなのでフォーマットなし
 	uavBufferDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;		// バッファビュー
 	uavBufferDesc.Buffer.FirstElement = 0;							// 先頭の要素
-	uavBufferDesc.Buffer.NumElements = kMaxAABB;					// 要素数
+	uavBufferDesc.Buffer.NumElements = kMaxMeshes;					// 要素数
 	uavBufferDesc.Buffer.StructureByteStride = sizeof(AABBForGPU);	// 構造体のサイズ
 	uavBufferDesc.Buffer.CounterOffsetInBytes = 0;					// カウンタなし
 	uavBufferDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;		// 特になし
 	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(aabbBuffer_->GetResource(), uavBufferDesc, aabbUAVHandle_);
 	Logger::Log(logStream, "AABB UAVDescriptorIndex: " + std::to_string(aabbUAVHandle_) + "\n");
 
-	// コマンドアップロードバッファの作成
-	commandUploadBuffer_ = Resource::CreateUploadBuffer(device, sizeof(MeshLOD) * kMaxAABB);
-	commandUploadBuffer_->SetName("CommandBufferUpload");
-	commandUploadBuffer_->Map(reinterpret_cast<void **>(&meshLODData_));
-
 	// カリング済みコマンド用RWStructuredBufferの作成
-	processedCommandBuffer_ = Resource::CreateRWBuffer(device, sizeof(IndirectCommand) * kMaxAABB);
+	constexpr size_t kMaxQueue = static_cast<size_t>(MeshType::kCountOfMeshType) * static_cast<size_t>(BlendMode::kCountOfBlendMode);
+	processedCommandBuffer_ = Resource::CreateRWBuffer(device, sizeof(IndirectCommand) * kMaxQueue * kMaxCommandPerQueue);
 	processedCommandBuffer_->SetName("ProcessedCommandBuffer");
 	processedCommandHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
 	// カリング済みコマンド用UAVの作成
-	uavBufferDesc.Buffer.NumElements = kMaxAABB;						// 要素数
+	uavBufferDesc.Buffer.NumElements = kMaxQueue * kMaxCommandPerQueue;	// 要素数
 	uavBufferDesc.Buffer.StructureByteStride = sizeof(IndirectCommand);	// 構造体のサイズ
 	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(processedCommandBuffer_->GetResource(), uavBufferDesc, processedCommandHandle_);
 	Logger::Log(logStream, "ProcessedCommand UAVDescriptorIndex: " + std::to_string(processedCommandHandle_) + "\n");
 
-	// メッシュコマンドステート用RWStructuredBufferの作成
-	meshCommandStateBuffer_ = Resource::CreateRWBuffer(device, sizeof(MeshCommandState) * kMaxAABB);
-	meshCommandStateBuffer_->SetName("MeshCommandStateBuffer");
-	meshCommandStateSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	meshCommandStateUAVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	// 間接コマンド用集計状態データ用RWStructuredBufferの作成
+	indirectCommandStateBuffer_ = Resource::CreateRWBuffer(device, sizeof(IndirectCommandState) * kMaxMeshes);
+	indirectCommandStateBuffer_->SetName("IndirectCommandStateBuffer");
+	indirectCommandStateSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	indirectCommandStateUAVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
-	// メッシュコマンドステート用SRVの作成
-	srvBufferDesc.Buffer.NumElements = kMaxAABB;							// 要素数
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(MeshCommandState);	// 構造体のサイズ
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(meshCommandStateBuffer_->GetResource(), srvBufferDesc, meshCommandStateSRVHandle_);
-	Logger::Log(logStream, "MeshCommandState SRVDescriptorIndex: " + std::to_string(meshCommandStateSRVHandle_) + "\n");
+	// 間接コマンド用集計状態データ用SRVの作成
+	srvBufferDesc.Buffer.NumElements = kMaxMeshes;								// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(IndirectCommandState);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(indirectCommandStateBuffer_->GetResource(), srvBufferDesc, indirectCommandStateSRVHandle_);
+	Logger::Log(logStream, "IndirectCommandState SRVDescriptorIndex: " + std::to_string(indirectCommandStateSRVHandle_) + "\n");
 
-	// メッシュコマンドステート用UAVの作成
-	uavBufferDesc.Buffer.StructureByteStride = sizeof(MeshCommandState);	// 構造体のサイズ
-	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(meshCommandStateBuffer_->GetResource(), uavBufferDesc, meshCommandStateUAVHandle_);
-	Logger::Log(logStream, "MeshCommandState UAVDescriptorIndex: " + std::to_string(meshCommandStateUAVHandle_) + "\n");
+	// 間接コマンド用集計状態データ用UAVの作成
+	uavBufferDesc.Buffer.NumElements = kMaxMeshes;								// 要素数
+	uavBufferDesc.Buffer.StructureByteStride = sizeof(IndirectCommandState);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(indirectCommandStateBuffer_->GetResource(), uavBufferDesc, indirectCommandStateUAVHandle_);
+	Logger::Log(logStream, "IndirectCommandState UAVDescriptorIndex: " + std::to_string(indirectCommandStateUAVHandle_) + "\n");
 
-	// メッシュLODステート用RWStructuredBufferの作成
-	meshLODStateBuffer_ = Resource::CreateRWBuffer(device, sizeof(MeshLODState) * kMaxAABB);
-	meshLODStateBuffer_->SetName("MeshLODStateBuffer");
-	meshLODStateSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
-	meshLODStateUAVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	// オブジェクト用集計状態データ用RWStructuredBufferの作成
+	objectStateBuffer_ = Resource::CreateRWBuffer(device, sizeof(ObjectState) * kMaxObject);
+	objectStateBuffer_->SetName("ObjectStateBuffer");
+	objectStateSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
+	objectStateUAVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 
-	// メッシュLODステート用SRVの作成
-	srvBufferDesc.Buffer.StructureByteStride = sizeof(MeshLODState);	// 構造体のサイズ
-	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(meshLODStateBuffer_->GetResource(), srvBufferDesc, meshLODStateSRVHandle_);
-	Logger::Log(logStream, "MeshLODState SRVDescriptorIndex: " + std::to_string(meshLODStateSRVHandle_) + "\n");
+	// オブジェクト用集計状態データ用SRVの作成
+	srvBufferDesc.Buffer.NumElements = kMaxObject;					// 要素数
+	srvBufferDesc.Buffer.StructureByteStride = sizeof(ObjectState);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateShaderResourceView(objectStateBuffer_->GetResource(), srvBufferDesc, objectStateSRVHandle_);
+	Logger::Log(logStream, "ObjectState SRVDescriptorIndex: " + std::to_string(objectStateSRVHandle_) + "\n");
 
-	// メッシュLODステート用UAVの作成
-	uavBufferDesc.Buffer.StructureByteStride = sizeof(MeshLODState);	// 構造体のサイズ
-	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(meshLODStateBuffer_->GetResource(), uavBufferDesc, meshLODStateUAVHandle_);
-	Logger::Log(logStream, "MeshLODState UAVDescriptorIndex: " + std::to_string(meshLODStateUAVHandle_) + "\n");
+	// オブジェクト用集計状態データ用UAVの作成
+	uavBufferDesc.Buffer.NumElements = kMaxObject;					// 要素数
+	uavBufferDesc.Buffer.StructureByteStride = sizeof(ObjectState);	// 構造体のサイズ
+	gpuCbvSrvUavDescriptorHeap->CreateUnorderedAccessView(objectStateBuffer_->GetResource(), uavBufferDesc, objectStateUAVHandle_);
+	Logger::Log(logStream, "ObjectState UAVDescriptorIndex: " + std::to_string(objectStateUAVHandle_) + "\n");
 
 	// カリング済みインスタンスインデックス用RWStructuredBufferの作成
-	processedInstanceIndexBuffer_ = Resource::CreateRWBuffer(device, sizeof(uint32_t) * kMaxAABB);
+	processedInstanceIndexBuffer_ = Resource::CreateRWBuffer(device, sizeof(uint32_t) * kMaxObject);
 	processedInstanceIndexBuffer_->SetName("ProcessedInstanceIndexBuffer");
 	processedInstanceIndexSRVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
 	processedInstanceIndexUAVHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
@@ -532,7 +521,6 @@ World::World(Device *device, MeshManager *meshManager, ModelManager *modelManage
 	Logger::Log(logStream, "ProcessedInstanceIndex UAVDescriptorIndex: " + std::to_string(processedInstanceIndexUAVHandle_) + "\n");
 
 	// コマンドカウンター用RWByteAddressBufferの作成
-	constexpr size_t kMaxQueue = static_cast<size_t>(MeshType::kCountOfMeshType) * static_cast<size_t>(BlendMode::kCountOfBlendMode);
 	commandCounterBuffer_ = Resource::CreateRWBuffer(device, sizeof(uint32_t) * kMaxQueue);
 	commandCounterBuffer_->SetName("CommandCounterBuffer");
 	commandCounterHandle_ = gpuCbvSrvUavDescriptorHeap->AllocateDescriptor();
@@ -600,8 +588,7 @@ void World::Update(float deltaTime) {
 	TransferWorldTransform();
 	TransferMaterial();
 	TransferTextureData();
-	TransferMeshLODData();
-	TransferCullingData();
+	TransferIndirectCommandData();
 	TransferSkybox();
 	TransferSoftBodyData();
 	TransferGrayscaleColor();
@@ -626,18 +613,15 @@ void World::Edit() {
 #ifdef USE_IMGUI
 	ImGui::Text("Time: %.1f", perFrame_.time);
 	ImGui::Text("DeltaTime: %.4f", perFrame_.deltaTime);
-	ImGui::Text("MeshLODCount: %zu", meshLODCounter_);
-	ImGui::Text("MeshInfoForAABBCount: %zu", meshInfoForAABBCounter_);
-	ImGui::Text("CullingMeshCount: %zu", cullingConstantsData_.meshCount);
+	ImGui::Text("MeshCount: %zu", meshCounter_);
+	ImGui::Text("ObjectCount: %zu", cullingConstantsData_.objectCount);
 	uint32_t vertexCount = 0;
 	uint32_t indexCount = 0;
 	registry_->ForEach<Model>([&](uint32_t entity, Model *model) {
 		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
 		for (const MeshData &mesh : modelAsset->modelData.meshes) {
-			for (const MeshLODData &lod : mesh.lods) {
-				vertexCount += static_cast<uint32_t>(meshManager_->GetVertexCount(lod.meshName));
-				indexCount += meshManager_->GetIndexCount(lod.meshName);
-			}
+			vertexCount += static_cast<uint32_t>(meshManager_->GetVertexCount(mesh.meshName));
+			indexCount += meshManager_->GetIndexCount(mesh.meshName);
 		}
 		}, exclude<Disabled>());
 
@@ -854,174 +838,81 @@ void World::TransferMaterial() {
 
 void World::TransferTextureData() {
 	registry_->ForEach<InstanceHandle, DirtyTextureData>([&](uint32_t entity, InstanceHandle *instanceHandle, DirtyTextureData *dirtyTextureData) {
+		TextureData textureData;
 		if (auto model = registry_->GetComponent<Model>(entity)) {
 			ModelAsset *modelAsset = modelManager_->FindModel(model->name);
-			for (const MeshData &mesh : modelAsset->modelData.meshes) {
-				TextureData textureData{
-					.textureHandle = modelAsset->textureHandle[mesh.materialIndex],
-					.enableMipMaps = modelAsset->enableMipMaps[mesh.materialIndex]
-				};
-				textureData_[instanceHandle->value] = textureData;
-			}
+			const MeshData mesh = modelAsset->modelData.meshes.back();
+			textureData = TextureData{
+				.textureHandle = modelAsset->textureHandle[mesh.materialIndex],
+				.enableMipMaps = modelAsset->enableMipMaps[mesh.materialIndex]
+			};
 		} else if (auto primitive = registry_->GetComponent<Primitive>(entity)) {
-			TextureData textureData{
+			textureData = TextureData{
 				.textureHandle = primitive->textureHandle,
 				.enableMipMaps = primitive->enableMipMaps
 			};
-			textureData_[instanceHandle->value] = textureData;
 		}
+		textureData_[instanceHandle->value] = textureData;
 		}, exclude<Disabled>());
 }
 
-void World::TransferMeshLODData() {
-	if (registry_->GetComponentCount<DirtyMeshLOD>() > 0) {
-		meshLODCounter_ = 0;
-		cullingConstantsData_.meshCount = 0;
-		ZeroMemory(meshLODData_, sizeof(MeshLOD) * kMaxAABB);
-		ZeroMemory(cullingMeshData_, sizeof(CullingMeshData) * kMaxAABB);
-		registry_->AddComponentToAll<DirtyMeshLOD, InstanceHandle>();
+void World::TransferIndirectCommandData() {
+	if (registry_->GetComponentCount<DirtyIndirectCommandData>() > 0) {
+		meshCounter_ = 0;
+		cullingConstantsData_.objectCount = 0;
+		ZeroMemory(meshInfoForAABB_, sizeof(MeshInfoForAABB) * kMaxMeshes);
+		ZeroMemory(indirectCommandMeshData_, sizeof(IndirectCommandMeshData) * kMaxMeshes);
+		registry_->AddComponentToAll<DirtyIndirectCommandData, InstanceHandle>();
 	}
 
-	for (size_t i = 0; i < static_cast<size_t>(BlendMode::kCountOfBlendMode); i++) {
-		std::unordered_map<std::string, uint32_t> meshLODOffsets;
-		registry_->ForEach<BlendMode, Model, DirtyMeshLOD>([&](uint32_t entity, BlendMode *blendMode, Model *model, DirtyMeshLOD *dirtyMeshLOD) {
-			if (static_cast<BlendMode>(i) == *blendMode) {
-				ModelAsset *modelAsset = modelManager_->FindModel(model->name);
-				for (const MeshData &mesh : modelAsset->modelData.meshes) {
-					for (const MeshLODData &lod : mesh.lods) {
-						auto it = meshLODOffsets.find(lod.meshName);
-						if (it == meshLODOffsets.end()) {
-							meshLODOffsets.emplace(lod.meshName, meshLODCounter_);
-							cullingMeshData_[cullingConstantsData_.meshCount].lodOffset = meshLODCounter_;
-
-							meshLODData_[meshLODCounter_].indirectCommand.meshOffset = 0;
-							if (registry_->HasComponent<SkinMesh>(entity)) {
-								meshLODData_[meshLODCounter_].indirectCommand.vertexBufferView = skinClusterManager_->GetOutputVertexBufferView(modelAsset->skinClusterHandle);
-							} else {
-								meshLODData_[meshLODCounter_].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(lod.meshName);
-							}
-							meshLODData_[meshLODCounter_].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(lod.meshName);
-							meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(lod.meshName);
-							meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.InstanceCount = 0;
-							meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.StartIndexLocation = 0;
-							meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.BaseVertexLocation = 0;
-							meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.StartInstanceLocation = 0;
-							meshLODData_[meshLODCounter_].error = lod.error;
-							meshLODCounter_++;
-						} else {
-							cullingMeshData_[cullingConstantsData_.meshCount].lodOffset = it->second;
-						}
-					}
-					cullingConstantsData_.meshCount++;
-				}
-			}
-			}, exclude<Disabled>());
-	}
-
-	for (size_t i = 0; i < static_cast<size_t>(BlendMode::kCountOfBlendMode); i++) {
-		std::unordered_map<std::string, uint32_t> meshLODOffsets;
-		registry_->ForEach<BlendMode, Primitive, DirtyMeshLOD>([&](uint32_t entity, BlendMode *blendMode, Primitive *primitive, DirtyMeshLOD *dirtyMeshLOD) {
-			if (static_cast<BlendMode>(i) == *blendMode) {
-				auto it = meshLODOffsets.find(primitive->meshName);
-				if (it == meshLODOffsets.end()) {
-					meshLODOffsets.emplace(primitive->meshName, meshLODCounter_);
-					cullingMeshData_[cullingConstantsData_.meshCount].lodOffset = meshLODCounter_;
-
-					meshLODData_[meshLODCounter_].indirectCommand.meshOffset = 0;
-					meshLODData_[meshLODCounter_].indirectCommand.vertexBufferView = meshManager_->GetVertexBufferView(primitive->meshName);
-					meshLODData_[meshLODCounter_].indirectCommand.indexBufferView = meshManager_->GetIndexBufferView(primitive->meshName);
-					meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.IndexCountPerInstance = meshManager_->GetIndexCount(primitive->meshName);
-					meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.InstanceCount = 0;
-					meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.StartIndexLocation = 0;
-					meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.BaseVertexLocation = 0;
-					meshLODData_[meshLODCounter_].indirectCommand.drawIndexedArguments.StartInstanceLocation = 0;
-					meshLODData_[meshLODCounter_].error = primitive->error;
-					meshLODCounter_++;
-				} else {
-					cullingMeshData_[cullingConstantsData_.meshCount].lodOffset = it->second;
-				}
-				cullingConstantsData_.meshCount++;
-			}
-			}, exclude<Disabled>());
-	}
-}
-
-void World::TransferCullingData() {
-	if (registry_->GetComponentCount<DirtyCullingData>() > 0) {
-		meshInfoForAABBCounter_ = 0;
-		ZeroMemory(meshInfoForAABB_, sizeof(MeshInfoForAABB) * kMaxAABB);
-		registry_->AddComponentToAll<DirtyCullingData, InstanceHandle>();
-	}
-
-	uint32_t cullingMeshDataOffset = 0;
 	uint32_t vertexOffset = 0;
-	std::unordered_map<std::string, uint32_t> meshLODOffsets;
-	registry_->ForEach<Model, MeshType, BlendMode, InstanceHandle, DirtyCullingData>([&](uint32_t entity, Model *model, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyCullingData *dirtyCullingData) {
-		MeshInfoForAABB *meshInfoForAABB = &meshInfoForAABB_[meshInfoForAABBCounter_];
-		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
-		for (const MeshData &mesh : modelAsset->modelData.meshes) {
-			for (const MeshLODData &lod : mesh.lods) {
-				auto it = meshLODOffsets.find(lod.meshName);
-				if (it != meshLODOffsets.end()) {
-					continue;
-				}
-
-				meshLODOffsets.emplace(lod.meshName, cullingMeshDataOffset);
-				meshInfoForAABB->vertexOffset = vertexOffset;
-				meshInfoForAABB->vertexCount = static_cast<uint32_t>(meshManager_->GetVertexCount(lod.meshName));
-				meshInfoForAABB->aabbIndex = meshInfoForAABBCounter_++;
-				vertexOffset += meshInfoForAABB->vertexCount;
-				VertexData *vertexData = meshManager_->GetVertexData(lod.meshName);
-				for (uint32_t i = 0; i < meshInfoForAABB->vertexCount; i++) {
-					vertexDataForAABB_[meshInfoForAABB->vertexOffset + i].position = vertexData[i].position;
-				}
-			}
-
-			cullingMeshData_[cullingMeshDataOffset].objectIndex = instanceHandle->value;
-			cullingMeshData_[cullingMeshDataOffset].lodCount = static_cast<uint32_t>(mesh.lods.size());
-			cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
-			cullingMeshDataOffset++;
-
-			cullingObjectData_[instanceHandle->value].aabbIndex = meshInfoForAABB_[meshInfoForAABBCounter_ - 1].aabbIndex;
-		}
-		}, exclude<Disabled>());
-
-	std::unordered_map<std::string, uint32_t> primitiveOffsets;
-	registry_->ForEach<Primitive, MeshType, BlendMode, InstanceHandle, DirtyCullingData>([&](uint32_t entity, Primitive *primitive, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyCullingData *dirtyCullingData) {
-		auto it = primitiveOffsets.find(primitive->meshName);
-		if (it == primitiveOffsets.end()) {
-			primitiveOffsets.emplace(primitive->meshName, cullingMeshDataOffset);
-			MeshInfoForAABB *meshInfoForAABB = &meshInfoForAABB_[meshInfoForAABBCounter_];
-			VertexData *vertexData = meshManager_->GetVertexData(primitive->meshName);
-			size_t vertexCount = meshManager_->GetVertexCount(primitive->meshName);
-			meshInfoForAABB->vertexOffset = vertexOffset;
-			meshInfoForAABB->vertexCount = static_cast<uint32_t>(vertexCount);
-			meshInfoForAABB->aabbIndex = meshInfoForAABBCounter_++;
-			vertexOffset += meshInfoForAABB->vertexCount;
-			for (uint32_t i = 0; i < meshInfoForAABB->vertexCount; i++) {
-				vertexDataForAABB_[meshInfoForAABB->vertexOffset + i].position = vertexData[i].position;
-			}
+	std::unordered_map<std::string, uint32_t> meshIndexMap;
+	registry_->ForEach<MeshType, BlendMode, InstanceHandle, DirtyIndirectCommandData>([&](uint32_t entity, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyIndirectCommandData *dirtyIndirectCommandData) {
+		std::string meshName;
+		ModelAsset *modelAsset = nullptr;
+		if (auto model = registry_->GetComponent<Model>(entity)) {
+			modelAsset = modelManager_->FindModel(model->name);
+			const MeshData mesh = modelAsset->modelData.meshes.back();
+			meshName = mesh.meshName;
+		} else if (auto primitive = registry_->GetComponent<Primitive>(entity)) {
+			meshName = primitive->meshName;
 		}
 
-		cullingMeshData_[cullingMeshDataOffset].objectIndex = instanceHandle->value;
-		cullingMeshData_[cullingMeshDataOffset].lodCount = 1;
-		cullingMeshData_[cullingMeshDataOffset].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
-		cullingMeshDataOffset++;
+		auto it = meshIndexMap.find(meshName);
+		if (it == meshIndexMap.end()) {
+			meshIndexMap[meshName] = meshCounter_;
+			if (registry_->HasComponent<SkinMesh>(entity) && modelAsset) {
+				indirectCommandMeshData_[meshCounter_].vertexBufferView = skinClusterManager_->GetOutputVertexBufferView(modelAsset->skinClusterHandle);
+			} else {
+				indirectCommandMeshData_[meshCounter_].vertexBufferView = meshManager_->GetVertexBufferView(meshName);
+			}
+			indirectCommandMeshData_[meshCounter_].indexBufferView = meshManager_->GetIndexBufferView(meshName);
+			indirectCommandMeshData_[meshCounter_].indexCount = meshManager_->GetIndexCount(meshName);
+			meshInfoForAABB_[meshCounter_].vertexOffset = vertexOffset;
+			meshInfoForAABB_[meshCounter_].vertexCount = static_cast<uint32_t>(meshManager_->GetVertexCount(meshName));
+			meshInfoForAABB_[meshCounter_].aabbIndex = meshCounter_;
+			vertexOffset += meshInfoForAABB_[meshCounter_].vertexCount;
+			VertexData *vertexData = meshManager_->GetVertexData(meshName);
+			for (uint32_t i = 0; i < meshInfoForAABB_[meshCounter_].vertexCount; i++) {
+				vertexDataForAABB_[meshInfoForAABB_[meshCounter_].vertexOffset + i].position = vertexData[i].position;
+			}
 
-		cullingObjectData_[instanceHandle->value].aabbIndex = meshInfoForAABB_[meshInfoForAABBCounter_ - 1].aabbIndex;
-		}, exclude<Disabled>());
+			meshCounter_++;
+		}
 
-	registry_->ForEach<MeshType, BlendMode, InstanceHandle, DirtyTransform>([&](uint32_t entity, MeshType *meshType, BlendMode *blendMode, InstanceHandle *instanceHandle, DirtyTransform *dirtyTransform) {
 		if (auto eulerTransform = registry_->GetComponent<EulerTransform>(entity)) {
-			cullingObjectData_[instanceHandle->value].worldMatrix = eulerTransform->worldMatrix;
+			cullingObjectData_[cullingConstantsData_.objectCount].worldMatrix = eulerTransform->worldMatrix;
 		} else if (auto quaternionTransform = registry_->GetComponent<QuaternionTransform>(entity)) {
-			cullingObjectData_[instanceHandle->value].worldMatrix = quaternionTransform->worldMatrix;
+			cullingObjectData_[cullingConstantsData_.objectCount].worldMatrix = quaternionTransform->worldMatrix;
 		} else {
-			cullingObjectData_[instanceHandle->value].worldMatrix = MakeIdentity4x4();
+			cullingObjectData_[cullingConstantsData_.objectCount].worldMatrix = MakeIdentity4x4();
 		}
-
-		cullingObjectData_[instanceHandle->value].meshType = *meshType;
-		cullingObjectData_[instanceHandle->value].blendMode = *blendMode;
+		cullingObjectData_[cullingConstantsData_.objectCount].meshType = *meshType;
+		cullingObjectData_[cullingConstantsData_.objectCount].blendMode = *blendMode;
+		cullingObjectData_[cullingConstantsData_.objectCount].meshIndex = meshIndexMap[meshName];
+		cullingObjectData_[cullingConstantsData_.objectCount].instanceIndex = instanceHandle->value;
+		cullingObjectData_[cullingConstantsData_.objectCount].useCulling = registry_->HasComponent<UseCulling>(entity) ? 1u : 0;
+		cullingConstantsData_.objectCount++;
 		}, exclude<Disabled>());
 }
 

@@ -8,7 +8,6 @@
 #include "Matrix3x3.h"
 #include "Logger.h"
 #include "StringConverter.h"
-#include "QuadricErrorMetrics.h"
 #include "CPUTimer.h"
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -143,13 +142,9 @@ ModelData ModelManager::LoadModelData(const std::string &fileName) {
 		}
 
 		mesh = meshManager_->ReIndexMesh(mesh);
-		MeshLODData meshLODData = {
-			.meshName = importMesh->mName.C_Str(),
-			.error = 0.0f
-		};
-		meshManager_->CreateMesh(meshLODData.meshName, mesh);
 		MeshData meshData;
-		meshData.lods.emplace_back(meshLODData);
+		meshData.meshName = importMesh->mName.C_Str();
+		meshManager_->CreateMesh(meshData.meshName, mesh);
 		meshData.materialIndex = importMesh->mMaterialIndex;
 		modelData.meshes.emplace_back(meshData);
 	}
@@ -291,23 +286,17 @@ void ModelInspector::Draw([[maybe_unused]] uint32_t entity) {
 				TransformSystem transformSystem{ registry_ };
 				transformSystem.MarkDirty(entity);
 				registry_->AddComponent(entity, DirtyTextureData{});
-				registry_->AddComponent(entity, DirtyMeshLOD{});
-				registry_->AddComponent(entity, DirtyCullingData{});
+				registry_->AddComponent(entity, DirtyIndirectCommandData{});
 			}
 
 			ModelAsset *modelAsset = modelManager_->FindModel(model->name);
 			for (size_t i = 0; i < modelAsset->modelData.meshes.size(); i++) {
 				if (ImGui::TreeNode(("Mesh" + std::to_string(i)).c_str())) {
-					for (size_t j = 0; j < modelAsset->modelData.meshes[i].lods.size(); j++) {
-						if (ImGui::TreeNode(("LOD" + std::to_string(j)).c_str())) {
-							size_t vertexCount = meshManager_->GetVertexCount(modelAsset->modelData.meshes[i].lods[j].meshName);
-							uint32_t indexCount = meshManager_->GetIndexCount(modelAsset->modelData.meshes[i].lods[j].meshName);
-							ImGui::Text("vertices: %zu", vertexCount);
-							ImGui::Text("indices: %zu", indexCount);
-							ImGui::Text("triangles: %zu", indexCount / 3);
-							ImGui::TreePop();
-						}
-					}
+					size_t vertexCount = meshManager_->GetVertexCount(modelAsset->modelData.meshes[i].meshName);
+					uint32_t indexCount = meshManager_->GetIndexCount(modelAsset->modelData.meshes[i].meshName);
+					ImGui::Text("vertices: %zu", vertexCount);
+					ImGui::Text("indices: %zu", indexCount);
+					ImGui::Text("triangles: %zu", indexCount / 3);
 					ImGui::TreePop();
 				}
 			}

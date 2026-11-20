@@ -41,6 +41,7 @@ void SampleScene::OnInitialize() {
 	std::vector<Vector2> samples = sampler.Generate(512.0f, 512.0f, 16.0f);
 
 	// ジェネレーターの初期化
+	PrimitiveGenerator primitiveGenerator{ meshManager, textureManager };
 	SkyboxGenerator skyboxGenerator{ meshManager, textureManager };
 
 	// スカイボックスエンティティの作成
@@ -54,17 +55,15 @@ void SampleScene::OnInitialize() {
 	treeTimer.Begin();
 	TreeConfig treeConfig = MakeTreeConfig(TreeSpecies::Cedar);
 	treeConfig.killRadius = 0.84f;
-	Primitive treePrimitive = treeGenerator->Generate(treeConfig);
+	treeGenerator->GenerateLeaves(treeConfig);
+	const Primitive treePrimitive = treeGenerator->Generate(treeConfig);
 	treeTimer.End();
 	Logger::Log(*logStream, "Tree generation time: " + std::to_string(treeTimer.GetMs()) + " ms\n");
 
-	CPUTimer treeEntityTimer;
-	treeEntityTimer.Begin();
-	for (const Vector2& sample : samples) {
-		treeEntityManager->CreateEntity(treePrimitive, { sample.x - 256.0f, 0.0f, sample.y - 256.0f });
+	for (const Vector2 &sample : samples) {
+		const Vector3 treePosition = { sample.x - 256.0f, 0.0f, sample.y - 256.0f };
+		treeEntityManager->CreateEntity(treePrimitive, treePosition);
 	}
-	treeEntityTimer.End();
-	Logger::Log(*logStream, "Tree entity generation time: " + std::to_string(treeEntityTimer.GetMs()) + " ms\n");
 	Logger::Log(*logStream, "TreeCount: " + std::to_string(samples.size()) + "\n");
 
 	// プレイヤーの初期化

@@ -2,29 +2,30 @@
 
 cbuffer Constants : register(b0)
 {
-    uint meshCount;
+    uint objectCount;
 };
 
-StructuredBuffer<MeshLODState> meshLODStates : register(t0); // SRV: Mesh LOD States
-RWStructuredBuffer<MeshCommandState> meshCommandStates : register(u0); // UAV: Mesh Command States
-RWStructuredBuffer<uint> processedInstanceIndices : register(u1); // UAV: Processed Instance Indices
+StructuredBuffer<ObjectState> gObjectStates : register(t0); // SRV: Mesh LOD States
+RWStructuredBuffer<IndirectCommandState> gIndirectCommandStates : register(u0); // UAV: Mesh Command States
+RWStructuredBuffer<uint> gProcessedInstanceIndices : register(u1); // UAV: Processed Instance Indices
 
 [numthreads(64, 1, 1)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
-    if (DTid.x >= meshCount)
+    uint objectIndex = DTid.x;
+    if (objectIndex >= objectCount)
     {
         return;
     }
     
-    MeshLODState meshLODState = meshLODStates[DTid.x];
-    if (!meshLODState.visible)
+    ObjectState objectState = gObjectStates[objectIndex];
+    if (!objectState.visible)
     {
         return;
     }
     
-    uint meshLODIndex = meshLODState.meshLODIndex;
+    uint meshIndex = objectState.meshIndex;
     uint localIndex;
-    InterlockedAdd(meshCommandStates[meshLODIndex].currentOffset, 1, localIndex);
-    processedInstanceIndices[meshCommandStates[meshLODIndex].startInstanceLocation + localIndex] = meshLODState.instanceIndex;
+    InterlockedAdd(gIndirectCommandStates[meshIndex].currentOffset, 1, localIndex);
+    gProcessedInstanceIndices[gIndirectCommandStates[meshIndex].instanceOffset + localIndex] = objectState.instanceIndex;
 }

@@ -104,9 +104,9 @@ Renderer::Renderer(Device *device)
 	, createAABBRootSignature_(device->GetCreateAABBRootSignature())
 	, depthStencilCopyRootSignature_(device->GetDepthStencilCopyRootSignature())
 	, generateHiZMipMapRootSignature_(device->GetGenerateHiZMipMapRootSignature())
-	, clearMeshCommandStatesRootSignature_(device->GetClearMeshCommandStatesRootSignature())
+	, clearIndirectCommandStatesRootSignature_(device->GetClearIndirectCommandStatesRootSignature())
 	, meshCullingRootSignature_(device->GetMeshCullingRootSignature())
-	, prefixSumRootSignature_(device->GetPrefixSumRootSignature())
+	, calculateInstanceOffsetRootSignature_(device->GetCalculateInstanceOffsetRootSignature())
 	, setInstanceCountRootSignature_(device->GetSetInstanceCountRootSignature())
 	, setInstanceIndexRootSignature_(device->GetSetInstanceIndexRootSignature())
 	, footprintRootSignature_(device->GetFootprintRootSignature())
@@ -284,17 +284,17 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Microsoft::WRL::ComPtr<IDxcBlob> generateHiZMipMapCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/GenerateHiZMipMap.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(generateHiZMipMapCSBlob);
 
-	// メッシュコマンドステートのクリア用シェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> clearMeshCommandStatesCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/ClearMeshCommandStates.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(clearMeshCommandStatesCSBlob);
+	// 間接コマンド用集計状態データのクリア用シェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> clearIndirectCommandStatesCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/ClearIndirectCommandStates.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(clearIndirectCommandStatesCSBlob);
 
 	// メッシュカリングのシェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> meshCullingCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/MeshCulling.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
 	assert(meshCullingCSBlob);
 
-	// 累積和計算用シェーダーのコンパイル
-	Microsoft::WRL::ComPtr<IDxcBlob> prefixSumCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/PrefixSum.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
-	assert(prefixSumCSBlob);
+	// インスタンスオフセットの計算用シェーダーのコンパイル
+	Microsoft::WRL::ComPtr<IDxcBlob> calculateInstanceOffsetCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/CalculateInstanceOffset.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
+	assert(calculateInstanceOffsetCSBlob);
 
 	// インスタンス数の反映用シェーダーのコンパイル
 	Microsoft::WRL::ComPtr<IDxcBlob> setInstanceCountCSBlob = PipelineState::CompileShader(logStream, L"resources/shaders/SetInstanceCount.CS.hlsl", L"cs_6_0", dxcUtils, dxcCompiler, includeHandler);
@@ -516,12 +516,12 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create GenerateHiZMipMapPipelineState\n");
 	generateHiZMipMapPipelineState_->SetName(L"GenerateHiZMipMapPipelineState");
 
-	// メッシュコマンドステートのクリア用パイプラインステートの生成
-	clearMeshCommandStatesPipelineState_ = PipelineState()
-		.SetComputeShader(clearMeshCommandStatesCSBlob->GetBufferPointer(), clearMeshCommandStatesCSBlob->GetBufferSize())	// コンピュートシェーダー
-		.Create(device_->GetDevice(), clearMeshCommandStatesRootSignature_);
-	Logger::Log(logStream, "Create ClearMeshCommandStatesPipelineState\n");
-	clearMeshCommandStatesPipelineState_->SetName(L"ClearMeshCommandStatesPipelineState");
+	// 間接コマンド用集計状態データのクリア用パイプラインステートの生成
+	clearIndirectCommandStatesPipelineState_ = PipelineState()
+		.SetComputeShader(clearIndirectCommandStatesCSBlob->GetBufferPointer(), clearIndirectCommandStatesCSBlob->GetBufferSize())	// コンピュートシェーダー
+		.Create(device_->GetDevice(), clearIndirectCommandStatesRootSignature_);
+	Logger::Log(logStream, "Create ClearIndirectCommandStatesPipelineState\n");
+	clearIndirectCommandStatesPipelineState_->SetName(L"ClearIndirectCommandStatesPipelineState");
 
 	// メッシュカリング用パイプラインステートの生成
 	meshCullingPipelineState_ = PipelineState()
@@ -530,12 +530,12 @@ void Renderer::Initialize(std::ofstream &logStream) {
 	Logger::Log(logStream, "Create MeshCullingPipelineState\n");
 	meshCullingPipelineState_->SetName(L"MeshCullingPipelineState");
 
-	// 累積和計算用パイプラインステートの生成
-	prefixSumPipelineState_ = PipelineState()
-		.SetComputeShader(prefixSumCSBlob->GetBufferPointer(), prefixSumCSBlob->GetBufferSize())	// コンピュートシェーダー
-		.Create(device_->GetDevice(), prefixSumRootSignature_);
-	Logger::Log(logStream, "Create PrefixSumPipelineState\n");
-	prefixSumPipelineState_->SetName(L"PrefixSumPipelineState");
+	// インスタンスオフセットの計算用パイプラインステートの生成
+	calculateInstanceOffsetPipelineState_ = PipelineState()
+		.SetComputeShader(calculateInstanceOffsetCSBlob->GetBufferPointer(), calculateInstanceOffsetCSBlob->GetBufferSize())	// コンピュートシェーダー
+		.Create(device_->GetDevice(), calculateInstanceOffsetRootSignature_);
+	Logger::Log(logStream, "Create CalculateInstanceOffsetPipelineState\n");
+	calculateInstanceOffsetPipelineState_->SetName(L"CalculateInstanceOffsetPipelineState");
 
 	// インスタンス数の反映用パイプラインステートの生成
 	setInstanceCountPipelineState_ = PipelineState()
@@ -598,14 +598,19 @@ void Renderer::InitializeParticle() {
 	ID3D12DescriptorHeap *descriptorHeaps[] = { gpuCbvSrvUavDescriptorHeap_->GetDescriptorHeap() };
 	commandList_->SetDescriptorHeaps(1, descriptorHeaps);
 
+	// RootSignatureとPipelineStateを設定する
 	commandList_->SetComputeRootSignature(initializeParticleRootSignature_);
 	commandList_->SetPipelineState(initializeParticlePipelineState_.Get());
 
+	// リソースバインディング
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetFreeListIndexHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetFreeListHandle());
 
 	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
+		// リソースバインディング
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, particleGroup->uavHandle);
+
+		// 実行
 		commandList_->Dispatch(1, 1, 1);
 		}, exclude<Disabled>());
 }
@@ -629,14 +634,14 @@ void Renderer::Render() {
 	// HiZミップマップの生成
 	GenerateHiZMipMap();
 
-	// メッシュコマンドステートのクリア
-	ClearMeshCommandStates();
+	// 間接コマンド用集計状態データのクリア
+	ClearIndirectCommandStates();
 
 	// メッシュカリングの実行
 	MeshCulling();
 
 	// 累積和計算の実行
-	PrefixSum();
+	CalculateInstanceOffset();
 
 	// インスタンス数の反映
 	SetInstanceCount();
@@ -722,91 +727,130 @@ void Renderer::EmitParticle() {
 	ID3D12DescriptorHeap *descriptorHeaps[] = { gpuCbvSrvUavDescriptorHeap_->GetDescriptorHeap() };
 	commandList_->SetDescriptorHeaps(1, descriptorHeaps);
 
+	// RootSignatureとPipelineStateを設定する
 	commandList_->SetComputeRootSignature(emitParticleRootSignature_);
 	commandList_->SetPipelineState(emitParticlePipelineState_.Get());
 
+	// リソースバインディング
 	world_->GetConstantBuffer(ConstantBufferType::kEmitterSphere)->BindToCompute(0, 0);
 	world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToCompute(1, 0);
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetFreeListIndexHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetFreeListHandle());
 
 	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
+		// リソースバインディング
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, particleGroup->uavHandle);
+
+		// 実行
 		commandList_->Dispatch(1, 1, 1);
+
+		// UAVバリアの設定
 		particleManager_->GetParticleResource(particleGroup->resourceHandle)->UAVBarrier();
 		}, exclude<Disabled>());
 }
 
 void Renderer::UpdateParticle() {
+	// RootSignatureとPipelineStateを設定する
 	commandList_->SetComputeRootSignature(updateParticleRootSignature_);
 	commandList_->SetPipelineState(updateParticlePipelineState_.Get());
 
+	// リソースバインディング
 	world_->GetConstantBuffer(ConstantBufferType::kPerFrame)->BindToCompute(0, 0);
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetFreeListIndexHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetFreeListHandle());
 
 	registry_->ForEach<ParticleGroup>([&](uint32_t entity, ParticleGroup *particleGroup) {
+		// リソースバインディング
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, particleGroup->uavHandle);
+
+		// 実行
 		commandList_->Dispatch(1, 1, 1);
 		}, exclude<Disabled>());
 }
 
 void Renderer::Skinning() {
+	// RootSignatureとPipelineStateを設定する
 	commandList_->SetComputeRootSignature(skinningRootSignature_);
 	commandList_->SetPipelineState(skinningPipelineState_.Get());
 
 	registry_->ForEach<Model, SkinMesh>([&](uint32_t entity, Model *model, SkinMesh *skinMesh) {
+		// リソースバインディング
 		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
-		size_t vertexCount = meshManager_->GetVertexCount(modelAsset->modelData.meshes.back().lods.back().meshName);
+		size_t vertexCount = meshManager_->GetVertexCount(modelAsset->modelData.meshes.back().meshName);
 		commandList_->SetComputeRoot32BitConstants(0, 1, &vertexCount, 0);
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, skinClusterManager_->GetPaletteSRVHandle(modelAsset->skinClusterHandle));
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, skinClusterManager_->GetVertexSRVHandle(modelAsset->skinClusterHandle));
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, skinClusterManager_->GetInfluenceSRVHandle(modelAsset->skinClusterHandle));
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, skinClusterManager_->GetVertexUAVHandle(modelAsset->skinClusterHandle));
+
+		// 実行
 		commandList_->Dispatch((static_cast<uint32_t>(vertexCount) + 1023) / 1024, 1, 1);
 		}, exclude<Disabled>());
 }
 
 void Renderer::CreateAABB() {
-	if (registry_->GetComponentCount<DirtyCullingData>() > 0) {
-		commandList_->SetComputeRootSignature(createAABBRootSignature_);
-		commandList_->SetPipelineState(createAABBPipelineState_.Get());
-
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, world_->GetStructuredBufferHandle(StructuredBufferType::kMeshInfoForAABB));
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetStructuredBufferHandle(StructuredBufferType::kVertexDataForAABB));
-		gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetAABBUAVHandle());
-		uint32_t meshInfoForAABBCount = world_->GetMeshInfoForAABBCounter();
-		if (meshInfoForAABBCount > 0) {
-			commandList_->Dispatch(meshInfoForAABBCount, 1, 1);
-		}
+	if (registry_->GetComponentCount<DirtyIndirectCommandData>() < 1) {
+		return;
 	}
+
+	uint32_t meshCount = world_->GetMeshCounter();
+	if (meshCount < 1) {
+		return;
+	}
+
+	// RootSignatureとPipelineStateの設定
+	commandList_->SetComputeRootSignature(createAABBRootSignature_);
+	commandList_->SetPipelineState(createAABBPipelineState_.Get());
+
+	// リソースバインディング
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, world_->GetStructuredBufferHandle(StructuredBufferType::kMeshInfoForAABB));
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetStructuredBufferHandle(StructuredBufferType::kVertexDataForAABB));
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetAABBUAVHandle());
+
+	// 実行
+	commandList_->Dispatch(meshCount, 1, 1);
 }
 
 void Renderer::CopyDepthToHiZ() {
-	// 深度ステンシルテクスチャコピー用ルートシグネチャとパイプラインステートの設定
+	float viewportWidth = device_->GetViewport().Width;
+	if (viewportWidth <= 0.0f) {
+		return;
+	}
+
+	float viewportHeight = device_->GetViewport().Height;
+	if (viewportHeight <= 0.0f) {
+		return;
+	}
+
+	// RootSignatureとPipelineStateの設定
 	commandList_->SetComputeRootSignature(depthStencilCopyRootSignature_);
 	commandList_->SetPipelineState(depthStencilCopyPipelineState_.Get());
 
+	// リソースバインディング
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, world_->GetPreviousMainCameraDepthStencilTextureSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetHiZTextureUAVHandle());
+
+	// リソースバリアの遷移
 	Resource *depthStencilTexture = device_->GetPreviousMainCameraDepthStencilTexture();
 	Resource *hiZTexture = world_->GetHiZTexture();
 	depthStencilTexture->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	hiZTexture->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 0);
 
-	// 各種バッファのSRV/UAVを設定
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, world_->GetPreviousMainCameraDepthStencilTextureSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetHiZTextureUAVHandle());
-
-	// コピーの実行
-	uint32_t groupsX = (static_cast<uint32_t>(device_->GetViewport().Width) + 7) / 8;
-	uint32_t groupsY = (static_cast<uint32_t>(device_->GetViewport().Height) + 7) / 8;
+	// 実行
+	uint32_t groupsX = (static_cast<uint32_t>(viewportWidth) + 7) / 8;
+	uint32_t groupsY = (static_cast<uint32_t>(viewportHeight) + 7) / 8;
 	commandList_->Dispatch(groupsX, groupsY, 1);
+
+	// UAVバリアの設定
 	hiZTexture->UAVBarrier();
+
+	// リソースバリアの遷移
 	hiZTexture->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, 0);
 	depthStencilTexture->TransitionBarrier(D3D12_RESOURCE_STATE_COPY_DEST);
 }
 
 void Renderer::GenerateHiZMipMap() {
-	// HiZミップマップ生成用ルートシグネチャとパイプラインステートの設定
+	// RootSignatureとPipelineStateの設定
 	commandList_->SetComputeRootSignature(generateHiZMipMapRootSignature_);
 	commandList_->SetPipelineState(generateHiZMipMapPipelineState_.Get());
 
@@ -816,10 +860,10 @@ void Renderer::GenerateHiZMipMap() {
 	// ミップマップレベルごとに処理を実行
 	uint32_t mipLevels = world_->GetMipLevels();
 	for (uint32_t level = 0; level < mipLevels - 1; level++) {
-		// ミップマップレベルの遷移バリアの設定
+		// ミップマップレベルのリソースバリアの遷移
 		hiZTexture->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, level + 1);
 
-		// 各種バッファのSRV/UAVを設定
+		// リソースバインディング
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(0, world_->GetHiZMipMapReadHandle(level));
 		gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetHiZMipMapWriteHandle(level));
 
@@ -834,64 +878,63 @@ void Renderer::GenerateHiZMipMap() {
 
 		// UAVバリアの設定
 		hiZTexture->UAVBarrier();
+
+		// ミップマップレベルのリソースバリアの遷移
 		hiZTexture->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, level + 1);
 	}
 }
 
-void Renderer::ClearMeshCommandStates() {
-	commandList_->SetComputeRootSignature(clearMeshCommandStatesRootSignature_);
-	commandList_->SetPipelineState(clearMeshCommandStatesPipelineState_.Get());
-
-	uint32_t meshLODCounter = world_->GetMeshLODCounter();
-	commandList_->SetComputeRoot32BitConstants(0, 1, &meshLODCounter, 0);
-
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetMeshCommandStateUAVHandle());
-
-	world_->GetMeshCommandStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-	uint32_t dispatchCount = (meshLODCounter + 63) / 64;
-	if (dispatchCount > 0) {
-		commandList_->Dispatch(dispatchCount, 1, 1);
-		world_->GetMeshCommandStateBuffer()->UAVBarrier();
+void Renderer::ClearIndirectCommandStates() {
+	uint32_t meshCount = world_->GetMeshCounter();
+	if (meshCount < 0) {
+		return;
 	}
+
+	// RootSignatureとPipelineStateの設定
+	commandList_->SetComputeRootSignature(clearIndirectCommandStatesRootSignature_);
+	commandList_->SetPipelineState(clearIndirectCommandStatesPipelineState_.Get());
+
+	// リソースバインディング
+	commandList_->SetComputeRoot32BitConstants(0, 1, &meshCount, 0);
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetIndirectCommandStateUAVHandle());
+
+	// リソースバリアの遷移
+	world_->GetIndirectCommandStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+	// 実行
+	commandList_->Dispatch((meshCount + 63) / 64, 1, 1);
+
+	// UAVバリアの設定
+	world_->GetIndirectCommandStateBuffer()->UAVBarrier();
 }
 
 void Renderer::MeshCulling() {
-	// メッシュカリング用ルートシグネチャとパイプラインステートの設定
+	CullingConstantsData cullingConstantsData = world_->GetCullingConstantsData();
+	if (cullingConstantsData.objectCount < 1) {
+		return;
+	}
+
+	// RootSignatureとPipelineStateの設定
 	commandList_->SetComputeRootSignature(meshCullingRootSignature_);
 	commandList_->SetPipelineState(meshCullingPipelineState_.Get());
 
-	// CBVの設定
-	world_->GetConstantBuffer(ConstantBufferType::kFrustum)->BindToCompute(0, 0);
-	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToCompute(1, 1);
-	world_->GetConstantBuffer(ConstantBufferType::kCameraPosition)->BindToCompute(2, 0);
-
-	// メッシュ数の設定
-	CullingConstantsData cullingConstantsData = world_->GetCullingConstantsData();
-	commandList_->SetComputeRoot32BitConstants(3, sizeof(CullingConstantsData) / sizeof(uint32_t), &cullingConstantsData, 0);
-
-	// 各種バッファのSRV/UAVを設定
+	// リソースバインディング
+	commandList_->SetComputeRoot32BitConstants(0, sizeof(CullingConstantsData) / sizeof(uint32_t), &cullingConstantsData, 0);
+	world_->GetConstantBuffer(ConstantBufferType::kFrustum)->BindToCompute(1, 0);
+	world_->GetConstantBuffer(ConstantBufferType::kViewProjection)->BindToCompute(2, 1);
+	world_->GetConstantBuffer(ConstantBufferType::kCameraPosition)->BindToCompute(3, 0);
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(4, world_->GetStructuredBufferHandle(StructuredBufferType::kCullingObjectData));
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetStructuredBufferHandle(StructuredBufferType::kCullingMeshData));
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetStructuredBufferHandle(StructuredBufferType::kMeshLOD));
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetAABBSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetHiZTextureSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetMeshCommandStateUAVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(10, world_->GetMeshLODStateUAVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(11, world_->GetProcessedCommandHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(12, world_->GetCommandCounterHandle());
-
-	// コマンドバッファの転送
-	if (registry_->GetComponentCount<DirtyMeshLOD>() > 0) {
-		Resource *indirectCommandStructuredBuffer = world_->GetStructuredBuffer(StructuredBufferType::kMeshLOD);
-		indirectCommandStructuredBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_COPY_DEST);
-		indirectCommandStructuredBuffer->CopyFrom(world_->GetCommandUploadBuffer()->GetResource(), 0, 0, sizeof(MeshLOD) * world_->GetMeshLODCounter());
-		indirectCommandStructuredBuffer->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-	}
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(5, world_->GetAABBSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(6, world_->GetStructuredBufferHandle(StructuredBufferType::kIndirectCommandMeshData));
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(7, world_->GetHiZTextureSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(8, world_->GetObjectStateUAVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(9, world_->GetIndirectCommandStateUAVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(10, world_->GetProcessedCommandHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(11, world_->GetCommandCounterHandle());
 
 	// メッシュカリングの実行前にUAVを遷移する
 	world_->GetProcessedCommandBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	world_->GetMeshLODStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	world_->GetObjectStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	world_->GetCommandCounterBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
 	// メッシュカリングの実行前にカウンタをクリアする
@@ -905,77 +948,95 @@ void Renderer::MeshCulling() {
 		nullptr
 	);
 
+	// UAVバリアの設定
 	world_->GetCommandCounterBuffer()->UAVBarrier();
 
 	// メッシュカリングの実行
-	uint32_t dispatchCount = (cullingConstantsData.meshCount + 63) / 64;
-	if (dispatchCount > 0) {
-		commandList_->Dispatch(dispatchCount, 1, 1);
-		world_->GetProcessedCommandBuffer()->UAVBarrier();
-		world_->GetMeshCommandStateBuffer()->UAVBarrier();
-		world_->GetMeshLODStateBuffer()->UAVBarrier();
-		world_->GetCommandCounterBuffer()->UAVBarrier();
-	}
+	uint32_t dispatchCount = (cullingConstantsData.objectCount + 63) / 64;
+	commandList_->Dispatch(dispatchCount, 1, 1);
+
+	// UAVバリアの設定
+	world_->GetProcessedCommandBuffer()->UAVBarrier();
+	world_->GetIndirectCommandStateBuffer()->UAVBarrier();
+	world_->GetObjectStateBuffer()->UAVBarrier();
+	world_->GetCommandCounterBuffer()->UAVBarrier();
 }
 
-void Renderer::PrefixSum() {
-	commandList_->SetComputeRootSignature(prefixSumRootSignature_);
-	commandList_->SetPipelineState(prefixSumPipelineState_.Get());
+void Renderer::CalculateInstanceOffset() {
+	// RootSignatureとPipelineStateの設定
+	commandList_->SetComputeRootSignature(calculateInstanceOffsetRootSignature_);
+	commandList_->SetPipelineState(calculateInstanceOffsetPipelineState_.Get());
 
-	uint32_t meshLODCounter = world_->GetMeshLODCounter();
-	commandList_->SetComputeRoot32BitConstants(0, 1, &meshLODCounter, 0);
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetMeshCommandStateUAVHandle());
+	// リソースバインディング
+	uint32_t meshCount = world_->GetMeshCounter();
+	commandList_->SetComputeRoot32BitConstants(0, 1, &meshCount, 0);
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetIndirectCommandStateUAVHandle());
 
+	// 実行
 	commandList_->Dispatch(1, 1, 1);
-	world_->GetMeshCommandStateBuffer()->UAVBarrier();
+
+	// UAVバリアの設定
+	world_->GetIndirectCommandStateBuffer()->UAVBarrier();
 }
 
 void Renderer::SetInstanceCount() {
+	uint32_t meshCount = world_->GetMeshCounter();
+	if (meshCount < 1) {
+		return;
+	}
+
+	// RootSignatureとPipelineStateの設定
 	commandList_->SetComputeRootSignature(setInstanceCountRootSignature_);
 	commandList_->SetPipelineState(setInstanceCountPipelineState_.Get());
 
-	uint32_t meshLODCounter = world_->GetMeshLODCounter();
-	commandList_->SetComputeRoot32BitConstants(0, 1, &meshLODCounter, 0);
-
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetMeshCommandStateSRVHandle());
+	// リソースバインディング
+	commandList_->SetComputeRoot32BitConstants(0, 1, &meshCount, 0);
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetIndirectCommandStateSRVHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetProcessedCommandHandle());
 
-	world_->GetMeshCommandStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	// リソースバリアの遷移
+	world_->GetIndirectCommandStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
-	uint32_t dispatchCount = (meshLODCounter + 63) / 64;
-	if (dispatchCount > 0) {
-		commandList_->Dispatch(dispatchCount, 1, 1);
-	}
+	// 実行
+	uint32_t dispatchCount = (meshCount + 63) / 64;
+	commandList_->Dispatch(dispatchCount, 1, 1);
 }
 
 void Renderer::SetInstanceIndex() {
+	uint32_t meshCount = world_->GetCullingConstantsData().objectCount;
+	if (meshCount < 1) {
+		return;
+	}
+
+	// RootSignatureとPipelineStateの設定
 	commandList_->SetComputeRootSignature(setInstanceIndexRootSignature_);
 	commandList_->SetPipelineState(setInstanceIndexPipelineState_.Get());
 
-	uint32_t meshCount = world_->GetCullingConstantsData().meshCount;
+	// リソースバインディング
 	commandList_->SetComputeRoot32BitConstants(0, 1, &meshCount, 0);
-
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetMeshLODStateSRVHandle());
-	gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetMeshCommandStateUAVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetObjectStateSRVHandle());
+	gpuCbvSrvUavDescriptorHeap_->BindToCompute(2, world_->GetIndirectCommandStateUAVHandle());
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(3, world_->GetProcessedInstanceIndexUAVHandle());
 
-	world_->GetMeshLODStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-	world_->GetMeshCommandStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	// リソースバリアの遷移
+	world_->GetObjectStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	world_->GetIndirectCommandStateBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	world_->GetProcessedInstanceIndexBuffer()->TransitionBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
+	// 実行
 	uint32_t dispatchCount = (meshCount + 63) / 64;
-	if (dispatchCount > 0) {
-		commandList_->Dispatch(dispatchCount, 1, 1);
-		world_->GetProcessedInstanceIndexBuffer()->UAVBarrier();
-	}
+	commandList_->Dispatch(dispatchCount, 1, 1);
+
+	// UAVバリアの設定
+	world_->GetProcessedInstanceIndexBuffer()->UAVBarrier();
 }
 
 void Renderer::Footprint() {
-	// フットプリント用ルートシグネチャとパイプラインステートの設定
+	// RootSignatureとPipelineStateの設定
 	commandList_->SetComputeRootSignature(footprintRootSignature_);
 	commandList_->SetPipelineState(footprintPipelineState_.Get());
 
-	// 各種バッファのSRV/UAVを設定
+	// リソースバインディング
 	gpuCbvSrvUavDescriptorHeap_->BindToCompute(1, world_->GetStructuredBufferHandle(StructuredBufferType::kFootprint));
 	uint32_t groupsZ = footprintManager_->GetCurrentIndex();
 	footprintManager_->RemoveOnceFootprint();
@@ -1022,11 +1083,10 @@ void Renderer::Footprint() {
 }
 
 void Renderer::LoadResultMap() {
-	// フットプリントマップ用ルートシグネチャとパイプラインステートの設定
+	// RootSignatureとPipelineStateの設定
 	commandList_->SetComputeRootSignature(footprintMapRootSignature_);
 	commandList_->SetPipelineState(footprintMapPipelineState_.Get());
 
-	// 各種バッファのSRV/UAVを設定
 	registry_->ForEach<Model, FootprintMap>([&](uint32_t entity, Model *model, FootprintMap *footprintMap) {
 		// モデルアセットの取得
 		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
@@ -1312,7 +1372,7 @@ void Renderer::DrawSoftBody(uint32_t cameraBufferLocationIndex) {
 	registry_->ForEach<Model, SoftBodyDataForCPU>([&](uint32_t entity, Model *model, SoftBodyDataForCPU *softBodyData) {
 		ModelAsset *modelAsset = modelManager_->FindModel(model->name);
 		world_->GetConstantBuffer(ConstantBufferType::kSoftBodyData)->BindToGraphics(1, 0);
-		meshManager_->Draw(modelAsset->modelData.meshes.back().lods.back().meshName, 1);
+		meshManager_->Draw(modelAsset->modelData.meshes.back().meshName, 1);
 		}, exclude<Disabled>());
 }
 

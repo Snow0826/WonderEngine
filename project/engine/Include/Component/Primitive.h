@@ -8,7 +8,6 @@ struct Primitive final {
 	std::string meshName;		// メッシュ名
 	uint32_t textureHandle = 0;	// テクスチャハンドル
 	bool enableMipMaps = false;	// ミップマップの有効化
-	float error = 0.0f;			// LODエラー
 };
 
 class MeshManager;

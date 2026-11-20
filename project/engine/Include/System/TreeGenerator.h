@@ -136,6 +136,32 @@ public:
 	/// @return 生成された木のプリミティブ
 	Primitive Generate(const TreeConfig &tree);
 
+	/// @brief 葉の生成
+	/// @param tree 木の設定
+	void GenerateLeaves(const TreeConfig &tree);
+
+	/// @brief 葉の位置を取得
+	/// @param leafIndex 葉のインデックス
+	/// @return 葉の位置
+	Vector3 GetLeafPosition(uint32_t leafIndex) {
+		return leaves_[leafIndex].position;
+	}
+
+	/// @brief 枝の位置を取得
+	/// @param branchIndex 枝のインデックス
+	/// @return 枝の位置
+	Vector3 GetBranchPosition(uint32_t branchIndex) {
+		return branches_[branchIndex]->position;
+	}
+
+	/// @brief 葉の数を取得
+	/// @return 葉の数
+	size_t GetLeafCount() const { return leaves_.size(); }
+
+	/// @brief 枝の数を取得
+	/// @return 枝の数
+	size_t GetBranchCount() const { return branches_.size(); }
+
 private:
 	PrimitiveGenerator *primitiveGenerator_ = nullptr;	// プリミティブジェネレーター
 	std::ofstream *logStream_ = nullptr;				// ログストリーム
@@ -146,11 +172,6 @@ private:
 	std::mt19937 randomEngine_;	// 乱数生成器
 	uint32_t treeMeshCounter_ = 0;	// 木のメッシュカウンター
 	CPUTimer timer_;	// CPUタイマー
-
-	/// @brief 葉の生成
-	/// @param crown 樹冠
-	/// @param leafCount 葉の数
-	void GenerateLeaves(const TreeCrown &crown, uint32_t leafCount);
 
 	/// @brief 根の枝の生成
 	void GenerateRootBranch();

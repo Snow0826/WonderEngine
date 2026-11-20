@@ -23,25 +23,25 @@ struct DrawIndexedArguments
     
 struct IndirectCommand
 {
-    uint meshOffset;
+    uint instanceOffset;
     VertexBufferView vertexBufferView;
     IndexBufferView indexBufferView;
     DrawIndexedArguments drawIndexedArguments;
 };
 
-struct MeshCommandState
+struct ObjectState
+{
+    uint visible;
+    uint meshIndex;
+    uint instanceIndex;
+};
+
+struct IndirectCommandState
 {
     uint commandIndex;
     uint instanceCount;
     uint currentOffset;
-    uint startInstanceLocation;
-};
-
-struct MeshLODState
-{
-    uint meshLODIndex;
-    uint visible;
-    uint instanceIndex;
+    uint instanceOffset;
 };
 
 static const uint kInvalidCommandIndex = (uint) -1;

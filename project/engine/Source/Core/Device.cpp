@@ -408,46 +408,45 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 	Logger::Log(logStream, "Create GenerateHiZMipMapRootSignature\n");
 	generateHiZMipMapRootSignature_->SetName(L"GenerateHiZMipMapRootSignature");
 
-	// メッシュコマンドステートのクリア用ルートシグネチャの作成
-	clearMeshCommandStatesRootSignature_ = RootSignature()
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:MeshLODCount
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:MeshCommandState
+	// 間接コマンド用集計状態データのクリア用ルートシグネチャの作成
+	clearIndirectCommandStatesRootSignature_ = RootSignature()
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:MeshCount
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:IndirectCommandState
 		.Create(logStream, device_);
-	Logger::Log(logStream, "Create ClearMeshCommandStatesRootSignature\n");
-	clearMeshCommandStatesRootSignature_->SetName(L"ClearMeshCommandStatesRootSignature");
+	Logger::Log(logStream, "Create ClearIndirectCommandStatesRootSignature\n");
+	clearIndirectCommandStatesRootSignature_->SetName(L"ClearIndirectCommandStatesRootSignature");
 
 	// メッシュカリング用ルートシグネチャの作成
 	meshCullingRootSignature_ = RootSignature()
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 0)												// 0:Frustum
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 1)												// 1:ViewProjection
-		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 2)												// 2:CameraPosition
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 3, 40)									// 3:Constant
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 40)									// 0:Constant
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 1)												// 1:Frustum
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 2)												// 2:ViewProjection
+		.AddCBuffer(D3D12_SHADER_VISIBILITY_ALL, 3)												// 3:CameraPosition
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 4:Object
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 5:Mesh
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 6:MeshLOD
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 3)	// 7:AABB
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 4)	// 8:HiZTexture
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 9:MeshCommandState
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 10:MeshLODState
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 11:ProcessedIndirectCommand
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 3)	// 12:ProcessedIndirectCommandCounter
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 5:AABB
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 6:Mesh
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 3)	// 7:HiZTexture
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 8:ObjectState
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 9:IndirectCommandState
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 2)	// 10:ProcessedIndirectCommand
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 3)	// 11:ProcessedIndirectCommandCounter
 		.AddSampler(D3D12_FILTER_MIN_MAG_MIP_POINT, D3D12_TEXTURE_ADDRESS_MODE_CLAMP, D3D12_COMPARISON_FUNC_NEVER, D3D12_FLOAT32_MAX, 0, D3D12_SHADER_VISIBILITY_ALL)	// Samplerを追加
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create MeshCullingRootSignature\n");
 	meshCullingRootSignature_->SetName(L"MeshCullingRootSignature");
 
-	// 累積和計算用ルートシグネチャの作成
-	prefixSumRootSignature_ = RootSignature()
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:MeshLODCount
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:MeshCommandState
+	// インスタンスオフセットの計算用ルートシグネチャの作成
+	calculateInstanceOffsetRootSignature_ = RootSignature()
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:MeshCount
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:IndirectCommandState
 		.Create(logStream, device_);
-	Logger::Log(logStream, "Create PrefixSumRootSignature\n");
-	prefixSumRootSignature_->SetName(L"PrefixSumRootSignature");
+	Logger::Log(logStream, "Create CalculateInstanceOffsetRootSignature\n");
+	calculateInstanceOffsetRootSignature_->SetName(L"CalculateInstanceOffsetRootSignature");
 
 	// インスタンス数の反映用ルートシグネチャの作成
 	setInstanceCountRootSignature_ = RootSignature()
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:MeshLODCount
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:MeshCommandState
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:MeshCount
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:IndirectCommandState
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 2:IndirectCommand
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create SetInstanceCountRootSignature\n");
@@ -455,9 +454,9 @@ void Device::Initialize(std::ofstream &logStream, const Window &window) {
 
 	// インスタンスインデックスの反映用ルートシグネチャの作成
 	setInstanceIndexRootSignature_ = RootSignature()
-		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:MeshCount
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:MeshLODState
-		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 2:MeshCommandState
+		.Add32BitConstant(D3D12_SHADER_VISIBILITY_ALL, 0, 1)									// 0:ObjectCount
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 1:ObjectState
+		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 0)	// 2:IndirectCommandState
 		.AddDescriptorTable(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, D3D12_SHADER_VISIBILITY_ALL, 1)	// 3:ProcessedInstanceIndex
 		.Create(logStream, device_);
 	Logger::Log(logStream, "Create SetInstanceIndexRootSignature\n");

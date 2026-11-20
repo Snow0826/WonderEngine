@@ -17,7 +17,6 @@ Primitive PrimitiveGenerator::CreatePlane(const std::string &meshName, const std
 		.meshName = meshName,														// メッシュ名
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
-		.error = 0.0f,																// LODエラー
 	};
 	return plane;
 }
@@ -29,7 +28,6 @@ Primitive PrimitiveGenerator::CreateBox(const std::string &meshName, const std::
 		.meshName = meshName,														// メッシュ名
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
-		.error = 0.0f,																// LODエラー
 	};
 	return box;
 }
@@ -41,7 +39,6 @@ Primitive PrimitiveGenerator::CreateRing(const std::string &meshName, uint32_t d
 		.meshName = meshName,														// メッシュ名
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
-		.error = 0.0f,																// LODエラー
 	};
 	return ring;
 }
@@ -53,7 +50,6 @@ Primitive PrimitiveGenerator::CreateCylinder(const std::string &meshName, uint32
 		.meshName = meshName,														// メッシュ名
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
-		.error = 0.0f,																// LODエラー
 	};
 	return cylinder;
 }
@@ -65,7 +61,6 @@ Primitive PrimitiveGenerator::CreateTree(const std::string &meshName, const Bran
 		.meshName = meshName,														// メッシュ名
 		.textureHandle = textureManager_->GetTextureReadHandle(textureFileName),	// テクスチャハンドル
 		.enableMipMaps = true,														// ミップマップの有効化
-		.error = 0.0f,																// LODエラー
 	};
 	return tree;
 }
@@ -78,8 +73,7 @@ void PrimitiveInspector::Draw([[maybe_unused]] uint32_t entity) {
 				TransformSystem transformSystem{ registry_ };
 				transformSystem.MarkDirty(entity);
 				registry_->AddComponent(entity, DirtyTextureData{});
-				registry_->AddComponent(entity, DirtyMeshLOD{});
-				registry_->AddComponent(entity, DirtyCullingData{});
+				registry_->AddComponent(entity, DirtyIndirectCommandData{});
 			}
 
 			if (ImGui::TreeNode(primitive->meshName.c_str())) {

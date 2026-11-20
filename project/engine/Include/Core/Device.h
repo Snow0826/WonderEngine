@@ -157,13 +157,13 @@ public:
 	/// @return メッシュカリング用ルートシグネチャ
 	ID3D12RootSignature *GetMeshCullingRootSignature() const { return meshCullingRootSignature_.Get(); }
 
-	/// @brief メッシュコマンドステートのクリア用ルートシグネチャを取得
-	/// @return メッシュコマンドステートのクリア用ルートシグネチャ
-	ID3D12RootSignature *GetClearMeshCommandStatesRootSignature() const { return clearMeshCommandStatesRootSignature_.Get(); }
+	/// @brief 間接コマンド用集計状態データのクリア用ルートシグネチャを取得
+	/// @return 間接コマンド用集計状態データのクリア用ルートシグネチャ
+	ID3D12RootSignature *GetClearIndirectCommandStatesRootSignature() const { return clearIndirectCommandStatesRootSignature_.Get(); }
 
-	/// @brief 累積和計算用ルートシグネチャを取得
-	/// @return 累積和計算用ルートシグネチャ
-	ID3D12RootSignature *GetPrefixSumRootSignature() const { return prefixSumRootSignature_.Get(); }
+	/// @brief インスタンスオフセットの計算用ルートシグネチャを取得
+	/// @return インスタンスオフセットの計算用ルートシグネチャ
+	ID3D12RootSignature *GetCalculateInstanceOffsetRootSignature() const { return calculateInstanceOffsetRootSignature_.Get(); }
 
 	/// @brief インスタンス数の反映用ルートシグネチャを取得
 	/// @return インスタンス数の反映用ルートシグネチャ
@@ -183,54 +183,54 @@ public:
 
 private:
 	using PostEffectRootSignature = std::array<Microsoft::WRL::ComPtr<ID3D12RootSignature>, static_cast<uint32_t>(PostEffect::kCountOfPostEffect)>;
-	std::chrono::steady_clock::time_point reference_;											// 基準時間(FPS固定用)
-	Microsoft::WRL::ComPtr<IDXGIFactory7> dxgiFactory_ = nullptr;								// DXGIファクトリ
-	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter_ = nullptr;									// アダプタ
-	Microsoft::WRL::ComPtr<ID3D12Device> device_ = nullptr;										// デバイス
-	Microsoft::WRL::ComPtr<ID3D12InfoQueue> infoQueue_ = nullptr;								// デバッグ用の情報キュー
-	Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue_ = nullptr;							// コマンドキュー
-	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator_ = nullptr;					// コマンドアロケータ
-	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList_ = nullptr;					// コマンドリスト
-	Microsoft::WRL::ComPtr<ID3D12Fence> fence_ = nullptr;										// フェンス
-	uint32_t fenceValue_ = 0;																	// フェンスの値
-	HANDLE fenceEvent_{};																		// フェンスを待つイベント
-	Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain_ = nullptr;								// スワップチェーン
-	DescriptorHeap rtvDescriptorHeap_;															// RTV用のディスクリプタヒープ
-	DescriptorHeap gpuCbvSrvUavDescriptorHeap_;													// GPU用のCBV,SRV,UAV用のディスクリプタヒープ
-	DescriptorHeap cpuCbvSrvUavDescriptorHeap_;													// CPU用のCBV,SRV,UAV用のディスクリプタヒープ
-	DescriptorHeap dsvDescriptorHeap_;															// DSV用のディスクリプタヒープ
-	std::vector<uint32_t> swapChainResourceRTVHandles_;											// スワップチェーンリソースRTVハンドル
-	uint32_t mainCameraDepthStencilTextureDSVHandle_ = 0;										// メインカメラ用深度ステンシルテクスチャDSVハンドル
-	uint32_t debugCameraDepthStencilTextureDSVHandle_ = 0;										// デバッグカメラ用深度ステンシルテクスチャDSVハンドル
-	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> swapChainResources_;					// スワップチェーンリソース
-	std::unique_ptr<Resource> previousMainCameraDepthStencilTexture_ = nullptr;					// 前フレームのメインカメラ用深度ステンシルテクスチャ
-	std::unique_ptr<Resource> mainCameraDepthStencilTexture_ = nullptr;							// メインカメラ用深度ステンシルテクスチャ
-	std::unique_ptr<Resource> debugCameraDepthStencilTexture_ = nullptr;						// デバッグカメラ用深度ステンシルテクスチャ
-	PostEffectRootSignature postEffectRootSignature_;											// ポストエフェクト用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> object3dRootSignature_ = nullptr;				// Object3d用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringObject3dRootSignature_ = nullptr;			// RingObject3d用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> particleRootSignature_ = nullptr;				// Particle用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringParticleRootSignature_ = nullptr;			// RingParticle用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> lineRootSignature_ = nullptr;					// Line用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> skyboxRootSignature_ = nullptr;					// Skybox用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> softBodyRootSignature_ = nullptr;				// SoftBody用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> raymarchingRootSignature_ = nullptr;			// Raymarching用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> skinningRootSignature_ = nullptr;				// スキニング用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> initializeParticleRootSignature_ = nullptr;		// パーティクル初期化用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> emitParticleRootSignature_ = nullptr;			// パーティクル発生用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> updateParticleRootSignature_ = nullptr;			// パーティクル更新用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> createAABBRootSignature_ = nullptr;				// AABB生成用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthStencilCopyRootSignature_ = nullptr;		// 深度ステンシルテクスチャコピー用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> generateHiZMipMapRootSignature_ = nullptr;		// HiZミップマップ生成用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> clearMeshCommandStatesRootSignature_ = nullptr;	// メッシュコマンドステートのクリア用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> meshCullingRootSignature_ = nullptr;			// メッシュカリング用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> prefixSumRootSignature_ = nullptr;				// 累積和計算用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> setInstanceCountRootSignature_ = nullptr;		// インスタンス数の反映用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> setInstanceIndexRootSignature_ = nullptr;		// インスタンスインデックスの反映用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> footprintRootSignature_ = nullptr;				// フットプリント用ルートシグネチャ
-	Microsoft::WRL::ComPtr<ID3D12RootSignature> footprintMapRootSignature_ = nullptr;			// フットプリントマップ用ルートシグネチャ
-	D3D12_VIEWPORT viewport_{};																	// ビューポート
-	D3D12_RECT scissorRect_{};																	// シザー矩形
+	std::chrono::steady_clock::time_point reference_;							// 基準時間(FPS固定用)
+	Microsoft::WRL::ComPtr<IDXGIFactory7> dxgiFactory_ = nullptr;				// DXGIファクトリ
+	Microsoft::WRL::ComPtr<IDXGIAdapter4> adapter_ = nullptr;					// アダプタ
+	Microsoft::WRL::ComPtr<ID3D12Device> device_ = nullptr;						// デバイス
+	Microsoft::WRL::ComPtr<ID3D12InfoQueue> infoQueue_ = nullptr;				// デバッグ用の情報キュー
+	Microsoft::WRL::ComPtr<ID3D12CommandQueue> commandQueue_ = nullptr;			// コマンドキュー
+	Microsoft::WRL::ComPtr<ID3D12CommandAllocator> commandAllocator_ = nullptr;	// コマンドアロケータ
+	Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> commandList_ = nullptr;	// コマンドリスト
+	Microsoft::WRL::ComPtr<ID3D12Fence> fence_ = nullptr;						// フェンス
+	uint32_t fenceValue_ = 0;													// フェンスの値
+	HANDLE fenceEvent_{};														// フェンスを待つイベント
+	Microsoft::WRL::ComPtr<IDXGISwapChain4> swapChain_ = nullptr;				// スワップチェーン
+	DescriptorHeap rtvDescriptorHeap_;											// RTV用のディスクリプタヒープ
+	DescriptorHeap gpuCbvSrvUavDescriptorHeap_;									// GPU用のCBV,SRV,UAV用のディスクリプタヒープ
+	DescriptorHeap cpuCbvSrvUavDescriptorHeap_;									// CPU用のCBV,SRV,UAV用のディスクリプタヒープ
+	DescriptorHeap dsvDescriptorHeap_;											// DSV用のディスクリプタヒープ
+	std::vector<uint32_t> swapChainResourceRTVHandles_;							// スワップチェーンリソースRTVハンドル
+	uint32_t mainCameraDepthStencilTextureDSVHandle_ = 0;						// メインカメラ用深度ステンシルテクスチャDSVハンドル
+	uint32_t debugCameraDepthStencilTextureDSVHandle_ = 0;						// デバッグカメラ用深度ステンシルテクスチャDSVハンドル
+	std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> swapChainResources_;	// スワップチェーンリソース
+	std::unique_ptr<Resource> previousMainCameraDepthStencilTexture_ = nullptr;	// 前フレームのメインカメラ用深度ステンシルテクスチャ
+	std::unique_ptr<Resource> mainCameraDepthStencilTexture_ = nullptr;			// メインカメラ用深度ステンシルテクスチャ
+	std::unique_ptr<Resource> debugCameraDepthStencilTexture_ = nullptr;		// デバッグカメラ用深度ステンシルテクスチャ
+	PostEffectRootSignature postEffectRootSignature_;												// ポストエフェクト用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> object3dRootSignature_ = nullptr;					// Object3d用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringObject3dRootSignature_ = nullptr;				// RingObject3d用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> particleRootSignature_ = nullptr;					// Particle用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> ringParticleRootSignature_ = nullptr;				// RingParticle用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> lineRootSignature_ = nullptr;						// Line用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> skyboxRootSignature_ = nullptr;						// Skybox用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> softBodyRootSignature_ = nullptr;					// SoftBody用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> raymarchingRootSignature_ = nullptr;				// Raymarching用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> skinningRootSignature_ = nullptr;					// スキニング用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> initializeParticleRootSignature_ = nullptr;			// パーティクル初期化用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> emitParticleRootSignature_ = nullptr;				// パーティクル発生用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> updateParticleRootSignature_ = nullptr;				// パーティクル更新用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> createAABBRootSignature_ = nullptr;					// AABB生成用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> depthStencilCopyRootSignature_ = nullptr;			// 深度ステンシルテクスチャコピー用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> generateHiZMipMapRootSignature_ = nullptr;			// HiZミップマップ生成用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> clearIndirectCommandStatesRootSignature_ = nullptr;	// 間接コマンド用集計状態データのクリア用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> meshCullingRootSignature_ = nullptr;				// メッシュカリング用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> calculateInstanceOffsetRootSignature_ = nullptr;	// インスタンスオフセットの計算用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> setInstanceCountRootSignature_ = nullptr;			// インスタンス数の反映用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> setInstanceIndexRootSignature_ = nullptr;			// インスタンスインデックスの反映用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> footprintRootSignature_ = nullptr;					// フットプリント用ルートシグネチャ
+	Microsoft::WRL::ComPtr<ID3D12RootSignature> footprintMapRootSignature_ = nullptr;				// フットプリントマップ用ルートシグネチャ
+	D3D12_VIEWPORT viewport_{};	// ビューポート
+	D3D12_RECT scissorRect_{};	// シザー矩形
 
 	/// @brief FPS固定初期化
 	void InitializeFixFPS();

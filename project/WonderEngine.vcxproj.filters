@@ -63,7 +63,6 @@
     <ClCompile Include="game\Source\Model\SkyboxFactory.cpp" />
     <ClCompile Include="engine\Source\Component\Light\PointLight.cpp" />
     <ClCompile Include="engine\Source\Math\Quaternion.cpp" />
-    <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
     <ClCompile Include="engine\Source\System\TreeGenerator.cpp" />
     <ClCompile Include="engine\Source\System\TreeSpeciesDatabase.cpp" />
@@ -166,7 +165,6 @@
     <ClInclude Include="engine\Include\Component\Light\PointLight.h" />
     <ClInclude Include="engine\Include\Math\Quaternion.h" />
     <ClInclude Include="engine\Include\Utilities\CPUTimer.h" />
-    <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />
     <ClInclude Include="engine\Include\System\TreeGenerator.h" />
     <ClInclude Include="engine\Include\System\TreeSpeciesDatabase.h" />

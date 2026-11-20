@@ -171,8 +171,7 @@ void BaseScene::Initialize(SceneManager *sceneManager) {
 	componentDrawerRegistry_->RegisterTagComponent<DirtyRelationshipTransform>("DirtyRelationshipTransform");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyMaterial>("DirtyMaterial");
 	componentDrawerRegistry_->RegisterTagComponent<DirtyTextureData>("DirtyTextureData");
-	componentDrawerRegistry_->RegisterTagComponent<DirtyMeshLOD>("DirtyMeshLOD");
-	componentDrawerRegistry_->RegisterTagComponent<DirtyCullingData>("DirtyCullingData");
+	componentDrawerRegistry_->RegisterTagComponent<DirtyIndirectCommandData>("DirtyIndirectCommandData");
 	componentDrawerRegistry_->RegisterTagComponent<NoCollision>("NoCollision");
 	componentDrawerRegistry_->RegisterTagComponent<AABBRenderer>("AABBRenderer");
 	componentDrawerRegistry_->RegisterTagComponent<SphereRenderer>("SphereRenderer");
@@ -366,6 +365,5 @@ void BaseScene::EndFrame() {
 	registry_->ClearComponent<DirtyRelationshipTransform>();
 	registry_->ClearComponent<DirtyMaterial>();
 	registry_->ClearComponent<DirtyTextureData>();
-	registry_->ClearComponent<DirtyMeshLOD>();
-	registry_->ClearComponent<DirtyCullingData>();
+	registry_->ClearComponent<DirtyIndirectCommandData>();
 }

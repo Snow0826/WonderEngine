@@ -101,72 +101,72 @@ private:
 	using PostEffectPipelineState = std::array<Microsoft::WRL::ComPtr<ID3D12PipelineState>, static_cast<uint32_t>(PostEffect::kCountOfPostEffect)>;
 	using MeshCommandSignature = std::array<Microsoft::WRL::ComPtr<ID3D12CommandSignature>, static_cast<uint32_t>(MeshType::kCountOfMeshType)>;
 	using MeshRenderConfig = std::array<RenderConfig, static_cast<uint32_t>(MeshType::kCountOfMeshType)>;
-	Device *device_ = nullptr;																	// デバイス
-	DescriptorHeap *gpuCbvSrvUavDescriptorHeap_ = nullptr;										// GPU用のCBV,SRV,UAVのディスクリプタヒープ
-	DescriptorHeap *cpuCbvSrvUavDescriptorHeap_ = nullptr;										// CPU用のCBV,SRV,UAVのディスクリプタヒープ
-	ID3D12GraphicsCommandList *commandList_ = nullptr;											// コマンドリスト
-	Registry *registry_ = nullptr;																// レジストリ
-	World *world_ = nullptr;																	// ワールド
-	DebugRenderer *debugRenderer_ = nullptr;													// デバッグレンダラー
-	MeshManager *meshManager_ = nullptr;														// メッシュマネージャー
-	TextureManager *textureManager_ = nullptr;													// テクスチャマネージャー
-	ModelManager *modelManager_ = nullptr;														// モデルマネージャー
-	SkinClusterManager *skinClusterManager_ = nullptr;											// スキンクラスターマネージャー
-	ParticleManager *particleManager_ = nullptr;												// パーティクルマネージャー
-	FootprintManager *footprintManager_ = nullptr;												// フットプリントマネージャー
-	PostEffectRootSignature postEffectRootSignature_;											// ポストエフェクト用ルートシグネチャ
-	ID3D12RootSignature *object3dRootSignature_ = nullptr;										// Object3d用ルートシグネチャ
-	ID3D12RootSignature *ringObject3dRootSignature_ = nullptr;									// RingObject3d用ルートシグネチャ
-	ID3D12RootSignature *particleRootSignature_ = nullptr;										// Particle用ルートシグネチャ
-	ID3D12RootSignature *ringParticleRootSignature_ = nullptr;									// RingParticle用ルートシグネチャ
-	ID3D12RootSignature *lineRootSignature_ = nullptr;											// Line用ルートシグネチャ
-	ID3D12RootSignature *skyboxRootSignature_ = nullptr;										// Skybox用ルートシグネチャ
-	ID3D12RootSignature *softBodyRootSignature_ = nullptr;										// SoftBody用ルートシグネチャ
-	ID3D12RootSignature *raymarchingRootSignature_ = nullptr;									// Raymarching用ルートシグネチャ
-	ID3D12RootSignature *skinningRootSignature_ = nullptr;										// スキニング用ルートシグネチャ
-	ID3D12RootSignature *initializeParticleRootSignature_ = nullptr;							// パーティクル初期化用ルートシグネチャ
-	ID3D12RootSignature *emitParticleRootSignature_ = nullptr;									// パーティクル発生用ルートシグネチャ
-	ID3D12RootSignature *updateParticleRootSignature_ = nullptr;								// パーティクル更新用ルートシグネチャ
-	ID3D12RootSignature *createAABBRootSignature_ = nullptr;									// AABB生成用ルートシグネチャ
-	ID3D12RootSignature *depthStencilCopyRootSignature_ = nullptr;								// 深度ステンシルテクスチャコピー用ルートシグネチャ
-	ID3D12RootSignature *generateHiZMipMapRootSignature_ = nullptr;								// HiZミップマップ生成用ルートシグネチャ
-	ID3D12RootSignature *clearMeshCommandStatesRootSignature_ = nullptr;						// メッシュコマンドステートのクリア用ルートシグネチャ
-	ID3D12RootSignature *meshCullingRootSignature_ = nullptr;									// メッシュカリング用ルートシグネチャ
-	ID3D12RootSignature *prefixSumRootSignature_ = nullptr;										// 累積和計算用ルートシグネチャ
-	ID3D12RootSignature *setInstanceCountRootSignature_ = nullptr;								// インスタンス数の反映用ルートシグネチャ
-	ID3D12RootSignature *setInstanceIndexRootSignature_ = nullptr;								// インスタンスインデックスの反映用ルートシグネチャ
-	ID3D12RootSignature *footprintRootSignature_ = nullptr;										// フットプリント用ルートシグネチャ
-	ID3D12RootSignature *footprintMapRootSignature_ = nullptr;									// フットプリントマップ用ルートシグネチャ
-	MeshPipelineState meshPipelineState_;														// Mesh用パイプラインステート
-	MeshPipelineState meshParticlePipelineState_;												// MeshParticle用パイプラインステート
-	BlendPipelineState spritePipelineState_;													// Sprite用パイプラインステート
-	PostEffectPipelineState postEffectPipelineState_;											// ポストエフェクト用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> linePipelineState_ = nullptr;					// Line用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> skyboxPipelineState_ = nullptr;					// Skybox用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> softBodyPipelineState_ = nullptr;				// SoftBody用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> raymarchingPipelineState_ = nullptr;			// Raymarching用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> skinningPipelineState_ = nullptr;				// スキニング用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> initializeParticlePipelineState_ = nullptr;		// パーティクル初期化用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> emitParticlePipelineState_ = nullptr;			// パーティクル発生用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> updateParticlePipelineState_ = nullptr;			// パーティクル更新用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> createAABBPipelineState_ = nullptr;				// AABB生成用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthStencilCopyPipelineState_ = nullptr;		// 深度ステンシルテクスチャコピー用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> generateHiZMipMapPipelineState_ = nullptr;		// HiZミップマップ生成用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> clearMeshCommandStatesPipelineState_ = nullptr;	// メッシュコマンドステートのクリア用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> meshCullingPipelineState_ = nullptr;			// メッシュカリング用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> prefixSumPipelineState_ = nullptr;				// 累積和計算用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>	setInstanceCountPipelineState_ = nullptr;		// インスタンス数の反映用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState>	setInstanceIndexPipelineState_ = nullptr;		// インスタンスインデックスの反映用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintPipelineState_ = nullptr;				// フットプリント用パイプラインステート
-	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintMapPipelineState_ = nullptr;			// フットプリントマップ用パイプラインステート
-	MeshCommandSignature meshCommandSignature_;													// メッシュコマンドシグネチャ
-	MeshRenderConfig meshRenderConfig_;															// メッシュ描画設定
-	MeshRenderConfig meshParticleRenderConfig_;													// メッシュパーティクル描画設定
-	std::unique_ptr<PostEffectRenderer> postEffectRenderer_ = nullptr;							// ポストエフェクトレンダラー
-	PostEffect currentPostEffect_ = PostEffect::kCountOfPostEffect;								// 現在のポストエフェクト
-	bool isSceneViewVisible_ = true;															// シーンビューの表示フラグ
-	bool isGameViewVisible_ = true;																// ゲームビューの表示フラグ
-	bool isGameFinished_ = false;																// ゲーム終了フラグ
+	Device *device_ = nullptr;								// デバイス
+	DescriptorHeap *gpuCbvSrvUavDescriptorHeap_ = nullptr;	// GPU用のCBV,SRV,UAVのディスクリプタヒープ
+	DescriptorHeap *cpuCbvSrvUavDescriptorHeap_ = nullptr;	// CPU用のCBV,SRV,UAVのディスクリプタヒープ
+	ID3D12GraphicsCommandList *commandList_ = nullptr;		// コマンドリスト
+	Registry *registry_ = nullptr;							// レジストリ
+	World *world_ = nullptr;								// ワールド
+	DebugRenderer *debugRenderer_ = nullptr;				// デバッグレンダラー
+	MeshManager *meshManager_ = nullptr;					// メッシュマネージャー
+	TextureManager *textureManager_ = nullptr;				// テクスチャマネージャー
+	ModelManager *modelManager_ = nullptr;					// モデルマネージャー
+	SkinClusterManager *skinClusterManager_ = nullptr;		// スキンクラスターマネージャー
+	ParticleManager *particleManager_ = nullptr;			// パーティクルマネージャー
+	FootprintManager *footprintManager_ = nullptr;			// フットプリントマネージャー
+	PostEffectRootSignature postEffectRootSignature_;							// ポストエフェクト用ルートシグネチャ
+	ID3D12RootSignature *object3dRootSignature_ = nullptr;						// Object3d用ルートシグネチャ
+	ID3D12RootSignature *ringObject3dRootSignature_ = nullptr;					// RingObject3d用ルートシグネチャ
+	ID3D12RootSignature *particleRootSignature_ = nullptr;						// Particle用ルートシグネチャ
+	ID3D12RootSignature *ringParticleRootSignature_ = nullptr;					// RingParticle用ルートシグネチャ
+	ID3D12RootSignature *lineRootSignature_ = nullptr;							// Line用ルートシグネチャ
+	ID3D12RootSignature *skyboxRootSignature_ = nullptr;						// Skybox用ルートシグネチャ
+	ID3D12RootSignature *softBodyRootSignature_ = nullptr;						// SoftBody用ルートシグネチャ
+	ID3D12RootSignature *raymarchingRootSignature_ = nullptr;					// Raymarching用ルートシグネチャ
+	ID3D12RootSignature *skinningRootSignature_ = nullptr;						// スキニング用ルートシグネチャ
+	ID3D12RootSignature *initializeParticleRootSignature_ = nullptr;			// パーティクル初期化用ルートシグネチャ
+	ID3D12RootSignature *emitParticleRootSignature_ = nullptr;					// パーティクル発生用ルートシグネチャ
+	ID3D12RootSignature *updateParticleRootSignature_ = nullptr;				// パーティクル更新用ルートシグネチャ
+	ID3D12RootSignature *createAABBRootSignature_ = nullptr;					// AABB生成用ルートシグネチャ
+	ID3D12RootSignature *depthStencilCopyRootSignature_ = nullptr;				// 深度ステンシルテクスチャコピー用ルートシグネチャ
+	ID3D12RootSignature *generateHiZMipMapRootSignature_ = nullptr;				// HiZミップマップ生成用ルートシグネチャ
+	ID3D12RootSignature *clearIndirectCommandStatesRootSignature_ = nullptr;	// 間接コマンド用集計状態データのクリア用ルートシグネチャ
+	ID3D12RootSignature *meshCullingRootSignature_ = nullptr;					// メッシュカリング用ルートシグネチャ
+	ID3D12RootSignature *calculateInstanceOffsetRootSignature_ = nullptr;		// インスタンスオフセットの計算用ルートシグネチャ
+	ID3D12RootSignature *setInstanceCountRootSignature_ = nullptr;				// インスタンス数の反映用ルートシグネチャ
+	ID3D12RootSignature *setInstanceIndexRootSignature_ = nullptr;				// インスタンスインデックスの反映用ルートシグネチャ
+	ID3D12RootSignature *footprintRootSignature_ = nullptr;						// フットプリント用ルートシグネチャ
+	ID3D12RootSignature *footprintMapRootSignature_ = nullptr;					// フットプリントマップ用ルートシグネチャ
+	MeshPipelineState meshPipelineState_;															// Mesh用パイプラインステート
+	MeshPipelineState meshParticlePipelineState_;													// MeshParticle用パイプラインステート
+	BlendPipelineState spritePipelineState_;														// Sprite用パイプラインステート
+	PostEffectPipelineState postEffectPipelineState_;												// ポストエフェクト用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> linePipelineState_ = nullptr;						// Line用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> skyboxPipelineState_ = nullptr;						// Skybox用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> softBodyPipelineState_ = nullptr;					// SoftBody用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> raymarchingPipelineState_ = nullptr;				// Raymarching用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> skinningPipelineState_ = nullptr;					// スキニング用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> initializeParticlePipelineState_ = nullptr;			// パーティクル初期化用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> emitParticlePipelineState_ = nullptr;				// パーティクル発生用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> updateParticlePipelineState_ = nullptr;				// パーティクル更新用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> createAABBPipelineState_ = nullptr;					// AABB生成用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> depthStencilCopyPipelineState_ = nullptr;			// 深度ステンシルテクスチャコピー用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> generateHiZMipMapPipelineState_ = nullptr;			// HiZミップマップ生成用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> clearIndirectCommandStatesPipelineState_ = nullptr;	// 間接コマンド用集計状態データのクリア用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> meshCullingPipelineState_ = nullptr;				// メッシュカリング用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> calculateInstanceOffsetPipelineState_ = nullptr;	// インスタンスオフセットの計算用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>	setInstanceCountPipelineState_ = nullptr;			// インスタンス数の反映用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState>	setInstanceIndexPipelineState_ = nullptr;			// インスタンスインデックスの反映用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintPipelineState_ = nullptr;					// フットプリント用パイプラインステート
+	Microsoft::WRL::ComPtr<ID3D12PipelineState> footprintMapPipelineState_ = nullptr;				// フットプリントマップ用パイプラインステート
+	MeshCommandSignature meshCommandSignature_;							// メッシュコマンドシグネチャ
+	MeshRenderConfig meshRenderConfig_;									// メッシュ描画設定
+	MeshRenderConfig meshParticleRenderConfig_;							// メッシュパーティクル描画設定
+	std::unique_ptr<PostEffectRenderer> postEffectRenderer_ = nullptr;	// ポストエフェクトレンダラー
+	PostEffect currentPostEffect_ = PostEffect::kCountOfPostEffect;		// 現在のポストエフェクト
+	bool isSceneViewVisible_ = true;									// シーンビューの表示フラグ
+	bool isGameViewVisible_ = true;										// ゲームビューの表示フラグ
+	bool isGameFinished_ = false;										// ゲーム終了フラグ
 
 	/// @brief パーティクルの発生
 	void EmitParticle();
@@ -186,14 +186,14 @@ private:
 	/// @brief HiZミップマップ生成
 	void GenerateHiZMipMap();
 
-	/// @brief メッシュコマンドステートのクリア
-	void ClearMeshCommandStates();
+	/// @brief 間接コマンド用集計状態データのクリア
+	void ClearIndirectCommandStates();
 
 	/// @brief メッシュカリング
 	void MeshCulling();
 
-	/// @brief 累積和計算
-	void PrefixSum();
+	/// @brief インスタンスオフセットの計算
+	void CalculateInstanceOffset();
 
 	/// @brief インスタンス数の反映
 	void SetInstanceCount();

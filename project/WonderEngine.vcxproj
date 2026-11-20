@@ -167,7 +167,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="engine\Source\System\TreeGenerator.cpp" />
     <ClCompile Include="engine\Source\System\TreeSpeciesDatabase.cpp" />
     <ClCompile Include="engine\Source\Component\Skybox.cpp" />
-    <ClCompile Include="engine\Source\System\QuadricErrorMetrics.cpp" />
     <ClCompile Include="engine\Source\Component\BlendMode.cpp" />
     <ClCompile Include="engine\Source\Rendering\DebugRenderer.cpp" />
     <ClCompile Include="engine\Source\Component\Animation.cpp" />
@@ -276,7 +275,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="engine\Include\System\TreeSpeciesDatabase.h" />
     <ClInclude Include="engine\Include\Component\Skybox.h" />
     <ClInclude Include="engine\Include\Scene\SoundHandle.h" />
-    <ClInclude Include="engine\Include\System\QuadricErrorMetrics.h" />
     <ClInclude Include="engine\Include\Utilities\CPUTimer.h" />
     <ClInclude Include="engine\Include\Rendering\DebugRenderer.h" />
     <ClInclude Include="engine\Include\Component\Animation.h" />

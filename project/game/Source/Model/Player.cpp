@@ -26,8 +26,7 @@ void Player::Initialize() {
 	registry_->AddComponent(entity_, DirtyRelationshipTransform{});
 	registry_->AddComponent(entity_, DirtyMaterial{});
 	registry_->AddComponent(entity_, DirtyTextureData{});
-	registry_->AddComponent(entity_, DirtyMeshLOD{});
-	registry_->AddComponent(entity_, DirtyCullingData{});
+	registry_->AddComponent(entity_, DirtyIndirectCommandData{});
 	registry_->AddComponent(entity_, instanceAllocator_->Allocate(entity_));
 	registry_->AddComponent(entity_, Model{ .name = "sphere.obj" });
 	registry_->AddComponent(entity_, RigidBody{ .radius = 1.0f });

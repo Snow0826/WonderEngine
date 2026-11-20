@@ -41,17 +41,9 @@ using QueueOffsets = std::array<Uint4, (static_cast<uint32_t>(MeshType::kCountOf
 
 /// @brief カリング定数データ
 struct CullingConstantsData final {
-	uint32_t meshCount = 0;		// メッシュの数
+	uint32_t objectCount = 0;	// オブジェクト数
 	uint32_t padding[3]{};		// パディング
 	QueueOffsets queueOffsets;	// キューオフセットリスト
-};
-
-/// @brief カリングオブジェクトデータ(GPU)
-struct CullingObjectData final {
-	Matrix4x4 worldMatrix;	// ワールド行列
-	MeshType meshType;		// メッシュタイプ
-	BlendMode blendMode;	// ブレンドモード
-	uint32_t aabbIndex = 0;	// AABBインデックス
 };
 
 /// @brief AABB(GPU)
@@ -60,51 +52,51 @@ struct AABBForGPU final {
 	Vector4 max;	// 最大点
 };
 
-/// @brief カリングデータ(GPU)
-struct CullingMeshData final {
-	uint32_t objectIndex = 0;	// オブジェクトインデックス
-	uint32_t lodOffset = 0;		// LODオフセット
-	uint32_t lodCount = 0;		// LOD数
-	uint32_t useCulling = 0;	// カリングを使用するか
-};
-
-/// @brief カリングデータが変更されたフラグ
-struct DirtyCullingData final {};
-
 /// @brief 間接コマンド
 #pragma pack(push, 1)
 struct IndirectCommand final {
-	uint32_t meshOffset = 0;							// メッシュオフセット
+	uint32_t instanceOffset = 0;						// メッシュオフセット
 	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;			// 頂点バッファビュー
 	D3D12_INDEX_BUFFER_VIEW indexBufferView;			// インデックスバッファビュー
 	D3D12_DRAW_INDEXED_ARGUMENTS drawIndexedArguments;	// 描画コマンド引数
 };
 #pragma pack(pop)
 
-/// @brief メッシュLOD
+/// @brief カリングオブジェクトデータ(GPU)
+struct CullingObjectData final {
+	Matrix4x4 worldMatrix;	// ワールド行列
+	MeshType meshType;		// メッシュタイプ
+	BlendMode blendMode;	// ブレンドモード
+	uint32_t meshIndex = 0;	// メッシュインデックス
+	uint32_t instanceIndex = 0;	// インスタンスインデックス
+	uint32_t useCulling = 0;	// カリングを使用するか
+};
+
+/// @brief 間接コマンド用メッシュデータ(GPU)
 #pragma pack(push, 1)
-struct MeshLOD final {
-	IndirectCommand indirectCommand;	// 間接コマンド
-	float error = 0.0f;					// LODエラー
+struct IndirectCommandMeshData final {
+	D3D12_VERTEX_BUFFER_VIEW vertexBufferView;	// 頂点バッファビュー
+	D3D12_INDEX_BUFFER_VIEW indexBufferView;	// インデックスバッファビュー
+	uint32_t indexCount = 0;					// インデックス数
 };
 #pragma pack(pop)
 
-/// @brief メッシュLODが変更されたフラグ
-struct DirtyMeshLOD final {};
+/// @brief 間接コマンド用データが変更されたフラグ
+struct DirtyIndirectCommandData final {};
 
-/// @brief メッシュコマンドステート
-struct MeshCommandState final {
+/// @brief オブジェクト用集計状態データ(GPU)
+struct ObjectState final {
+	uint32_t visible = 0;
+	uint32_t meshIndex = 0;
+	uint32_t instanceIndex = 0;
+};
+
+/// @brief 間接コマンド用集計状態データ(GPU)
+struct IndirectCommandState final {
 	uint32_t commandIndex = 0;
 	uint32_t instanceCount = 0;
 	uint32_t currentOffset = 0;
-	uint32_t startInstanceLocation = 0;
-};
-
-/// @brief メッシュLODステート
-struct MeshLODState final {
-	uint32_t meshLODIndex = 0;
-	uint32_t visible = 0;
-	uint32_t instanceIndex = 0;
+	uint32_t instanceOffset = 0;
 };
 
 /// @brief カリングコンポーネント
@@ -266,9 +258,8 @@ enum class StructuredBufferType {
 	kSdBoxData,						// ボックスSDFデータ
 	kMeshInfoForAABB,				// AABB用のメッシュ情報
 	kVertexDataForAABB,				// AABB用の頂点データ
-	kCullingMeshData,				// カリングメッシュデータ
 	kCullingObjectData,				// カリングオブジェクトデータ
-	kMeshLOD,						// メッシュLOD
+	kIndirectCommandMeshData,		// 間接コマンド用メッシュデータ
 	kFootprint,						// フットプリント
 	kCountOfStructuredBufferType	// 構造化バッファの種類の数
 };
@@ -350,21 +341,17 @@ public:
 	/// @return Hi-Zテクスチャ
 	Resource *GetHiZTexture() { return hiZTexture_.get(); }
 
-	/// @brief コマンドアップロードバッファを取得
-	/// @return コマンドアップロードバッファ
-	Resource *GetCommandUploadBuffer() { return commandUploadBuffer_.get(); }
+	/// @brief オブジェクト用集計状態バッファを取得
+	/// @return オブジェクト用集計状態バッファ
+	Resource *GetObjectStateBuffer() { return objectStateBuffer_.get(); }
+
+	/// @brief 間接コマンド用集計状態バッファを取得
+	/// @return 間接コマンド用集計状態バッファ
+	Resource *GetIndirectCommandStateBuffer() { return indirectCommandStateBuffer_.get(); }
 
 	/// @brief カリング済みコマンドバッファを取得
 	/// @return カリング済みコマンドバッファ
 	Resource *GetProcessedCommandBuffer() { return processedCommandBuffer_.get(); }
-
-	/// @brief メッシュコマンドステートバッファを取得
-	/// @return メッシュコマンドステートバッファ
-	Resource *GetMeshCommandStateBuffer() { return meshCommandStateBuffer_.get(); }
-
-	/// @brief メッシュLODステートバッファを取得
-	/// @return メッシュLODステートバッファ
-	Resource *GetMeshLODStateBuffer() { return meshLODStateBuffer_.get(); }
 
 	/// @brief カリング済みインスタンスインデックスバッファを取得
 	/// @return カリング済みインスタンスインデックスバッファ
@@ -378,13 +365,9 @@ public:
 	/// @return フットプリントマップバッファ
 	Resource *GetFootprintMapBuffer() { return footprintMapBuffer_.get(); }
 
-	/// @brief メッシュLODカウンターを取得
-	/// @return メッシュLODカウンター
-	uint32_t GetMeshLODCounter() const { return meshLODCounter_; }
-
-	/// @brief AABB用のメッシュ情報カウンターを取得
-	/// @return AABB用のメッシュ情報カウンター
-	uint32_t GetMeshInfoForAABBCounter() const { return meshInfoForAABBCounter_; }
+	/// @brief メッシュ数を取得
+	/// @return メッシュ数
+	uint32_t GetMeshCounter() const { return meshCounter_; }
 
 	/// @brief カリング定数データを取得
 	/// @return カリング定数データ
@@ -461,25 +444,25 @@ public:
 	/// @return AABB用UAVハンドル
 	uint32_t GetAABBUAVHandle() const { return aabbUAVHandle_; }
 
+	/// @brief オブジェクト用集計状態SRVハンドルを取得
+	/// @return オブジェクト用集計状態SRVハンドル
+	uint32_t GetObjectStateSRVHandle() const { return objectStateSRVHandle_; }
+
+	/// @brief オブジェクト用集計状態UAVハンドルを取得
+	/// @return オブジェクト用集計状態UAVハンドル
+	uint32_t GetObjectStateUAVHandle() const { return objectStateUAVHandle_; }
+
+	/// @brief 間接コマンド用集計状態SRVハンドルを取得
+	/// @return 間接コマンド用集計状態SRVハンドル
+	uint32_t GetIndirectCommandStateSRVHandle() const { return indirectCommandStateSRVHandle_; }
+
+	/// @brief 間接コマンド用集計状態UAVハンドルを取得
+	/// @return 間接コマンド用集計状態UAVハンドル
+	uint32_t GetIndirectCommandStateUAVHandle() const { return indirectCommandStateUAVHandle_; }
+
 	/// @brief カリング済みコマンドハンドルを取得
 	/// @return カリング済みコマンドハンドル
 	uint32_t GetProcessedCommandHandle() const { return processedCommandHandle_; }
-
-	/// @brief メッシュコマンドステートSRVハンドルを取得
-	/// @return メッシュコマンドステートSRVハンドル
-	uint32_t GetMeshCommandStateSRVHandle() const { return meshCommandStateSRVHandle_; }
-
-	/// @brief メッシュコマンドステートUAVハンドルを取得
-	/// @return メッシュコマンドステートUAVハンドル
-	uint32_t GetMeshCommandStateUAVHandle() const { return meshCommandStateUAVHandle_; }
-
-	/// @brief メッシュLODステートSRVハンドルを取得
-	/// @return メッシュLODステートSRVハンドル
-	uint32_t GetMeshLODStateSRVHandle() const { return meshLODStateSRVHandle_; }
-
-	/// @brief メッシュLODステートUAVハンドルを取得
-	/// @return メッシュLODステートUAVハンドル
-	uint32_t GetMeshLODStateUAVHandle() const { return meshLODStateUAVHandle_; }
 
 	/// @brief カリング済みインスタンスインデックスSRVハンドルを取得
 	/// @return カリング済みインスタンスインデックスSRVハンドル
@@ -526,14 +509,14 @@ private:
 	using StructuredBuffers = std::array<std::unique_ptr<Resource>, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
 	using StructuredBufferHandles = std::array<uint32_t, static_cast<size_t>(StructuredBufferType::kCountOfStructuredBufferType)>;
 	static inline constexpr uint32_t kMaxLine = 65536;					// 最大ライン数
-	static inline constexpr uint32_t kMaxPointLight = 32;				// 最大点光源数
-	static inline constexpr uint32_t kMaxSpotLight = 32;				// 最大スポットライト数
-	static inline constexpr uint32_t kMaxSdSphereData = 1024;			// 最大球状SDF数
-	static inline constexpr uint32_t kMaxSdBoxData = 1024;				// 最大ボックスSDF数
-	static inline constexpr uint32_t kMaxObject = 100000;				// 最大オブジェクト数
-	static inline constexpr uint32_t kMaxAABB = 100000;					// 最大AABB数
+	static inline constexpr uint32_t kMaxPointLight = 1;				// 最大点光源数
+	static inline constexpr uint32_t kMaxSpotLight = 1;					// 最大スポットライト数
+	static inline constexpr uint32_t kMaxSdBoxData = 1;					// 最大ボックスSDF数
+	static inline constexpr uint32_t kMaxSdSphereData = 1;				// 最大球状SDF数
+	static inline constexpr uint32_t kMaxObject = 10000000;				// 最大オブジェクト数
+	static inline constexpr uint32_t kMaxMeshes = 1024;					// 最大メッシュ数
 	static inline constexpr uint32_t kMaxVertices = 1000000;			// 最大頂点数
-	static inline constexpr uint32_t kMaxFootprint = 64;				// 最大フットプリント数
+	static inline constexpr uint32_t kMaxFootprint = 1;					// 最大フットプリント数
 	static inline constexpr uint32_t kMaxCommandPerQueue = 1024;		// コマンドキューあたりの最大コマンド数
 	Registry *registry_ = nullptr;										// レジストリ
 	MeshManager *meshManager_ = nullptr;								// メッシュマネージャー
@@ -547,18 +530,16 @@ private:
 	std::unique_ptr<Resource> postEffectRenderTexture_ = nullptr;		// ポストエフェクトのレンダーテクスチャ
 	std::unique_ptr<Resource> hiZTexture_ = nullptr;					// Hi-Zテクスチャ
 	std::unique_ptr<Resource> aabbBuffer_ = nullptr;					// AABBバッファ
-	std::unique_ptr<Resource> commandUploadBuffer_ = nullptr;			// コマンドアップロードバッファ
+	std::unique_ptr<Resource> objectStateBuffer_ = nullptr;				// オブジェクト用集計状態バッファ
+	std::unique_ptr<Resource> indirectCommandStateBuffer_ = nullptr;	// 間接コマンド用集計状態バッファ
 	std::unique_ptr<Resource> processedCommandBuffer_ = nullptr;		// カリング済みコマンドバッファ
-	std::unique_ptr<Resource> meshCommandStateBuffer_ = nullptr;		// メッシュコマンドステートバッファ
-	std::unique_ptr<Resource> meshLODStateBuffer_ = nullptr;			// メッシュLODステートバッファ
 	std::unique_ptr<Resource> processedInstanceIndexBuffer_ = nullptr;	// カリング済みインスタンスインデックスバッファ
 	std::unique_ptr<Resource> commandCounterBuffer_ = nullptr;			// コマンドカウンターバッファ
 	std::unique_ptr<Resource> freeListIndexBuffer_ = nullptr;			// フリーリストインデックスバッファ
 	std::unique_ptr<Resource> freeListBuffer_ = nullptr;				// フリーリストバッファ
 	std::unique_ptr<Resource> footprintMapBuffer_ = nullptr;			// フットプリントマップバッファ
 	std::unique_ptr<Resource> footprintMapReadbackBuffer_ = nullptr;	// フットプリントマップ読み戻しバッファ
-	uint32_t meshLODCounter_ = 0;										// メッシュLODカウンター
-	uint32_t meshInfoForAABBCounter_ = 0;								// AABB用のメッシュ情報カウンター
+	uint32_t meshCounter_ = 0;											// メッシュカウンター
 	CullingConstantsData cullingConstantsData_;							// カリング定数データ
 	GrayscaleColor grayscaleColor_;										// グレースケールカラー
 	VignetteParam vignetteParam_;										// ビネットパラメータ
@@ -574,7 +555,6 @@ private:
 	SdSceneData sdSceneData_;											// シーンSDFデータ
 	FootprintForGPU *footprintData_ = nullptr;							// フットプリントデータ
 	Int4 *colorData_ = nullptr;											// 色データ
-	MeshLOD *meshLODData_ = nullptr;									// メッシュLODデータ
 	TransformationMatrix *instanceData_ = nullptr;						// インスタンスデータ
 	Material *materialData_ = nullptr;									// マテリアルデータ
 	TextureData *textureData_ = nullptr;								// テクスチャデータ
@@ -583,8 +563,8 @@ private:
 	SpotLight *spotLightData_ = nullptr;								// スポットライトデータ
 	MeshInfoForAABB *meshInfoForAABB_ = nullptr;						// AABB用のメッシュ情報
 	VertexDataForAABB *vertexDataForAABB_ = nullptr;					// AABB用の頂点データ
-	CullingMeshData *cullingMeshData_ = nullptr;						// カリングメッシュデータ
 	CullingObjectData *cullingObjectData_ = nullptr;					// カリングオブジェクトデータ
+	IndirectCommandMeshData *indirectCommandMeshData_ = nullptr;		// 間接コマンド用メッシュデータ
 	SdSphereData *sdSphereData_ = nullptr;								// 球状SDFデータ
 	SdBoxData *sdBoxData_ = nullptr;									// ボックスSDFデータ
 	uint32_t mipLevels_ = 0;											// ミップレベル数
@@ -603,10 +583,10 @@ private:
 	uint32_t aabbSRVHandle_ = 0;										// AABB用SRVハンドル
 	uint32_t aabbUAVHandle_ = 0;										// AABB用UAVハンドル
 	uint32_t processedCommandHandle_ = 0;								// カリング済みコマンドハンドル
-	uint32_t meshCommandStateSRVHandle_ = 0;							// メッシュコマンドステートSRVハンドル
-	uint32_t meshCommandStateUAVHandle_ = 0;							// メッシュコマンドステートUAVハンドル
-	uint32_t meshLODStateSRVHandle_ = 0;								// メッシュLODステートSRVハンドル
-	uint32_t meshLODStateUAVHandle_ = 0;								// メッシュLODステートUAVハンドル
+	uint32_t objectStateSRVHandle_ = 0;									// オブジェクト用集計状態SRVハンドル
+	uint32_t objectStateUAVHandle_ = 0;									// オブジェクト用集計状態UAVハンドル
+	uint32_t indirectCommandStateSRVHandle_ = 0;						// 間接コマンド用集計状態SRVハンドル
+	uint32_t indirectCommandStateUAVHandle_ = 0;						// 間接コマンド用集計状態UAVハンドル
 	uint32_t processedInstanceIndexSRVHandle_ = 0;						// カリング済みインスタンスインデックスSRVハンドル
 	uint32_t processedInstanceIndexUAVHandle_ = 0;						// カリング済みインスタンスインデックスUAVハンドル
 	uint32_t commandCounterHandle_ = 0;									// コマンドカウンターハンドル
@@ -638,11 +618,8 @@ private:
 	/// @brief テクスチャデータの転送
 	void TransferTextureData();
 
-	/// @brief メッシュLODデータの転送
-	void TransferMeshLODData();
-
-	/// @brief カリングデータの転送
-	void TransferCullingData();
+	/// @brief 間接コマンドデータの転送
+	void TransferIndirectCommandData();
 
 	/// @brief スカイボックスの転送
 	void TransferSkybox();

@@ -13,16 +13,9 @@
 #endif // USE_IMGUI
 
 Primitive TreeGenerator::Generate(const TreeConfig &tree) {
-	if (tree.randomSeed == 0) {
-		randomEngine_.seed(std::random_device{}());
-	} else {
-		randomEngine_.seed(tree.randomSeed);
-	}
-	leaves_.clear();
 	branches_.clear();
 	branchGrid_.clear();
 	gridCellSize_ = tree.influenceRadius;
-	GenerateLeaves(tree.crown, tree.leafCount);
 	GenerateRootBranch();
 	GenerateTrunk(tree.trunkHeight, tree.branchLength);
 	uint32_t noProgressCount = 0;
@@ -58,21 +51,27 @@ Primitive TreeGenerator::Generate(const TreeConfig &tree) {
 	return primitiveGenerator_->CreateTree("TreeMesh" + std::to_string(treeMeshCounter_++), CreateBranchMesh(), 2, 4, 1.0f, "Bark001_1K-JPG_Color.jpg");
 }
 
-void TreeGenerator::GenerateLeaves(const TreeCrown &crown, uint32_t leafCount) {
+void TreeGenerator::GenerateLeaves(const TreeConfig &tree) {
+	if (tree.randomSeed == 0) {
+		randomEngine_.seed(std::random_device{}());
+	} else {
+		randomEngine_.seed(tree.randomSeed);
+	}
+
 	timer_.Begin();
 	leaves_.clear();
-	leaves_.reserve(leafCount);
-	for (uint32_t i = 0; i < leafCount; i++) {
+	leaves_.reserve(tree.leafCount);
+	for (uint32_t i = 0; i < tree.leafCount; i++) {
 		Leaf leaf;
 		while (true) {
-			Vector3 distance = Random::Generate(randomEngine_, -crown.radius, crown.radius);
-			float x = distance.x / crown.radius.x;
-			float y = distance.y / crown.radius.y;
-			float z = distance.z / crown.radius.z;
+			Vector3 distance = Random::Generate(randomEngine_, -tree.crown.radius, tree.crown.radius);
+			float x = distance.x / tree.crown.radius.x;
+			float y = distance.y / tree.crown.radius.y;
+			float z = distance.z / tree.crown.radius.z;
 			float radial = std::sqrt(x * x + z * z);
 			float envelope = 1.0f;
 			bool signedEnvelope = false;
-			switch (crown.shape) {
+			switch (tree.crown.shape) {
 				case CrownShape::Sphere:
 				case CrownShape::Ellipsoid:
 					envelope = x * x + y * y + z * z;
@@ -100,12 +99,12 @@ void TreeGenerator::GenerateLeaves(const TreeCrown &crown, uint32_t leafCount) {
 					signedEnvelope = true;
 					break;
 			}
-			if ((signedEnvelope ? envelope <= 0.0f : envelope <= 1.0f) && Random::Generate(randomEngine_, 0.0f, 1.0f) <= 1.0f - crown.topBias * (1.0f - (y + 0.5f))) {
-				if (Random::Generate(randomEngine_, 0.0f, 1.0f) < crown.surfaceBias) {
-					Vector3 normal{ distance.x / (crown.radius.x * crown.radius.x), distance.y / (crown.radius.y * crown.radius.y), distance.z / (crown.radius.z * crown.radius.z) };
-					distance += normal.normalized() * (Random::Generate(randomEngine_, 0.0f, 0.1f) * std::min(crown.radius.x, crown.radius.z));
+			if ((signedEnvelope ? envelope <= 0.0f : envelope <= 1.0f) && Random::Generate(randomEngine_, 0.0f, 1.0f) <= 1.0f - tree.crown.topBias * (1.0f - (y + 0.5f))) {
+				if (Random::Generate(randomEngine_, 0.0f, 1.0f) < tree.crown.surfaceBias) {
+					Vector3 normal{ distance.x / (tree.crown.radius.x * tree.crown.radius.x), distance.y / (tree.crown.radius.y * tree.crown.radius.y), distance.z / (tree.crown.radius.z * tree.crown.radius.z) };
+					distance += normal.normalized() * (Random::Generate(randomEngine_, 0.0f, 0.1f) * std::min(tree.crown.radius.x, tree.crown.radius.z));
 				}
-				leaf.position = crown.center + distance;
+				leaf.position = tree.crown.center + distance;
 				break;
 			}
 		};

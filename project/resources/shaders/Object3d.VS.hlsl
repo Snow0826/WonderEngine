@@ -1,14 +1,19 @@
 #include "Object3d.hlsli"
 
 ConstantBuffer<PerView> gPerView : register(b0);
-ConstantBuffer<MeshData> gMeshData : register(b1);
+
+cbuffer InstanceOffset : register(b1)
+{
+    uint gInstanceOffset;
+};
+
 StructuredBuffer<uint> gInstanceIndices : register(t0);
 StructuredBuffer<InstanceData> gInstanceData : register(t1);
 
 VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID)
 {
     VertexShaderOutput output;
-    uint instanceIndex = gInstanceIndices[gMeshData.meshOffset + instanceId];
+    uint instanceIndex = gInstanceIndices[gInstanceOffset + instanceId];
     InstanceData instanceData = gInstanceData[instanceIndex];
     output.position = mul(input.position, mul(instanceData.world, mul(gPerView.view, gPerView.projection)));
     output.texcoord = input.texcoord;

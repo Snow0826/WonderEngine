@@ -20,11 +20,6 @@ struct PerView
     float4x4 projection;
 };
 
-struct MeshData
-{
-    uint meshOffset;
-};
-
 struct InstanceData
 {
     float4x4 world;

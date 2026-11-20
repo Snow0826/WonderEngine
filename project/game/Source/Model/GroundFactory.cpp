@@ -18,8 +18,7 @@ void GroundFactory::Create(Registry &registry, InstanceAllocator &instanceAlloca
 	registry.AddComponent(entity, DirtyRelationshipTransform{});
 	registry.AddComponent(entity, DirtyMaterial{});
 	registry.AddComponent(entity, DirtyTextureData{});
-	registry.AddComponent(entity, DirtyMeshLOD{});
-	registry.AddComponent(entity, DirtyCullingData{});
+	registry.AddComponent(entity, DirtyIndirectCommandData{});
 	registry.AddComponent(entity, instanceAllocator.Allocate(entity));
 	registry.AddComponent(entity, Model{ .name = "ground.obj" });
 	registry.AddComponent(entity, FootprintMap{ .terrainOriginXZ = { 0.0f, 0.0f }, .terrainSizeXZ = { 1024.0f, 1024.0f } });
